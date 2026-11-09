@@ -70,8 +70,8 @@ When managing documentation, project specifications, and architectural artifacts
 
 Ensure all libraries, packages, and frameworks are safe, compatible, and verified against official sources:
 
-- **Security & Safety Inspection:** Before installing or adding any dependency to the project (NuGet packages, tools, npm packages, etc.), use the **Socket CLI** (`socket`) to inspect the package and determine whether it is safe to install.
-- **Official Documentation Verification:** Before using any framework or dependency, use the **Context7 CLI** (`context7`) and the `source-driven-development` skill to retrieve and verify its official documentation.
+- **Security & Safety Inspection:** Before installing or adding any dependency to the project, use the Socket CLI (CLI command: `socket`) to inspect it and determine whether it is safe to install.
+- **Official Documentation Verification:** Before using any framework or dependency, use Context7 CLI (CLI command: `ctx7`) and the `source-driven-development` skill to retrieve and verify its official documentation.
 - **Grounded Implementation:** Base implementation decisions on verified, current documentation rather than assumptions, training-data guesswork, or outdated knowledge.
 
 ---
