@@ -64,9 +64,8 @@
   - *Scope:* S (1-2 files)
 
 #### Checkpoint 3: Exception Safety Validation
-- [ ] Exception types compile and enforce descriptive error contexts.
-- [ ] Unhandled exception simulation proves logger captures error.
-
+- [x] Exception types compile and enforce descriptive error contexts.
+- [x] Unhandled exception simulation proves logger captures error.
 ---
 
 ### Task Group 4: Dual-Tier Testing Projects Setup (xUnit & Reqnroll)
