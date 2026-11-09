@@ -365,3 +365,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Reqnroll / SpecFlow generated code-behind
+*.feature.cs
