@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using pcb_deftek.Infrastructure.Logging;
 using Serilog;
@@ -20,6 +22,12 @@ public partial class App : Application
     public static new App Current => (App)Application.Current;
 
     /// <summary>
+    /// Controls whether error dialogs are displayed on unhandled dispatcher exceptions.
+    /// Can be disabled in automated test environments.
+    /// </summary>
+    public static bool ShowErrorDialogs { get; set; } = true;
+
+    /// <summary>
     /// Gets the dependency injection service provider.
     /// </summary>
     public IServiceProvider Services => _serviceProvider
@@ -30,6 +38,8 @@ public partial class App : Application
         base.OnStartup(e);
 
         LoggingBootstrapper.Initialize();
+        RegisterGlobalExceptionHandlers();
+
         Log.Information("pcb-deftek application initialized. OS: {OSVersion}, Architecture: {Architecture}",
             Environment.OSVersion,
             RuntimeInformation.ProcessArchitecture);
@@ -68,5 +78,46 @@ public partial class App : Application
         });
 
         services.AddSingleton<MainWindow>();
+    }
+
+    private void RegisterGlobalExceptionHandlers()
+    {
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+    }
+
+    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        Log.Fatal(e.Exception, "Unhandled UI dispatcher exception: {Message}", e.Exception.Message);
+
+        if (ShowErrorDialogs)
+        {
+            MessageBox.Show(
+                $"An unexpected error occurred:\n\n{e.Exception.Message}\n\nPlease check the application logs for further details.",
+                "Application Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+
+        e.Handled = true;
+    }
+
+    private static void OnAppDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception ex)
+        {
+            Log.Fatal(ex, "Unhandled AppDomain exception encountered. IsTerminating: {IsTerminating}", e.IsTerminating);
+        }
+        else
+        {
+            Log.Fatal("Unhandled non-CLS AppDomain exception: {ExceptionObject}", e.ExceptionObject);
+        }
+    }
+
+    private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        Log.Error(e.Exception, "Unobserved background task exception: {Message}", e.Exception.Message);
+        e.SetObserved();
     }
 }
