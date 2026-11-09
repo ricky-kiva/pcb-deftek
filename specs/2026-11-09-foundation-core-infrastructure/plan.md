@@ -20,9 +20,8 @@
   - *Scope:* S (1-2 files)
 
 #### Checkpoint 1: Logging Validation
-- [ ] `dotnet build` succeeds with 0 errors, 0 warnings.
-- [ ] Log file is created on application startup.
-
+- [x] `dotnet build` succeeds with 0 errors, 0 warnings.
+- [x] Log file is created on application startup.
 ---
 
 ### Task Group 2: Dependency Injection & Application Lifecycle
