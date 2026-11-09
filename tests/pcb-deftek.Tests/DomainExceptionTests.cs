@@ -9,7 +9,7 @@ namespace pcb_deftek.Tests;
 public class DomainExceptionTests
 {
     [Fact]
-    public void AllDomainExceptions_ShouldInheritFromPcbDeftekException()
+    public void AllDomainExceptions_ShouldDeriveFromPcbDeftekException()
     {
         // Arrange
         var assembly = typeof(PcbDeftekException).Assembly;
@@ -27,64 +27,151 @@ public class DomainExceptionTests
     }
 
     [Fact]
-    public void InferenceExceptions_ShouldRetainPropertiesAndMessage()
+    public void PcbDeftekException_WhenCreatedWithInnerException_PreservesInnerException()
     {
-        var inner = new InvalidOperationException("Inner failure");
-        var modelEx = new ModelLoadingException("Failed to load model", "Assets/Models/best.onnx", inner);
-        var execEx = new ModelExecutionException("Execution failed", "ForwardPass", inner);
+        // Arrange
+        var inner = new FormatException("Corrupted format");
 
-        modelEx.Message.Should().Be("Failed to load model");
-        modelEx.ModelPath.Should().Be("Assets/Models/best.onnx");
-        modelEx.InnerException.Should().Be(inner);
+        // Act
+        var ex = new InferenceException("Failed inference", inner);
 
-        execEx.Message.Should().Be("Execution failed");
-        execEx.ExecutionStage.Should().Be("ForwardPass");
-        execEx.InnerException.Should().Be(inner);
+        // Assert
+        ex.InnerException.Should().BeSameAs(inner);
     }
 
     [Fact]
-    public void HardwareExceptions_ShouldRetainPropertiesAndMessage()
+    public void ModelLoadingException_WhenInstantiated_PreservesMessageAndModelPath()
     {
-        var devEx = new DeviceUnavailableException("GPU unavailable", "DirectML");
-        var camEx = new CameraCaptureException("Frame capture failed", 0);
+        // Arrange & Act
+        var ex = new ModelLoadingException("ONNX model file not found", "Assets/Models/best.onnx");
 
-        devEx.ProviderName.Should().Be("DirectML");
-        camEx.CameraIndex.Should().Be(0);
+        // Assert
+        ex.Message.Should().Be("ONNX model file not found");
+        ex.ModelPath.Should().Be("Assets/Models/best.onnx");
     }
 
     [Fact]
-    public void InspectionExceptions_ShouldRetainPropertiesAndMessage()
+    public void ModelExecutionException_WhenInstantiated_PreservesMessageAndExecutionStage()
     {
-        var fileEx = new FileInspectionException("Invalid image", "sample.png", ".png");
-        var imgEx = new ImageProcessingException("Crop failed", "Crop");
+        // Arrange & Act
+        var ex = new ModelExecutionException("Tensor shape mismatch", "PreProcessing");
 
-        fileEx.TargetPath.Should().Be("sample.png");
-        fileEx.Format.Should().Be(".png");
-        imgEx.Operation.Should().Be("Crop");
+        // Assert
+        ex.Message.Should().Be("Tensor shape mismatch");
+        ex.ExecutionStage.Should().Be("PreProcessing");
     }
 
     [Fact]
-    public void PersistenceExceptions_ShouldRetainPropertiesAndMessage()
+    public void DeviceUnavailableException_WhenInstantiated_PreservesMessageAndProviderName()
     {
-        var migEx = new DatabaseMigrationException("Migration failed", 3, "app.db");
-        var bkpEx = new DatabaseBackupException("Backup failed", "backup.db", "app.db");
+        // Arrange & Act
+        var ex = new DeviceUnavailableException("DirectML execution provider unavailable", "DirectML");
 
-        migEx.TargetVersion.Should().Be(3);
-        migEx.DatabasePath.Should().Be("app.db");
-        bkpEx.BackupPath.Should().Be("backup.db");
-        bkpEx.DatabasePath.Should().Be("app.db");
+        // Assert
+        ex.Message.Should().Be("DirectML execution provider unavailable");
+        ex.ProviderName.Should().Be("DirectML");
     }
 
     [Fact]
-    public void ExportValidationAndConfigurationExceptions_ShouldRetainProperties()
+    public void CameraCaptureException_WhenInstantiated_PreservesMessageAndCameraIndex()
     {
-        var expEx = new ExportException("Export failed", "audit.pdf");
-        var valEx = new ValidationException("Threshold out of range", "ConfidenceThreshold", 1.5);
-        var cfgEx = new ConfigurationException("Key not found", "DefaultStartupPage");
+        // Arrange & Act
+        var ex = new CameraCaptureException("Webcam frame acquisition timeout", 0);
 
-        expEx.DestinationPath.Should().Be("audit.pdf");
-        valEx.PropertyName.Should().Be("ConfidenceThreshold");
-        valEx.AttemptedValue.Should().Be(1.5);
-        cfgEx.SettingKey.Should().Be("DefaultStartupPage");
+        // Assert
+        ex.Message.Should().Be("Webcam frame acquisition timeout");
+        ex.CameraIndex.Should().Be(0);
+    }
+
+    [Fact]
+    public void FileInspectionException_WhenInstantiated_PreservesMessageAndTargetPathAndFormat()
+    {
+        // Arrange & Act
+        var ex = new FileInspectionException("Unrecognized image encoding", "board-sample.png", ".png");
+
+        // Assert
+        ex.Message.Should().Be("Unrecognized image encoding");
+        ex.TargetPath.Should().Be("board-sample.png");
+        ex.Format.Should().Be(".png");
+    }
+
+    [Fact]
+    public void ImageProcessingException_WhenInstantiated_PreservesMessageAndOperation()
+    {
+        // Arrange & Act
+        var ex = new ImageProcessingException("Failed to crop defect bounding box", "Crop");
+
+        // Assert
+        ex.Message.Should().Be("Failed to crop defect bounding box");
+        ex.Operation.Should().Be("Crop");
+    }
+
+    [Fact]
+    public void PersistenceException_WhenInstantiated_PreservesMessageAndDatabasePath()
+    {
+        // Arrange & Act
+        var ex = new PersistenceException("SQLite database connection failed", "app.db");
+
+        // Assert
+        ex.Message.Should().Be("SQLite database connection failed");
+        ex.DatabasePath.Should().Be("app.db");
+    }
+
+    [Fact]
+    public void DatabaseMigrationException_WhenInstantiated_PreservesMessageAndTargetVersion()
+    {
+        // Arrange & Act
+        var ex = new DatabaseMigrationException("Migration step 2 failed", 2, "app.db");
+
+        // Assert
+        ex.Message.Should().Be("Migration step 2 failed");
+        ex.TargetVersion.Should().Be(2);
+        ex.DatabasePath.Should().Be("app.db");
+    }
+
+    [Fact]
+    public void DatabaseBackupException_WhenInstantiated_PreservesMessageAndBackupPath()
+    {
+        // Arrange & Act
+        var ex = new DatabaseBackupException("Failed to copy database to backup destination", "backup-20261109.db", "app.db");
+
+        // Assert
+        ex.Message.Should().Be("Failed to copy database to backup destination");
+        ex.BackupPath.Should().Be("backup-20261109.db");
+        ex.DatabasePath.Should().Be("app.db");
+    }
+
+    [Fact]
+    public void ExportException_WhenInstantiated_PreservesMessageAndDestinationPath()
+    {
+        // Arrange & Act
+        var ex = new ExportException("Failed to render PDF export document", "report.pdf");
+
+        // Assert
+        ex.Message.Should().Be("Failed to render PDF export document");
+        ex.DestinationPath.Should().Be("report.pdf");
+    }
+
+    [Fact]
+    public void ValidationException_WhenInstantiated_PreservesPropertyNameAndAttemptedValue()
+    {
+        // Arrange & Act
+        var ex = new ValidationException("Confidence threshold must be between 0.0 and 1.0", "ConfidenceThreshold", 1.85);
+
+        // Assert
+        ex.Message.Should().Be("Confidence threshold must be between 0.0 and 1.0");
+        ex.PropertyName.Should().Be("ConfidenceThreshold");
+        ex.AttemptedValue.Should().Be(1.85);
+    }
+
+    [Fact]
+    public void ConfigurationException_WhenInstantiated_PreservesMessageAndSettingKey()
+    {
+        // Arrange & Act
+        var ex = new ConfigurationException("Setting key not found in storage", "DefaultStartupPage");
+
+        // Assert
+        ex.Message.Should().Be("Setting key not found in storage");
+        ex.SettingKey.Should().Be("DefaultStartupPage");
     }
 }

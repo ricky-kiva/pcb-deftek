@@ -1,10 +1,14 @@
 Feature: Application Bootstrap
-  As a quality technician
-  I want the PCB defect detection application to initialize its core services
-  So that the application starts reliably with dependency injection and logging configured
+  As an inspection operator
+  I want the PCB defect detection application to configure its dependencies on startup
+  So that logging, windows, and core application services are ready for defect analysis
 
-  Scenario: Bootstrap service container and verify core services
+  Scenario: Application container successfully resolves logging infrastructure
     Given a new service collection for application startup
     When the application dependencies are configured
     Then the logging service should be resolvable
-    And the MainWindow should be registered as a singleton
+
+  Scenario: Application container registers MainWindow as a singleton
+    Given a new service collection for application startup
+    When the application dependencies are configured
+    Then the MainWindow should be registered as a singleton
