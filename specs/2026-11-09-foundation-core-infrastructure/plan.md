@@ -86,5 +86,5 @@
   - *Scope:* M (3-4 files)
 
 #### Checkpoint 4: Solution-Wide Verification
-- [ ] `dotnet test` runs both test projects with 100% pass rate.
-- [ ] Solution builds cleanly with 0 warnings.
+- [x] `dotnet test` runs both test projects with 100% pass rate.
+- [x] Solution builds cleanly with 0 warnings.

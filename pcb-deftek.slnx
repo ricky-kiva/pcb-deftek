@@ -1,3 +1,7 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/pcb-deftek.Bdd/pcb-deftek.Bdd.csproj" />
+    <Project Path="tests/pcb-deftek.Tests/pcb-deftek.Tests.csproj" />
+  </Folder>
   <Project Path="pcb-deftek.csproj" />
 </Solution>
