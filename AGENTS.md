@@ -201,6 +201,6 @@ Before launching or deploying the application:
 - **Mandatory Skill Activation:** Always use the relevant skill before performing its corresponding task.
 - **Instruction Adherence:** Follow the skill's instructions thoroughly rather than merely referencing its name.
 - **No False Claims:** Do not assume a skill has been executed just because it is mentioned in the instructions.
-- **Tool Availability Transparency:** If a required skill or CLI tool (e.g., `socket`, `context7`) is unavailable, inform the user immediately instead of silently skipping the requirement or pretending it was executed.
+- **Tool Availability Transparency:** If a required skill or CLI tool (e.g., `socket`) is unavailable, inform the user immediately instead of silently skipping the requirement or pretending it was executed.
 - **Architectural Preservation:** Preserve the established project architecture, conventions, and existing decisions when implementing changes.
 - **Proactive Clarification:** Ask for clarification whenever an important decision cannot be made confidently from the available project context.
