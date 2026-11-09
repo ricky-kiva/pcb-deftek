@@ -39,9 +39,8 @@
   - *Scope:* S (2 files)
 
 #### Checkpoint 2: DI Lifecycle Validation
-- [ ] `MainWindow` displays without `StartupUri`.
-- [ ] Service provider cleanly manages disposal on shutdown.
-
+- [x] `MainWindow` displays without `StartupUri`.
+- [x] Service provider cleanly manages disposal on shutdown.
 ---
 
 ### Task Group 3: Common Exception Hierarchy & Centralized Dispatcher
