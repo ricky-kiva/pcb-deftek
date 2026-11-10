@@ -76,55 +76,45 @@ classDiagram
         <<entity>>
         +Guid Id
         +Guid InspectionId
-        +DefectClass Class
         +string ClassCode
-        +string ClassName
         +float Confidence
         +BoundingBox BoundingBox
+        +string ClassName
         +DefectSeverity Severity
-        +string? RootCause
-        +string? Impact
-        +string? RecommendedAction
+        +string RootCause
+        +string Impact
+        +string RecommendedAction
     }
 
     class InspectionRecord {
         <<aggregate root>>
         +Guid Id
-        +string CustomName
-        +DateTime TimestampUtc
-        +DetectionMode Mode
-        +InspectionStatus Status
-        +int DefectCount
-        +double InferenceTimeMs
-        +string DeviceUsed
-        +string ImagePath
-        +IReadOnlyList~DetectedDefect~ Defects
+        +string Name
         +DateTime CreatedAtUtc
         +DateTime UpdatedAtUtc
-        +WithUpdatedName(string customName) InspectionRecord
+        +DetectionMode Mode
+        +int DefectCount
+        +InspectionStatus Status
+        +string ImagePath
+        +IReadOnlyList~DetectedDefect~ Defects
+        +WithUpdatedName(string name) InspectionRecord
     }
 
     %% Input / Output Boundary Contracts (API & Interface Design)
     class CreateInspectionCommand {
         <<boundary input>>
-        +string CustomName
-        +DateTime TimestampUtc
+        +string Name
+        +DateTime CreatedAtUtc
         +DetectionMode Mode
-        +double InferenceTimeMs
-        +string DeviceUsed
         +string ImagePath
         +IReadOnlyList~CreateDefectInput~ Defects
     }
 
     class CreateDefectInput {
         <<boundary input>>
-        +DefectClass Class
+        +string ClassCode
         +float Confidence
         +BoundingBox BoundingBox
-        +DefectSeverity? CustomSeverity
-        +string? CustomRootCause
-        +string? CustomImpact
-        +string? CustomRecommendedAction
     }
 
     class InspectionQueryFilter {
@@ -156,23 +146,22 @@ classDiagram
         +InsertAsync(InspectionRecord record, CancellationToken ct) Task~Guid~
         +GetByIdAsync(Guid id, CancellationToken ct) Task~InspectionRecord?~
         +GetPagedAsync(InspectionQueryFilter filter, CancellationToken ct) Task~PagedResult~InspectionRecord~~
-        +UpdateCustomNameAsync(Guid id, string customName, CancellationToken ct) Task~bool~
+        +UpdateNameAsync(Guid id, string name, CancellationToken ct) Task~bool~
         +DeleteAsync(Guid id, CancellationToken ct) Task~bool~
     }
 
     class IDefectRepository {
         <<interface>>
         +GetByInspectionIdAsync(Guid inspectionId, CancellationToken ct) Task~IReadOnlyList~DetectedDefect~~
-        +GetClassDistributionAsync(DateTime? fromUtc, DateTime? toUtc, CancellationToken ct) Task~IReadOnlyDictionary~DefectClass, int~~
+        +GetClassDistributionAsync(DateTime? fromUtc, DateTime? toUtc, CancellationToken ct) Task~IReadOnlyDictionary~string, int~~
     }
 
     %% Relationships
     InspectionRecord "1" *-- "0..*" DetectedDefect : contains
-    InspectionRecord --> InspectionStatus : evaluates to
-    InspectionRecord --> DetectionMode : captured via
-    DetectedDefect *-- "1" BoundingBox : bounded by
-    DetectedDefect --> DefectClass : classified as
-    DetectedDefect --> DefectSeverity : graded with
+    InspectionRecord --> InspectionStatus : derives
+    InspectionRecord --> DetectionMode : conducted via
+    DetectedDefect *-- "1" BoundingBox : located by
+    DetectedDefect ..> DefectClassCatalog : resolves metadata via
     DefectClassCatalog o-- "9" DefectClassInfo : registers
     DefectClassInfo --> DefectClass : identifies
     DefectClassInfo --> DefectSeverity : default severity
@@ -181,27 +170,22 @@ classDiagram
     IInspectionRepository ..> InspectionRecord : manages
     IInspectionRepository ..> InspectionQueryFilter : filters by
     IInspectionRepository ..> PagedResult~T~ : returns
-    IDefectRepository ..> DetectedDefect : manages
+    IDefectRepository ..> DetectedDefect : queries
 ```
 
 ---
 
-## Architectural & Interface Design Principles
+## Architectural & Interface Design Principles (Per `api-and-interface-design`)
 
 ### 1. Contract-First & Input/Output Boundary Separation
-- **Input Contracts (`CreateInspectionCommand`, `CreateDefectInput`):** Callers (e.g. YOLOv8 inference service, webcam capture) submit input payloads containing only relevant operational parameters. System-generated fields (`Id`, `CreatedAtUtc`, `UpdatedAtUtc`, computed `Status`, `DefectCount`) are enforced by the domain aggregate upon instantiation.
-- **Query Contracts (`InspectionQueryFilter`, `PagedResult<T>`):** All collection queries are explicitly paginated with bounded defaults (`PageSize` default = 20, max = 100), avoiding unconstrained memory allocations.
-- **Output Types (`InspectionRecord`, `DetectedDefect`):** Immutable view models exposed to presentation and export layers.
+- **Input Contracts (`CreateInspectionCommand`, `CreateDefectInput`):** Callers submit minimal inputs. System fields (`Id`, `CreatedAtUtc`, `UpdatedAtUtc`, computed `Status`, `DefectCount`) are maintained by domain aggregate roots.
+- **Query Contracts (`InspectionQueryFilter`, `PagedResult<T>`):** All collection queries are explicitly paginated with bounded defaults (`PageSize` default = 20, max = 100) to protect memory and query performance.
+- **Output Types (`InspectionRecord`, `DetectedDefect`):** Immutable view models exposed to presentation, dashboard, and export layers.
 
-### 2. Immutability & Value Object Encapsulation
-- **`BoundingBox`:** Implements strict validation ensuring coordinates remain normalized within `[0.0, 1.0]`. Provides domain factory methods (`FromPixels`, `FromNormalized`) and safe clamping utilities to guarantee valid bounding geometry at system edges.
-- **`DefectClassCatalog`:** Authoritative static metadata provider mapping all 9 defect classes to standard diagnostic properties (Root Cause, Impact, Recommended Remediation).
+### 2. Normalized Entities with Static Catalog Delegation
+- **`DetectedDefect`:** Stores only variable per-detection data (`Id`, `InspectionId`, `ClassCode`, `Confidence`, `BoundingBox`).
+- **Static Lookups via `DefectClassCatalog`:** Properties like `ClassName`, `Severity`, `RootCause`, `Impact`, and `RecommendedAction` are computed via static lookups in `DefectClassCatalog`, preventing text redundancy in persistence.
 
-### 3. Predictable Error Contracts & Invariants
-- Invariants are enforced on construction:
-  - `InspectionRecord.Status` is automatically derived (`Pass` when `DefectCount == 0`, `Fail` when `DefectCount > 0`).
-  - Negative inference latencies, invalid confidence scores (`Confidence < 0.0 || Confidence > 1.0`), and out-of-range coordinates throw descriptive `ValidationException` instances.
-- Repository operations follow deterministic semantics:
-  - Missing entities return `null` for `GetByIdAsync`.
-  - Non-existent update/delete targets return `false`.
-  - Infrastructure failures throw typed `PersistenceException` or `DatabaseMigrationException`.
+### 3. Immutability & Value Object Encapsulation
+- **`BoundingBox`:** Implements strict validation ensuring coordinates remain normalized within `[0.0, 1.0]`. Provides factory methods (`FromPixels`, `FromNormalized`) and safe clamping utilities to guarantee valid bounding geometry at system edges.
+- **`InspectionRecord`:** Status is an immutable computed property (`DefectCount == 0 ? Pass : Fail`), preventing status desynchronization bugs.

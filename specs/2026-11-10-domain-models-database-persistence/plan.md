@@ -16,7 +16,8 @@
   - *Scope:* S (2 files)
 - **Task 1.2:** Implement `BoundingBox`, `DetectionMode`, `InspectionStatus`, `DetectedDefect`, and `InspectionRecord`:
   - `BoundingBox` validation (validates 0.0 <= coordinate <= 1.0, width > 0, height > 0) with pixel/normalized factory methods.
-  - `InspectionRecord` encapsulates invariant: `Status` is derived automatically (Pass if DefectCount == 0, Fail otherwise).
+  - `InspectionRecord` uses streamlined fields (`Id`, `Name`, `CreatedAtUtc`, `UpdatedAtUtc`, `Mode`, `DefectCount`, `ImagePath`) and computes derived `Status`.
+  - `DetectedDefect` stores normalized coordinates and delegates diagnostic properties (`ClassName`, `Severity`, `RootCause`, `Impact`, `RecommendedAction`) to `DefectClassCatalog`.
   - Define boundary contracts in `Domain/Contracts/`: `CreateInspectionCommand`, `CreateDefectInput`, `InspectionQueryFilter`, and `PagedResult<T>`.
   - *Acceptance:* Domain models enforce coordinate clamping, immutability, and boundary input separation.
   - *Verify:* Unit tests verifying entity invariants, bounding box boundaries, and contract types.
@@ -36,8 +37,8 @@
   - *Acceptance:* Connection factory successfully opens connections with WAL mode and foreign keys enabled.
   - *Verify:* Unit/integration test verifying pragma settings.
   - *Scope:* S (2 files)
-- **Task 2.2:** Implement Bidirectional `IDatabaseMigrator` and Migration Scripts:
-  - Create `001_initial_schema.up.sql` defining `SchemaMigrations` (with Checksum & ExecutionDurationMs), `Inspections` (with CHECK constraints), `Defects`, and `AppSettings`.
+- **Task 2.2:** Implement Bidirectional `IDatabaseMigrator` and Migration Scripts (Per `deprecation-and-migration`):
+  - Create `001_initial_schema.up.sql` defining streamlined `SchemaMigrations` (with Checksum & ExecutionDurationMs), `Inspections` (Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, DefectCount, ImagePath), `Defects` (Id, InspectionId, ClassCode, Confidence, Bounding Box), and `AppSettings`.
   - Create `001_initial_schema.down.sql` providing a tested, clean rollback path.
   - Implement transactional migration runner verifying SHA-256 script checksums before execution.
   - *Acceptance:* Migrator applies pending migrations idempotently within transactions and rolls back cleanly using `.down.sql`.
@@ -52,9 +53,9 @@
 
 ### Task Group 3: Repository Pattern Implementation
 - **Task 3.1:** Implement `IInspectionRepository` and `SqliteInspectionRepository`:
-  - CRUD operations: `InsertAsync`, `GetByIdAsync`, `GetPagedAsync`, `GetByDateRangeAsync`, `UpdateCustomNameAsync`, `DeleteAsync`.
+  - CRUD operations: `InsertAsync`, `GetByIdAsync`, `GetPagedAsync`, `GetByDateRangeAsync`, `UpdateNameAsync`, `DeleteAsync`.
   - Date filtering supporting Day, Week, Month, and Custom date ranges.
-  - *Acceptance:* Inspections are persisted, queried, filtered, and deleted with all fields retained.
+  - *Acceptance:* Inspections are persisted, queried, filtered, and deleted with all streamlined fields retained.
   - *Verify:* Integration tests covering CRUD and date range filtering.
   - *Scope:* M (2 files)
 - **Task 3.2:** Implement `IDefectRepository` and `SqliteDefectRepository`:

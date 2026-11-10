@@ -1,6 +1,6 @@
 # Database Entity-Relationship Diagram (ERD) & Migration Architecture: Phase 2
 
-This document defines the SQLite physical schema, constraints, indices, domain mapping contracts, and the bidirectional migration lifecycle in accordance with `api-and-interface-design` and `deprecation-and-migration`.
+This document defines the streamlined SQLite physical schema, constraints, indices, domain mapping contracts, and the bidirectional migration lifecycle in accordance with `api-and-interface-design` and `deprecation-and-migration`.
 
 ```mermaid
 erDiagram
@@ -14,32 +14,23 @@ erDiagram
 
     Inspections {
         TEXT Id PK "GUID string (lowercase hyphenated)"
-        TEXT CustomName "User-editable board identifier"
-        TEXT TimestampUtc "ISO 8601 UTC timestamp"
-        INTEGER DetectionMode "0: SingleFile, 1: BatchFolder, 2: LiveCamera"
-        INTEGER Status "0: Pass, 1: Fail"
-        INTEGER DefectCount "Cached defect count (0 = Pass)"
-        REAL InferenceTimeMs "Inference latency in milliseconds"
-        TEXT DeviceUsed "Execution device (CPU / GPU - DirectML)"
-        TEXT ImagePath "Path to stored PCB image"
+        TEXT Name "Editable board identifier (default date-number)"
         TEXT CreatedAtUtc "Creation ISO 8601 UTC timestamp"
         TEXT UpdatedAtUtc "Last update ISO 8601 UTC timestamp"
+        INTEGER DetectionMode "0: SingleFile, 1: BatchFolder, 2: LiveCamera"
+        INTEGER DefectCount "Total defect count (0 = Pass)"
+        TEXT ImagePath "Path to stored PCB image"
     }
 
     Defects {
         TEXT Id PK "GUID string"
         TEXT InspectionId FK "References Inspections(Id)"
         TEXT ClassCode "Class code (SH, OP, MB, SP, SC, HB, CS, CFO, BMFO)"
-        TEXT ClassName "Full defect name"
         REAL Confidence "Score in range [0.0, 1.0]"
         REAL BoxX "Normalized X coordinate [0.0, 1.0]"
         REAL BoxY "Normalized Y coordinate [0.0, 1.0]"
         REAL BoxWidth "Normalized width [0.0, 1.0]"
         REAL BoxHeight "Normalized height [0.0, 1.0]"
-        INTEGER Severity "0: Low, 1: Medium, 2: High, 3: Critical"
-        TEXT RootCause "Probable manufacturing cause"
-        TEXT Impact "Operational/electrical impact"
-        TEXT RecommendedAction "Remediation guidance"
     }
 
     AppSettings {
@@ -65,46 +56,35 @@ CREATE TABLE IF NOT EXISTS SchemaMigrations (
     ExecutionDurationMs INTEGER NOT NULL
 );
 
--- Inspections Table
+-- Inspections Table (Streamlined)
 CREATE TABLE IF NOT EXISTS Inspections (
     Id TEXT PRIMARY KEY,
-    CustomName TEXT NOT NULL,
-    TimestampUtc TEXT NOT NULL,
-    DetectionMode INTEGER NOT NULL CHECK (DetectionMode IN (0, 1, 2)),
-    Status INTEGER NOT NULL CHECK (Status IN (0, 1)),
-    DefectCount INTEGER NOT NULL CHECK (DefectCount >= 0),
-    InferenceTimeMs REAL NOT NULL CHECK (InferenceTimeMs >= 0.0),
-    DeviceUsed TEXT NOT NULL,
-    ImagePath TEXT NOT NULL,
+    Name TEXT NOT NULL,
     CreatedAtUtc TEXT NOT NULL,
-    UpdatedAtUtc TEXT NOT NULL
+    UpdatedAtUtc TEXT NOT NULL,
+    DetectionMode INTEGER NOT NULL CHECK (DetectionMode IN (0, 1, 2)),
+    DefectCount INTEGER NOT NULL DEFAULT 0 CHECK (DefectCount >= 0),
+    ImagePath TEXT NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS IX_Inspections_TimestampUtc ON Inspections(TimestampUtc DESC);
-CREATE INDEX IF NOT EXISTS IX_Inspections_Status ON Inspections(Status);
+CREATE INDEX IF NOT EXISTS IX_Inspections_CreatedAtUtc ON Inspections(CreatedAtUtc DESC);
 CREATE INDEX IF NOT EXISTS IX_Inspections_DetectionMode ON Inspections(DetectionMode);
 
--- Defects Table
+-- Defects Table (Normalized - Diagnostic metadata provided by DefectClassCatalog)
 CREATE TABLE IF NOT EXISTS Defects (
     Id TEXT PRIMARY KEY,
     InspectionId TEXT NOT NULL,
     ClassCode TEXT NOT NULL,
-    ClassName TEXT NOT NULL,
     Confidence REAL NOT NULL CHECK (Confidence >= 0.0 AND Confidence <= 1.0),
     BoxX REAL NOT NULL CHECK (BoxX >= 0.0 AND BoxX <= 1.0),
     BoxY REAL NOT NULL CHECK (BoxY >= 0.0 AND BoxY <= 1.0),
     BoxWidth REAL NOT NULL CHECK (BoxWidth >= 0.0 AND BoxWidth <= 1.0),
     BoxHeight REAL NOT NULL CHECK (BoxHeight >= 0.0 AND BoxHeight <= 1.0),
-    Severity INTEGER NOT NULL CHECK (Severity IN (0, 1, 2, 3)),
-    RootCause TEXT,
-    Impact TEXT,
-    RecommendedAction TEXT,
     FOREIGN KEY (InspectionId) REFERENCES Inspections(Id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS IX_Defects_InspectionId ON Defects(InspectionId);
 CREATE INDEX IF NOT EXISTS IX_Defects_ClassCode ON Defects(ClassCode);
-CREATE INDEX IF NOT EXISTS IX_Defects_Severity ON Defects(Severity);
 
 -- Application Settings Table
 CREATE TABLE IF NOT EXISTS AppSettings (
@@ -121,29 +101,26 @@ CREATE TABLE IF NOT EXISTS AppSettings (
 | Domain Entity / Value Object | Domain Property | SQLite Table | SQLite Column | SQLite Type | Nullable | Validation / Invariant Rule |
 |---|---|---|---|---|:---:|---|
 | **`InspectionRecord`** | `Guid Id` | `Inspections` | `Id` | `TEXT` | No | `Guid.ToString("D")` |
-| | `string CustomName` | `Inspections` | `CustomName` | `TEXT` | No | Non-empty board identifier |
-| | `DateTime TimestampUtc` | `Inspections` | `TimestampUtc` | `TEXT` | No | ISO 8601 (`yyyy-MM-ddTHH:mm:ss.fffZ`) |
+| | `string Name` | `Inspections` | `Name` | `TEXT` | No | Editable board identifier |
+| | `DateTime CreatedAtUtc` | `Inspections` | `CreatedAtUtc` | `TEXT` | No | ISO 8601 (`yyyy-MM-ddTHH:mm:ss.fffZ`) |
+| | `DateTime UpdatedAtUtc` | `Inspections` | `UpdatedAtUtc` | `TEXT` | No | ISO 8601 (`yyyy-MM-ddTHH:mm:ss.fffZ`) |
 | | `DetectionMode Mode` | `Inspections` | `DetectionMode` | `INTEGER` | No | 0: SingleFile, 1: BatchFolder, 2: LiveCamera |
-| | `InspectionStatus Status` | `Inspections` | `Status` | `INTEGER` | No | 0: Pass, 1: Fail (`Status == (DefectCount == 0 ? 0 : 1)`) |
 | | `int DefectCount` | `Inspections` | `DefectCount` | `INTEGER` | No | `DefectCount >= 0` |
-| | `double InferenceTimeMs` | `Inspections` | `InferenceTimeMs` | `REAL` | No | `InferenceTimeMs >= 0.0` |
-| | `string DeviceUsed` | `Inspections` | `DeviceUsed` | `TEXT` | No | Non-empty execution provider string |
 | | `string ImagePath` | `Inspections` | `ImagePath` | `TEXT` | No | File path to stored image |
-| | `DateTime CreatedAtUtc` | `Inspections` | `CreatedAtUtc` | `TEXT` | No | ISO 8601 UTC timestamp |
-| | `DateTime UpdatedAtUtc` | `Inspections` | `UpdatedAtUtc` | `TEXT` | No | ISO 8601 UTC timestamp |
+| *(computed property)* | `InspectionStatus Status` | *(none)* | *(derivable)* | — | — | Computed in C#: `DefectCount == 0 ? Pass : Fail` |
 | **`DetectedDefect`** | `Guid Id` | `Defects` | `Id` | `TEXT` | No | `Guid.ToString("D")` |
 | | `Guid InspectionId` | `Defects` | `InspectionId` | `TEXT` | No | Foreign key with `ON DELETE CASCADE` |
-| | `string ClassCode` | `Defects` | `ClassCode` | `TEXT` | No | Standardized code (SH, OP, MB, SP, SC, HB, CS, CFO, BMFO) |
-| | `string ClassName` | `Defects` | `ClassName` | `TEXT` | No | Full descriptive class name |
+| | `string ClassCode` | `Defects` | `ClassCode` | `TEXT` | No | Standard code: SH, OP, MB, SP, SC, HB, CS, CFO, BMFO |
 | | `float Confidence` | `Defects` | `Confidence` | `REAL` | No | `0.0 <= Confidence <= 1.0` |
 | | `BoundingBox.X` | `Defects` | `BoxX` | `REAL` | No | `0.0 <= BoxX <= 1.0` |
 | | `BoundingBox.Y` | `Defects` | `BoxY` | `REAL` | No | `0.0 <= BoxY <= 1.0` |
 | | `BoundingBox.Width` | `Defects` | `BoxWidth` | `REAL` | No | `0.0 <= BoxWidth <= 1.0` |
 | | `BoundingBox.Height` | `Defects` | `BoxHeight` | `REAL` | No | `0.0 <= BoxHeight <= 1.0` |
-| | `DefectSeverity Severity` | `Defects` | `Severity` | `INTEGER` | No | 0: Low, 1: Medium, 2: High, 3: Critical |
-| | `string? RootCause` | `Defects` | `RootCause` | `TEXT` | Yes | Nullable diagnostic root cause |
-| | `string? Impact` | `Defects` | `Impact` | `TEXT` | Yes | Nullable operational impact |
-| | `string? RecommendedAction` | `Defects` | `RecommendedAction` | `TEXT` | Yes | Nullable corrective remediation |
+| *(catalog lookup)* | `string ClassName` | *(none)* | — | — | — | Looked up via `DefectClassCatalog` |
+| *(catalog lookup)* | `DefectSeverity Severity` | *(none)* | — | — | — | Looked up via `DefectClassCatalog` |
+| *(catalog lookup)* | `string RootCause` | *(none)* | — | — | — | Looked up via `DefectClassCatalog` |
+| *(catalog lookup)* | `string Impact` | *(none)* | — | — | — | Looked up via `DefectClassCatalog` |
+| *(catalog lookup)* | `string RecommendedAction`| *(none)* | — | — | — | Looked up via `DefectClassCatalog` |
 | **`AppSettings`** | `string Key` | `AppSettings` | `Key` | `TEXT` | No | Unique setting name |
 | | `string Value` | `AppSettings` | `Value` | `TEXT` | No | Serialized setting value |
 | | `DateTime UpdatedAtUtc` | `AppSettings` | `UpdatedAtUtc` | `TEXT` | No | ISO 8601 UTC timestamp |

@@ -17,11 +17,11 @@ Phase 2 establishes the core domain models and SQLite persistence layer for `pcb
 - **Defect Catalog (`DefectClassCatalog`):** Provides standardized metadata for each defect class: Class code, Display name, Default root cause, Impact analysis, Severity level, and Recommended corrective action.
 - **Domain Value Objects & Entities:**
   - `BoundingBox`: Immutable normalized coordinates `(X, Y, Width, Height)` with range bounds `[0.0, 1.0]` and factory/clamping utilities.
-  - `DetectedDefect`: Entity containing `Id`, `InspectionId`, `ClassCode`, `ClassName`, `Confidence`, `BoundingBox`, `Severity`, `RootCause`, `Impact`, `RecommendedAction`.
-  - `InspectionRecord`: Aggregate root containing `Id`, `CustomName` (editable, default `date-number`), `TimestampUtc`, `DetectionMode` (`File`, `LiveCamera`), `Status` (`Pass`, `Fail`), `DefectCount`, `InferenceTimeMs`, `DeviceUsed`, `ImagePath`, and list of `DetectedDefect` items.
+  - `DetectedDefect`: Entity containing `Id`, `InspectionId`, `ClassCode`, `Confidence`, `BoundingBox`, with diagnostic properties delegated to `DefectClassCatalog`.
+  - `InspectionRecord`: Aggregate root containing `Id`, `Name` (editable, default `date-number`), `CreatedAtUtc`, `UpdatedAtUtc`, `DetectionMode` (`SingleFile`, `BatchFolder`, `LiveCamera`), `DefectCount`, `ImagePath`, and list of `DetectedDefect` items. `Status` is derived dynamically (`DefectCount == 0 ? Pass : Fail`).
   - `InspectionStatus`: Enum (`Pass` = 0 defects, `Fail` >= 1 defect).
   - `DetectionMode`: Enum (`SingleFile`, `BatchFolder`, `LiveCamera`).
-- **Boundary Contracts:**
+- **Boundary Contracts (Per `api-and-interface-design`):**
   - `CreateInspectionCommand` & `CreateDefectInput`: Input boundary contracts separating caller parameters from server/aggregate-generated fields.
   - `InspectionQueryFilter`: Query parameters for date range, mode, status, pagination, and sorting.
   - `PagedResult<T>`: Deterministic paginated collection result with metadata (`TotalItems`, `TotalPages`, `HasNextPage`).
@@ -30,10 +30,10 @@ Phase 2 establishes the core domain models and SQLite persistence layer for `pcb
 - **Engine:** `Microsoft.Data.Sqlite` (high performance, lightweight ADO.NET SQLite provider).
 - **Pragmas & Concurrency:** Enable WAL mode (`PRAGMA journal_mode = WAL;`) and enforce foreign keys (`PRAGMA foreign_keys = ON;`).
 - **Database Location:** `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\app.db` (overrideable for testing).
-- **Proposed Schema (v1 with CHECK constraints):**
+- **Proposed Schema (Streamlined v1 with CHECK constraints):**
   - `SchemaMigrations`: Auditable migration tracking (`Version`, `AppliedAtUtc`, `Description`, `Checksum`, `ExecutionDurationMs`).
-  - `Inspections`: Indexed by `TimestampUtc`, `Status`, `DetectionMode` with CHECK constraints on status, mode, defect count, and latency.
-  - `Defects`: Linked to `Inspections` with `ON DELETE CASCADE` and CHECK constraints on coordinate and confidence ranges `[0.0, 1.0]`.
+  - `Inspections`: Streamlined columns (`Id`, `Name`, `CreatedAtUtc`, `UpdatedAtUtc`, `DetectionMode`, `DefectCount`, `ImagePath`). Indexed by `CreatedAtUtc` and `DetectionMode`.
+  - `Defects`: Normalized columns (`Id`, `InspectionId`, `ClassCode`, `Confidence`, `BoxX`, `BoxY`, `BoxWidth`, `BoxHeight`) with `ON DELETE CASCADE` and coordinate/confidence CHECK constraints.
   - `AppSettings`: Key-value configuration table.
 - **Bidirectional Migration Runner:**
   - Transactional execution with SHA-256 script checksum validation.
