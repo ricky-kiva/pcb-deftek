@@ -1,12 +1,107 @@
 # Domain Model & Interface Contracts: Phase 2
 
-This document defines the core domain entities, value objects, enumerations, input/output boundary contracts, repository interfaces, and relationships for the PCB defect detection system, designed in accordance with `api-and-interface-design`.
+This document defines the domain models, value objects, static knowledge base, and application boundary contracts for the PCB defect detection system. It is structured into three focused, purpose-built diagrams following the **Single Responsibility Principle** and `api-and-interface-design`.
+
+---
+
+## 1. Core Inspection Aggregate
+
+The Inspection Aggregate encapsulates the execution and capture lifecycle of a PCB inspection event.
 
 ```mermaid
 classDiagram
     direction TB
 
-    %% Enums
+    class InspectionRecord {
+        <<aggregate root>>
+        +Guid Id
+        +string Name
+        +DateTime CreatedAtUtc
+        +DateTime UpdatedAtUtc
+        +DetectionMode Mode
+        +int DefectCount
+        +InspectionStatus Status
+        +string ImagePath
+        +IReadOnlyList~DetectedDefect~ Defects
+        +WithUpdatedName(string name) InspectionRecord
+    }
+
+    class DetectedDefect {
+        <<entity>>
+        +Guid Id
+        +Guid InspectionId
+        +string ClassCode
+        +float Confidence
+        +BoundingBox BoundingBox
+    }
+
+    class BoundingBox {
+        <<value object>>
+        +float X
+        +float Y
+        +float Width
+        +float Height
+        +Validate() bool
+        +Clamp() BoundingBox
+        +FromPixels(int x, int y, int w, int h, int imgW, int imgH)$ BoundingBox
+        +FromNormalized(float x, float y, float w, float h)$ BoundingBox
+    }
+
+    class InspectionStatus {
+        <<enumeration>>
+        Pass
+        Fail
+    }
+
+    class DetectionMode {
+        <<enumeration>>
+        SingleFile
+        BatchFolder
+        LiveCamera
+    }
+
+    InspectionRecord "1" *-- "0..*" DetectedDefect : contains
+    InspectionRecord --> InspectionStatus : derives
+    InspectionRecord --> DetectionMode : conducted via
+    DetectedDefect *-- "1" BoundingBox : located by
+```
+
+### Invariants & Responsibilities
+- **`InspectionRecord` (Aggregate Root):** Maintains aggregate integrity. `Status` is an immutable derived property (`DefectCount == 0 ? Pass : Fail`), preventing status desynchronization bugs.
+- **`DetectedDefect` (Entity):** Stores per-detection bounding coordinates and model confidence. Diagnostic properties (`Explanation`, `Severity`, `RootCause`, `Impact`, `Action`) are delegated dynamically to the static `DefectKnowledgeBase`.
+- **`BoundingBox` (Value Object):** Enforces spatial validation (`[0.0, 1.0]`) and provides factory methods for pixel-to-normalized coordinate conversion.
+
+---
+
+## 2. Defect Classification & Static Knowledge Base
+
+Encapsulates the 9 defect classes and static diagnostic guidance (`DEFECT_KB`), providing instant, type-safe lookups without database text duplication.
+
+```mermaid
+classDiagram
+    direction TB
+
+    class DefectKnowledgeBase {
+        <<static source>>
+        +IReadOnlyDictionary~DefectClass, DefectClassInfo~ All$
+        +GetInfo(DefectClass defectClass)$ DefectClassInfo
+        +GetByCode(string code)$ DefectClassInfo
+        +GetByIndex(int classId)$ DefectClassInfo
+    }
+
+    class DefectClassInfo {
+        <<value object>>
+        +DefectClass Class
+        +int ClassId
+        +string Code
+        +string DisplayName
+        +string Explanation
+        +DefectSeverity Severity
+        +string RootCause
+        +string Impact
+        +string Action
+    }
+
     class DefectClass {
         <<enumeration>>
         Short = 0
@@ -29,82 +124,26 @@ classDiagram
         Critical
     }
 
-    class InspectionStatus {
-        <<enumeration>>
-        Pass
-        Fail
-    }
+    DefectKnowledgeBase o-- "9" DefectClassInfo : registers
+    DefectClassInfo --> DefectClass : identifies
+    DefectClassInfo --> DefectSeverity : defines
+```
 
-    class DetectionMode {
-        <<enumeration>>
-        SingleFile
-        BatchFolder
-        LiveCamera
-    }
+### Knowledge Base Properties
+- **`DefectClass` Enum:** Integer values `0` through `8` matching model tensor output indices (`CLASS_NAMES`).
+- **`DefectSeverity` Enum:** Standardized severity grading (`Critical`, `High`, `Medium-High`, `Medium`, `Low-Medium`).
+- **`DefectKnowledgeBase`:** Centralized, immutable reference source mapping each class code to full diagnostic guidance.
 
-    %% Value Objects
-    class BoundingBox {
-        <<value object>>
-        +float X
-        +float Y
-        +float Width
-        +float Height
-        +Validate() bool
-        +Clamp() BoundingBox
-        +FromPixels(int x, int y, int w, int h, int imgW, int imgH)$ BoundingBox
-    }
+---
 
-    class DefectClassInfo {
-        <<value object>>
-        +DefectClass Class
-        +int ClassId
-        +string Code
-        +string DisplayName
-        +string Explanation
-        +DefectSeverity Severity
-        +string RootCause
-        +string Impact
-        +string Action
-    }
+## 3. Application Boundaries & Repository Contracts
 
-    class DefectKnowledgeBase {
-        <<static knowledge base>>
-        +IReadOnlyDictionary~DefectClass, DefectClassInfo~ All$
-        +GetInfo(DefectClass defectClass)$ DefectClassInfo
-        +GetByCode(string code)$ DefectClassInfo
-        +GetByIndex(int classId)$ DefectClassInfo
-    }
+Separates external input commands and paginated query results from internal domain aggregates per `api-and-interface-design`.
 
-    %% Entities & Aggregates
-    class DetectedDefect {
-        <<entity>>
-        +Guid Id
-        +Guid InspectionId
-        +string ClassCode
-        +float Confidence
-        +BoundingBox BoundingBox
-        +string Explanation
-        +DefectSeverity Severity
-        +string RootCause
-        +string Impact
-        +string Action
-    }
+```mermaid
+classDiagram
+    direction TB
 
-    class InspectionRecord {
-        <<aggregate root>>
-        +Guid Id
-        +string Name
-        +DateTime CreatedAtUtc
-        +DateTime UpdatedAtUtc
-        +DetectionMode Mode
-        +int DefectCount
-        +InspectionStatus Status
-        +string ImagePath
-        +IReadOnlyList~DetectedDefect~ Defects
-        +WithUpdatedName(string name) InspectionRecord
-    }
-
-    %% Input / Output Boundary Contracts (API & Interface Design)
     class CreateInspectionCommand {
         <<boundary input>>
         +string Name
@@ -144,7 +183,6 @@ classDiagram
         +bool HasPreviousPage
     }
 
-    %% Repository Interfaces
     class IInspectionRepository {
         <<interface>>
         +InsertAsync(InspectionRecord record, CancellationToken ct) Task~Guid~
@@ -160,35 +198,12 @@ classDiagram
         +GetClassDistributionAsync(DateTime? fromUtc, DateTime? toUtc, CancellationToken ct) Task~IReadOnlyDictionary~string, int~~
     }
 
-    %% Relationships
-    InspectionRecord "1" *-- "0..*" DetectedDefect : contains
-    InspectionRecord --> InspectionStatus : derives
-    InspectionRecord --> DetectionMode : conducted via
-    DetectedDefect *-- "1" BoundingBox : located by
-    DetectedDefect ..> DefectKnowledgeBase : resolves metadata via
-    DefectKnowledgeBase o-- "9" DefectClassInfo : registers
-    DefectClassInfo --> DefectClass : identifies
-    DefectClassInfo --> DefectSeverity : default severity
-
     CreateInspectionCommand "1" *-- "0..*" CreateDefectInput : carries
-    IInspectionRepository ..> InspectionRecord : manages
     IInspectionRepository ..> InspectionQueryFilter : filters by
     IInspectionRepository ..> PagedResult~T~ : returns
-    IDefectRepository ..> DetectedDefect : queries
 ```
 
----
-
-## Architectural & Interface Design Principles (Per `api-and-interface-design`)
-
-### 1. Contract-First & Input/Output Boundary Separation
-- **Input Contracts (`CreateInspectionCommand`, `CreateDefectInput`):** Callers submit minimal inputs. System fields (`Id`, `CreatedAtUtc`, `UpdatedAtUtc`, computed `Status`, `DefectCount`) are maintained by domain aggregate roots.
-- **Query Contracts (`InspectionQueryFilter`, `PagedResult<T>`):** All collection queries are explicitly paginated with bounded defaults (`PageSize` default = 20, max = 100) to protect memory and query performance.
-- **Output Types (`InspectionRecord`, `DetectedDefect`):** Immutable view models exposed to presentation, dashboard, and export layers.
-
-### 2. Normalized Entities with Static Knowledge Base Delegation
-- **`DetectedDefect`:** Stores only variable per-detection data (`Id`, `InspectionId`, `ClassCode`, `Confidence`, `BoundingBox`).
-- **Centralized Static Source (`DefectKnowledgeBase`):** All descriptive metadata (`Explanation`, `Severity`, `RootCause`, `Impact`, `Action`) is maintained in a centralized static source (`DEFECT_KB`), preventing text duplication across database rows while providing instant, type-safe lookup.
-### 3. Immutability & Value Object Encapsulation
-- **`BoundingBox`:** Implements strict validation ensuring coordinates remain normalized within `[0.0, 1.0]`. Provides factory methods (`FromPixels`, `FromNormalized`) and safe clamping utilities to guarantee valid bounding geometry at system edges.
-- **`InspectionRecord`:** Status is an immutable computed property (`DefectCount == 0 ? Pass : Fail`), preventing status desynchronization bugs.
+### Boundary & Interface Rules
+- **Input Isolation:** Callers provide operational values (`CreateInspectionCommand`). Database-generated keys and derived statuses are managed by aggregate roots.
+- **Bounded Pagination:** `InspectionQueryFilter` bounds page requests (`PageSize` default 20, max 100) to protect database memory and query latency.
+- **Contract-First Persistence:** Repositories expose explicit async contracts returning nullable entities (`GetByIdAsync`) or structured paged results (`GetPagedAsync`).
