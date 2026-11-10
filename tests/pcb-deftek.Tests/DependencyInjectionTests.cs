@@ -5,7 +5,9 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using pcb_deftek;
+using pcb_deftek.Infrastructure.Inference;
 using pcb_deftek.Infrastructure.Persistence;
+using pcb_deftek.Infrastructure.Vision;
 using pcb_deftek.Infrastructure.Persistence.DatabaseBackup;
 using pcb_deftek.Infrastructure.Persistence.Migrations;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
@@ -122,5 +124,39 @@ public class DependencyInjectionTests
         provider.GetRequiredService<IDefectRepository>().Should().NotBeNull();
         provider.GetRequiredService<ISettingsRepository>().Should().NotBeNull();
         provider.GetRequiredService<IDatabaseBackupService>().Should().NotBeNull();
+    }
+
+    [Theory]
+    [InlineData(typeof(IOnnxModelRunner))]
+    [InlineData(typeof(IVisionPreprocessor))]
+    [InlineData(typeof(IYoloPostprocessor))]
+    [InlineData(typeof(IPcbDefectDetector))]
+    public void ConfigureServices_WhenCalled_RegistersInferenceServicesAsSingletons(Type serviceType)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        App.ConfigureServices(services);
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == serviceType);
+
+        // Assert
+        descriptor.Should().NotBeNull($"Service {serviceType.Name} must be registered");
+        descriptor!.Lifetime.Should().Be(ServiceLifetime.Singleton);
+    }
+
+    [Fact]
+    public void ConfigureServices_WhenProviderBuilt_ResolvesAllInferenceServicesSuccessfully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        App.ConfigureServices(services);
+        using var provider = services.BuildServiceProvider();
+
+        // Act & Assert
+        provider.GetRequiredService<IOnnxModelRunner>().Should().NotBeNull();
+        provider.GetRequiredService<IVisionPreprocessor>().Should().NotBeNull();
+        provider.GetRequiredService<IYoloPostprocessor>().Should().NotBeNull();
+        provider.GetRequiredService<IPcbDefectDetector>().Should().NotBeNull();
     }
 }
