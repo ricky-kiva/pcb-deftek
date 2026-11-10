@@ -18,9 +18,9 @@
   - *Scope:* M (3-4 files)
 
 #### Checkpoint 1: Model Runner & Hardware Fallback Validation
-- [ ] ONNX model loads successfully from `Assets/Models/best.onnx`.
-- [ ] DirectML GPU provider initializes when compatible hardware is present, or falls back gracefully to CPU.
-- [ ] Unit tests pass with 100% success.
+- [x] ONNX model loads successfully from `Assets/Models/best.onnx`.
+- [x] DirectML GPU provider initializes when compatible hardware is present, or falls back gracefully to CPU.
+- [x] Unit tests pass with 100% success.
 
 ---
 
