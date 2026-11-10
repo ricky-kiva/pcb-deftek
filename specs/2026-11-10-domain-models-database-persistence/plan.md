@@ -71,8 +71,8 @@
   - *Scope:* S (2 files)
 
 #### Checkpoint 3: Repository Integration Validation
-- [ ] All repository operations pass 100% in test suite against temporary SQLite database.
-- [ ] Cascading deletion and aggregate queries operate as expected.
+- [x] All repository operations pass 100% in test suite against temporary SQLite database.
+- [x] Cascading deletion and aggregate queries operate as expected.
 
 ---
 
