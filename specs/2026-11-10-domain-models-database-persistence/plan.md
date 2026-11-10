@@ -24,8 +24,8 @@
   - *Scope:* M (5-6 files)
 
 #### Checkpoint 1: Domain Models Validation
-- [ ] Domain models, boundary contracts, and static knowledge base compile cleanly with nullable enabled.
-- [ ] Unit tests verify bounding box validation, factory methods, and `DefectKnowledgeBase` lookups.
+- [x] Domain models, boundary contracts, and static knowledge base compile cleanly with nullable enabled.
+- [x] Unit tests verify bounding box validation, factory methods, and `DefectKnowledgeBase` lookups.
 
 ---
 
