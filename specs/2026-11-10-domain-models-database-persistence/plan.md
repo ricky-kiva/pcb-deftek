@@ -2,7 +2,12 @@
 
 ## Task Breakdown
 
+### Architecture & Visual Specifications
+- **Domain Model Class Diagram:** [resources/domain-model.md](./resources/domain-model.md)
+- **Database ERD & Schema Mapping:** [resources/database-erd.md](./resources/database-erd.md)
+
 ### Task Group 1: Domain Entities & Defect Catalog
+*(Refer to [resources/domain-model.md](./resources/domain-model.md) for class diagrams and entity relationships)*
 - **Task 1.1:** Create `DefectClass` enum and `DefectClassCatalog` in `Domain/Models/`:
   - Enumerate the 9 defect classes (SH, OP, MB, SP, SC, HB, CS, CFO, BMFO).
   - Populate catalog with default root cause, impact, severity, and corrective action for each class.
@@ -10,36 +15,39 @@
   - *Verify:* `dotnet test tests/pcb-deftek.Tests` verifying catalog completeness.
   - *Scope:* S (2 files)
 - **Task 1.2:** Implement `BoundingBox`, `DetectionMode`, `InspectionStatus`, `DetectedDefect`, and `InspectionRecord`:
-  - `BoundingBox` validation (validates 0.0 <= coordinate <= 1.0).
-  - `InspectionRecord` computes `Status` (Pass if DefectCount == 0, Fail otherwise).
-  - *Acceptance:* Domain models enforce coordinate clamping and pass/fail invariants.
-  - *Verify:* Unit tests verifying entity invariants and bounding box boundaries.
-  - *Scope:* S (4-5 files)
+  - `BoundingBox` validation (validates 0.0 <= coordinate <= 1.0, width > 0, height > 0) with pixel/normalized factory methods.
+  - `InspectionRecord` encapsulates invariant: `Status` is derived automatically (Pass if DefectCount == 0, Fail otherwise).
+  - Define boundary contracts in `Domain/Contracts/`: `CreateInspectionCommand`, `CreateDefectInput`, `InspectionQueryFilter`, and `PagedResult<T>`.
+  - *Acceptance:* Domain models enforce coordinate clamping, immutability, and boundary input separation.
+  - *Verify:* Unit tests verifying entity invariants, bounding box boundaries, and contract types.
+  - *Scope:* M (5-6 files)
 
 #### Checkpoint 1: Domain Models Validation
-- [ ] Domain models and catalog compile cleanly with nullable enabled.
-- [ ] Unit tests verify bounding box validation and defect metadata lookups.
+- [ ] Domain models, boundary contracts, and catalog compile cleanly with nullable enabled.
+- [ ] Unit tests verify bounding box validation, factory methods, and defect metadata lookups.
 
 ---
 
 ### Task Group 2: SQLite Connection Management & Migrations Runner
+*(Refer to [resources/database-erd.md](./resources/database-erd.md) for ER diagram, table schemas, and domain-to-table mappings)*
 - **Task 2.1:** Add `Microsoft.Data.Sqlite` dependency to `pcb-deftek.csproj`:
   - Verify package with Socket CLI.
-  - Create `ISqliteConnectionFactory` and `SqliteConnectionFactory` enforcing WAL mode and foreign key constraints.
+  - Create `ISqliteConnectionFactory` and `SqliteConnectionFactory` enforcing WAL mode and foreign key constraints (`PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;`).
   - *Acceptance:* Connection factory successfully opens connections with WAL mode and foreign keys enabled.
   - *Verify:* Unit/integration test verifying pragma settings.
   - *Scope:* S (2 files)
-- **Task 2.2:** Implement `IDatabaseMigrator` and `001_InitialSchema.sql`:
-  - Create embedded SQL script defining `SchemaMigrations`, `Inspections`, `Defects`, and `AppSettings`.
-  - Implement migration runner executing pending scripts inside a transaction.
-  - *Acceptance:* Migrator creates tables and records version in `SchemaMigrations`. Re-running is idempotent.
-  - *Verify:* Integration test against in-memory or temporary SQLite database.
-  - *Scope:* M (3 files)
+- **Task 2.2:** Implement Bidirectional `IDatabaseMigrator` and Migration Scripts:
+  - Create `001_initial_schema.up.sql` defining `SchemaMigrations` (with Checksum & ExecutionDurationMs), `Inspections` (with CHECK constraints), `Defects`, and `AppSettings`.
+  - Create `001_initial_schema.down.sql` providing a tested, clean rollback path.
+  - Implement transactional migration runner verifying SHA-256 script checksums before execution.
+  - *Acceptance:* Migrator applies pending migrations idempotently within transactions and rolls back cleanly using `.down.sql`.
+  - *Verify:* Integration tests covering forward migration, idempotency, and full rollback down path against a temporary SQLite database.
+  - *Scope:* M (4 files)
 
 #### Checkpoint 2: Database Migration Validation
 - [ ] Database schema migrations run idempotently on fresh and existing databases.
-- [ ] Foreign key constraints and indices are verified active.
-
+- [ ] Bidirectional migration verified: `.up.sql` creates schema and `.down.sql` cleanly rolls it back.
+- [ ] Foreign key constraints, CHECK integrity constraints, and indices are verified active.
 ---
 
 ### Task Group 3: Repository Pattern Implementation

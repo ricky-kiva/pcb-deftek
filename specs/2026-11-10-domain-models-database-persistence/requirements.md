@@ -16,22 +16,29 @@ Phase 2 establishes the core domain models and SQLite persistence layer for `pcb
   9. `BaseMaterialForeignObject` (BMFO)
 - **Defect Catalog (`DefectClassCatalog`):** Provides standardized metadata for each defect class: Class code, Display name, Default root cause, Impact analysis, Severity level, and Recommended corrective action.
 - **Domain Value Objects & Entities:**
-  - `BoundingBox`: Normalized coordinates `(X, Y, Width, Height)` with range bounds `[0.0, 1.0]`.
+  - `BoundingBox`: Immutable normalized coordinates `(X, Y, Width, Height)` with range bounds `[0.0, 1.0]` and factory/clamping utilities.
   - `DetectedDefect`: Entity containing `Id`, `InspectionId`, `ClassCode`, `ClassName`, `Confidence`, `BoundingBox`, `Severity`, `RootCause`, `Impact`, `RecommendedAction`.
   - `InspectionRecord`: Aggregate root containing `Id`, `CustomName` (editable, default `date-number`), `TimestampUtc`, `DetectionMode` (`File`, `LiveCamera`), `Status` (`Pass`, `Fail`), `DefectCount`, `InferenceTimeMs`, `DeviceUsed`, `ImagePath`, and list of `DetectedDefect` items.
   - `InspectionStatus`: Enum (`Pass` = 0 defects, `Fail` >= 1 defect).
   - `DetectionMode`: Enum (`SingleFile`, `BatchFolder`, `LiveCamera`).
+- **Boundary Contracts:**
+  - `CreateInspectionCommand` & `CreateDefectInput`: Input boundary contracts separating caller parameters from server/aggregate-generated fields.
+  - `InspectionQueryFilter`: Query parameters for date range, mode, status, pagination, and sorting.
+  - `PagedResult<T>`: Deterministic paginated collection result with metadata (`TotalItems`, `TotalPages`, `HasNextPage`).
 
 ## 3. Database & Persistence Architecture
 - **Engine:** `Microsoft.Data.Sqlite` (high performance, lightweight ADO.NET SQLite provider).
 - **Pragmas & Concurrency:** Enable WAL mode (`PRAGMA journal_mode = WAL;`) and enforce foreign keys (`PRAGMA foreign_keys = ON;`).
 - **Database Location:** `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\app.db` (overrideable for testing).
-- **Proposed Schema (v1):**
-  - `SchemaMigrations`: Tracks applied schema migration versions and timestamps.
-  - `Inspections`: Stores inspection sessions with indexed `TimestampUtc`, `Status`, and `DetectionMode`.
-  - `Defects`: Stores individual bounding boxes and defect classifications with foreign key cascading delete to `Inspections`.
+- **Proposed Schema (v1 with CHECK constraints):**
+  - `SchemaMigrations`: Auditable migration tracking (`Version`, `AppliedAtUtc`, `Description`, `Checksum`, `ExecutionDurationMs`).
+  - `Inspections`: Indexed by `TimestampUtc`, `Status`, `DetectionMode` with CHECK constraints on status, mode, defect count, and latency.
+  - `Defects`: Linked to `Inspections` with `ON DELETE CASCADE` and CHECK constraints on coordinate and confidence ranges `[0.0, 1.0]`.
   - `AppSettings`: Key-value configuration table.
-- **Automated Migration Runner:** Executes embedded transactional SQL scripts (`001_InitialSchema.sql`) on startup.
+- **Bidirectional Migration Runner:**
+  - Transactional execution with SHA-256 script checksum validation.
+  - Explicit forward (`001_initial_schema.up.sql`) and rollback (`001_initial_schema.down.sql`) migration scripts.
+  - Pre-migration backup snapshot safety before applying scripts.
 - **Database Backup Service:** Uses SQLite Online Backup API (`SqliteConnection.BackupDatabase`) to create hot snapshots under `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\backups\app-backup-YYYYMMDD-HHmmss.db` with a 30-day retention policy.
 - **Repository Pattern:**
   - `IInspectionRepository`: CRUD, pagination, date-range filtering (day, week, month, custom), and pass/fail summary statistics.
