@@ -45,7 +45,6 @@ Phase 3 implements the core machine learning inference and computer vision pipel
 6. **DI Registration & Verification Harness:**
    - Wire all inference components into `App.ConfigureServices`.
    - Comprehensive unit and Reqnroll BDD tests against sample PCB images.
-   - **Test Image Fixtures:** In case test images are needed for automated model testing, they can be found in `tests/pcb-deftek.Tests/TestData/Model/` (`BMFO-1.jpg`, `MB-1.jpg`, `OP-1.jpg`, `SC-1.jpg`, `SH-1.jpg`, `SP-1.jpg`).
 
 ## 4. Out-of-Scope (Deferred to Later Phases)
 - Camera video capture and DirectShow/OpenCvSharp frame streaming (Phase 6).
