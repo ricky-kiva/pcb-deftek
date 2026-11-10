@@ -34,8 +34,8 @@
   - *Scope:* M (3 files)
 
 #### Checkpoint 2: Preprocessing Engine Validation
-- [ ] Arbitrary image aspect ratios (landscape, portrait, square) correctly letterbox to 640x640.
-- [ ] Extracted float tensor conforms strictly to `[1, 3, 640, 640]`.
+- [x] Arbitrary image aspect ratios (landscape, portrait, square) correctly letterbox to 640x640.
+- [x] Extracted float tensor conforms strictly to `[1, 3, 640, 640]`.
 
 ---
 
