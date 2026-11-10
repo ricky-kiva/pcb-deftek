@@ -11,7 +11,7 @@
   - 100% tests passing, 0 failed, 0 skipped.
   - Both `tests/pcb-deftek.Tests` (xUnit) and `tests/pcb-deftek.Bdd` (Reqnroll) pass.
 - **Coverage Areas:**
-  - `DefectClassCatalog`: All 9 defect classes return valid metadata.
+  - `DefectKnowledgeBase`: All 9 defect classes return complete diagnostic metadata (explanation, severity, root_cause, impact, action) per `DEFECT_KB`.
   - `BoundingBox`: Normalization bounds checks and clamping invariants.
   - `SqliteDatabaseMigrator`: Schema v1 applied idempotently on fresh and migrated databases.
   - `SqliteInspectionRepository`: Insert, read, date-range filtering, pagination, and deletion.

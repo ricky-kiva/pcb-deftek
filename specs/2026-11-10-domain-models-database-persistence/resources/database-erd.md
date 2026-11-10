@@ -25,7 +25,7 @@ erDiagram
     Defects {
         TEXT Id PK "GUID string"
         TEXT InspectionId FK "References Inspections(Id)"
-        TEXT ClassCode "Class code (SH, OP, MB, SP, SC, HB, CS, CFO, BMFO)"
+        TEXT ClassCode "Class code (short, spur, spurious_copper, open, mouse_bite, hole_breakout, conductor_scratch, conductor_foreign_object, base_material_foreign_object)"
         REAL Confidence "Score in range [0.0, 1.0]"
         REAL BoxX "Normalized X coordinate [0.0, 1.0]"
         REAL BoxY "Normalized Y coordinate [0.0, 1.0]"
@@ -116,11 +116,12 @@ CREATE TABLE IF NOT EXISTS AppSettings (
 | | `BoundingBox.Y` | `Defects` | `BoxY` | `REAL` | No | `0.0 <= BoxY <= 1.0` |
 | | `BoundingBox.Width` | `Defects` | `BoxWidth` | `REAL` | No | `0.0 <= BoxWidth <= 1.0` |
 | | `BoundingBox.Height` | `Defects` | `BoxHeight` | `REAL` | No | `0.0 <= BoxHeight <= 1.0` |
-| *(catalog lookup)* | `string ClassName` | *(none)* | — | — | — | Looked up via `DefectClassCatalog` |
-| *(catalog lookup)* | `DefectSeverity Severity` | *(none)* | — | — | — | Looked up via `DefectClassCatalog` |
-| *(catalog lookup)* | `string RootCause` | *(none)* | — | — | — | Looked up via `DefectClassCatalog` |
-| *(catalog lookup)* | `string Impact` | *(none)* | — | — | — | Looked up via `DefectClassCatalog` |
-| *(catalog lookup)* | `string RecommendedAction`| *(none)* | — | — | — | Looked up via `DefectClassCatalog` |
+| *(static KB lookup)* | `string ClassName` | *(none)* | — | — | — | Looked up via static `DefectKnowledgeBase` |
+| *(static KB lookup)* | `string Explanation` | *(none)* | — | — | — | Looked up via static `DefectKnowledgeBase` |
+| *(static KB lookup)* | `DefectSeverity Severity` | *(none)* | — | — | — | Looked up via static `DefectKnowledgeBase` |
+| *(static KB lookup)* | `string RootCause` | *(none)* | — | — | — | Looked up via static `DefectKnowledgeBase` |
+| *(static KB lookup)* | `string Impact` | *(none)* | — | — | — | Looked up via static `DefectKnowledgeBase` |
+| *(static KB lookup)* | `string Action` | *(none)* | — | — | — | Looked up via static `DefectKnowledgeBase` |
 | **`AppSettings`** | `string Key` | `AppSettings` | `Key` | `TEXT` | No | Unique setting name |
 | | `string Value` | `AppSettings` | `Value` | `TEXT` | No | Serialized setting value |
 | | `DateTime UpdatedAtUtc` | `AppSettings` | `UpdatedAtUtc` | `TEXT` | No | ISO 8601 UTC timestamp |

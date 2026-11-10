@@ -9,21 +9,22 @@ classDiagram
     %% Enums
     class DefectClass {
         <<enumeration>>
-        Short
-        Open
-        MouseBite
-        Spur
-        SpuriousCopper
-        HoleBreakout
-        ConductorScratch
-        ConductorForeignObject
-        BaseMaterialForeignObject
+        Short = 0
+        Spur = 1
+        SpuriousCopper = 2
+        Open = 3
+        MouseBite = 4
+        HoleBreakout = 5
+        ConductorScratch = 6
+        ConductorForeignObject = 7
+        BaseMaterialForeignObject = 8
     }
 
     class DefectSeverity {
         <<enumeration>>
-        Low
+        LowMedium
         Medium
+        MediumHigh
         High
         Critical
     }
@@ -56,19 +57,22 @@ classDiagram
     class DefectClassInfo {
         <<value object>>
         +DefectClass Class
+        +int ClassId
         +string Code
         +string DisplayName
-        +string DefaultRootCause
+        +string Explanation
+        +DefectSeverity Severity
+        +string RootCause
         +string Impact
-        +DefectSeverity DefaultSeverity
-        +string RecommendedAction
+        +string Action
     }
 
-    class DefectClassCatalog {
-        <<domain catalog>>
+    class DefectKnowledgeBase {
+        <<static knowledge base>>
         +IReadOnlyDictionary~DefectClass, DefectClassInfo~ All$
         +GetInfo(DefectClass defectClass)$ DefectClassInfo
         +GetByCode(string code)$ DefectClassInfo
+        +GetByIndex(int classId)$ DefectClassInfo
     }
 
     %% Entities & Aggregates
@@ -79,11 +83,11 @@ classDiagram
         +string ClassCode
         +float Confidence
         +BoundingBox BoundingBox
-        +string ClassName
+        +string Explanation
         +DefectSeverity Severity
         +string RootCause
         +string Impact
-        +string RecommendedAction
+        +string Action
     }
 
     class InspectionRecord {
@@ -161,8 +165,8 @@ classDiagram
     InspectionRecord --> InspectionStatus : derives
     InspectionRecord --> DetectionMode : conducted via
     DetectedDefect *-- "1" BoundingBox : located by
-    DetectedDefect ..> DefectClassCatalog : resolves metadata via
-    DefectClassCatalog o-- "9" DefectClassInfo : registers
+    DetectedDefect ..> DefectKnowledgeBase : resolves metadata via
+    DefectKnowledgeBase o-- "9" DefectClassInfo : registers
     DefectClassInfo --> DefectClass : identifies
     DefectClassInfo --> DefectSeverity : default severity
 
@@ -182,10 +186,9 @@ classDiagram
 - **Query Contracts (`InspectionQueryFilter`, `PagedResult<T>`):** All collection queries are explicitly paginated with bounded defaults (`PageSize` default = 20, max = 100) to protect memory and query performance.
 - **Output Types (`InspectionRecord`, `DetectedDefect`):** Immutable view models exposed to presentation, dashboard, and export layers.
 
-### 2. Normalized Entities with Static Catalog Delegation
+### 2. Normalized Entities with Static Knowledge Base Delegation
 - **`DetectedDefect`:** Stores only variable per-detection data (`Id`, `InspectionId`, `ClassCode`, `Confidence`, `BoundingBox`).
-- **Static Lookups via `DefectClassCatalog`:** Properties like `ClassName`, `Severity`, `RootCause`, `Impact`, and `RecommendedAction` are computed via static lookups in `DefectClassCatalog`, preventing text redundancy in persistence.
-
+- **Centralized Static Source (`DefectKnowledgeBase`):** All descriptive metadata (`Explanation`, `Severity`, `RootCause`, `Impact`, `Action`) is maintained in a centralized static source (`DEFECT_KB`), preventing text duplication across database rows while providing instant, type-safe lookup.
 ### 3. Immutability & Value Object Encapsulation
 - **`BoundingBox`:** Implements strict validation ensuring coordinates remain normalized within `[0.0, 1.0]`. Provides factory methods (`FromPixels`, `FromNormalized`) and safe clamping utilities to guarantee valid bounding geometry at system edges.
 - **`InspectionRecord`:** Status is an immutable computed property (`DefectCount == 0 ? Pass : Fail`), preventing status desynchronization bugs.

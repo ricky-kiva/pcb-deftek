@@ -4,20 +4,26 @@
 Phase 2 establishes the core domain models and SQLite persistence layer for `pcb-deftek`. Every downstream capability—batch file processing, live camera inspection, history viewer, aggregate analytics dashboard, and audit PDF export—relies on a strongly-typed domain model and thread-safe data access layer.
 
 ## 2. Domain Taxonomy & Entities
-- **Defect Taxonomy (9 Classes):**
-  1. `Short` (SH)
-  2. `Open` (OP)
-  3. `MouseBite` (MB)
-  4. `Spur` (SP)
-  5. `SpuriousCopper` (SC)
-  6. `HoleBreakout` (HB)
-  7. `ConductorScratch` (CS)
-  8. `ConductorForeignObject` (CFO)
-  9. `BaseMaterialForeignObject` (BMFO)
-- **Defect Catalog (`DefectClassCatalog`):** Provides standardized metadata for each defect class: Class code, Display name, Default root cause, Impact analysis, Severity level, and Recommended corrective action.
+- **Defect Taxonomy (9 Classes per `CLASS_NAMES`):**
+  - `0: short` (Short)
+  - `1: spur` (Spur)
+  - `2: spurious_copper` (Spurious copper)
+  - `3: open` (Open)
+  - `4: mouse_bite` (Mouse bite)
+  - `5: hole_breakout` (Hole breakout)
+  - `6: conductor_scratch` (Conductor scratch)
+  - `7: conductor_foreign_object` (Conductor foreign object)
+  - `8: base_material_foreign_object` (Base material foreign object)
+- **Static Defect Knowledge Base (`DefectKnowledgeBase`):**
+  Centralized static source containing authoritative diagnostic metadata (`DEFECT_KB`):
+  - `Explanation`: Descriptive definition of the defect anomaly.
+  - `Severity`: Impact level (`Critical`, `High`, `Medium-High`, `Medium`, `Low-Medium`).
+  - `RootCause`: Manufacturing or fabrication origin.
+  - `Impact`: Circuit reliability and operational consequences.
+  - `Action`: Recommended immediate engineering remediation.
 - **Domain Value Objects & Entities:**
   - `BoundingBox`: Immutable normalized coordinates `(X, Y, Width, Height)` with range bounds `[0.0, 1.0]` and factory/clamping utilities.
-  - `DetectedDefect`: Entity containing `Id`, `InspectionId`, `ClassCode`, `Confidence`, `BoundingBox`, with diagnostic properties delegated to `DefectClassCatalog`.
+  - `DetectedDefect`: Entity containing `Id`, `InspectionId`, `ClassCode`, `Confidence`, `BoundingBox`, with diagnostic properties (`Explanation`, `Severity`, `RootCause`, `Impact`, `Action`) resolved via static `DefectKnowledgeBase`.
   - `InspectionRecord`: Aggregate root containing `Id`, `Name` (editable, default `date-number`), `CreatedAtUtc`, `UpdatedAtUtc`, `DetectionMode` (`SingleFile`, `BatchFolder`, `LiveCamera`), `DefectCount`, `ImagePath`, and list of `DetectedDefect` items. `Status` is derived dynamically (`DefectCount == 0 ? Pass : Fail`).
   - `InspectionStatus`: Enum (`Pass` = 0 defects, `Fail` >= 1 defect).
   - `DetectionMode`: Enum (`SingleFile`, `BatchFolder`, `LiveCamera`).

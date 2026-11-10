@@ -8,24 +8,24 @@
 
 ### Task Group 1: Domain Entities & Defect Catalog
 *(Refer to [resources/domain-model.md](./resources/domain-model.md) for class diagrams and entity relationships)*
-- **Task 1.1:** Create `DefectClass` enum and `DefectClassCatalog` in `Domain/Models/`:
-  - Enumerate the 9 defect classes (SH, OP, MB, SP, SC, HB, CS, CFO, BMFO).
-  - Populate catalog with default root cause, impact, severity, and corrective action for each class.
-  - *Acceptance:* Catalog lookup returns complete diagnostic metadata for every defect class.
-  - *Verify:* `dotnet test tests/pcb-deftek.Tests` verifying catalog completeness.
+- **Task 1.1:** Create `DefectClass` enum and static `DefectKnowledgeBase` in `Domain/Models/`:
+  - Enumerate the 9 defect classes with explicit indices 0 to 8 (`short`, `spur`, `spurious_copper`, `open`, `mouse_bite`, `hole_breakout`, `conductor_scratch`, `conductor_foreign_object`, `base_material_foreign_object`).
+  - Implement static `DefectKnowledgeBase` containing authoritative `DEFECT_KB` data (`explanation`, `severity`, `root_cause`, `impact`, and `action`).
+  - *Acceptance:* Static knowledge base lookups return verified diagnostic metadata for all 9 classes by enum, code string, or index.
+  - *Verify:* `dotnet test tests/pcb-deftek.Tests` verifying knowledge base completeness.
   - *Scope:* S (2 files)
 - **Task 1.2:** Implement `BoundingBox`, `DetectionMode`, `InspectionStatus`, `DetectedDefect`, and `InspectionRecord`:
   - `BoundingBox` validation (validates 0.0 <= coordinate <= 1.0, width > 0, height > 0) with pixel/normalized factory methods.
   - `InspectionRecord` uses streamlined fields (`Id`, `Name`, `CreatedAtUtc`, `UpdatedAtUtc`, `Mode`, `DefectCount`, `ImagePath`) and computes derived `Status`.
-  - `DetectedDefect` stores normalized coordinates and delegates diagnostic properties (`ClassName`, `Severity`, `RootCause`, `Impact`, `RecommendedAction`) to `DefectClassCatalog`.
+  - `DetectedDefect` stores normalized coordinates and delegates diagnostic properties (`Explanation`, `Severity`, `RootCause`, `Impact`, `Action`) to static `DefectKnowledgeBase`.
   - Define boundary contracts in `Domain/Contracts/`: `CreateInspectionCommand`, `CreateDefectInput`, `InspectionQueryFilter`, and `PagedResult<T>`.
   - *Acceptance:* Domain models enforce coordinate clamping, immutability, and boundary input separation.
   - *Verify:* Unit tests verifying entity invariants, bounding box boundaries, and contract types.
   - *Scope:* M (5-6 files)
 
 #### Checkpoint 1: Domain Models Validation
-- [ ] Domain models, boundary contracts, and catalog compile cleanly with nullable enabled.
-- [ ] Unit tests verify bounding box validation, factory methods, and defect metadata lookups.
+- [ ] Domain models, boundary contracts, and static knowledge base compile cleanly with nullable enabled.
+- [ ] Unit tests verify bounding box validation, factory methods, and `DefectKnowledgeBase` lookups.
 
 ---
 
