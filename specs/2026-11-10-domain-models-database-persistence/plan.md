@@ -46,9 +46,9 @@
   - *Scope:* M (4 files)
 
 #### Checkpoint 2: Database Migration Validation
-- [ ] Database schema migrations run idempotently on fresh and existing databases.
-- [ ] Bidirectional migration verified: `.up.sql` creates schema and `.down.sql` cleanly rolls it back.
-- [ ] Foreign key constraints, CHECK integrity constraints, and indices are verified active.
+- [x] Database schema migrations run idempotently on fresh and existing databases.
+- [x] Bidirectional migration verified: `.up.sql` creates schema and `.down.sql` cleanly rolls it back.
+- [x] Foreign key constraints, CHECK integrity constraints, and indices are verified active.
 ---
 
 ### Task Group 3: Repository Pattern Implementation
