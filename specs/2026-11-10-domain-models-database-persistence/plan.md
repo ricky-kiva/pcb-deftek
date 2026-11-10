@@ -93,5 +93,5 @@
   - *Scope:* M (3-4 files)
 
 #### Checkpoint 4: Solution-Wide Verification
-- [ ] `dotnet test pcb-deftek.slnx` runs all unit and BDD tests with 100% pass rate.
-- [ ] Application starts up and generates `app.db` with v1 schema intact.
+- [x] `dotnet test pcb-deftek.slnx` runs all unit and BDD tests with 100% pass rate.
+- [x] Application starts up and generates `app.db` with v1 schema intact.

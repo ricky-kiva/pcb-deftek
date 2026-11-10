@@ -5,6 +5,10 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using pcb_deftek;
+using pcb_deftek.Infrastructure.Persistence;
+using pcb_deftek.Infrastructure.Persistence.DatabaseBackup;
+using pcb_deftek.Infrastructure.Persistence.Migrations;
+using pcb_deftek.Infrastructure.Persistence.Repositories;
 using Xunit;
 
 namespace pcb_deftek.Tests;
@@ -80,5 +84,43 @@ public class DependencyInjectionTests
         // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("Service provider has not been initialized.");
+    }
+
+    [Theory]
+    [InlineData(typeof(ISqliteConnectionFactory))]
+    [InlineData(typeof(IDatabaseMigrator))]
+    [InlineData(typeof(IInspectionRepository))]
+    [InlineData(typeof(IDefectRepository))]
+    [InlineData(typeof(ISettingsRepository))]
+    [InlineData(typeof(IDatabaseBackupService))]
+    public void ConfigureServices_WhenCalled_RegistersPersistenceServicesAsSingletons(Type serviceType)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        App.ConfigureServices(services);
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == serviceType);
+
+        // Assert
+        descriptor.Should().NotBeNull($"Service {serviceType.Name} must be registered");
+        descriptor!.Lifetime.Should().Be(ServiceLifetime.Singleton);
+    }
+
+    [Fact]
+    public void ConfigureServices_WhenProviderBuilt_ResolvesAllPersistenceServicesSuccessfully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        App.ConfigureServices(services);
+        using var provider = services.BuildServiceProvider();
+
+        // Act & Assert
+        provider.GetRequiredService<ISqliteConnectionFactory>().Should().NotBeNull();
+        provider.GetRequiredService<IDatabaseMigrator>().Should().NotBeNull();
+        provider.GetRequiredService<IInspectionRepository>().Should().NotBeNull();
+        provider.GetRequiredService<IDefectRepository>().Should().NotBeNull();
+        provider.GetRequiredService<ISettingsRepository>().Should().NotBeNull();
+        provider.GetRequiredService<IDatabaseBackupService>().Should().NotBeNull();
     }
 }
