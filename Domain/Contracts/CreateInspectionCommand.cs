@@ -9,7 +9,6 @@ namespace pcb_deftek.Domain.Contracts;
 /// </summary>
 public record CreateInspectionCommand(
     string Name,
-    DateTime CreatedAtUtc,
     DetectionMode Mode,
     string ImagePath,
-    IReadOnlyList<CreateDefectInput> Defects);
+    IReadOnlyList<CreateDefectInput>? Defects = null);

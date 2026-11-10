@@ -16,9 +16,10 @@ public class InspectionRecord
     public DetectionMode Mode { get; }
     public int DefectCount => Defects.Count;
     public InspectionStatus Status => DefectCount == 0 ? InspectionStatus.Pass : InspectionStatus.Fail;
+    public bool IsPass => Status == InspectionStatus.Pass;
+    public bool HasDefects => DefectCount > 0;
     public string ImagePath { get; }
     public IReadOnlyList<DetectedDefect> Defects { get; }
-
     public InspectionRecord(
         Guid id,
         string name,
@@ -41,6 +42,27 @@ public class InspectionRecord
         Mode = mode;
         ImagePath = imagePath.Trim();
         Defects = defects ?? Array.Empty<DetectedDefect>();
+    }
+    /// <summary>
+    /// Factory method for creating a newly initiated <see cref="InspectionRecord"/> with server-generated fields.
+    /// </summary>
+    public static InspectionRecord Create(
+        string name,
+        DetectionMode mode,
+        string imagePath,
+        IReadOnlyList<DetectedDefect>? defects = null,
+        Guid? id = null,
+        DateTime? createdAtUtc = null)
+    {
+        var timestamp = createdAtUtc ?? DateTime.UtcNow;
+        return new InspectionRecord(
+            id: id ?? Guid.NewGuid(),
+            name: name,
+            createdAtUtc: timestamp,
+            updatedAtUtc: timestamp,
+            mode: mode,
+            imagePath: imagePath,
+            defects: defects);
     }
 
     /// <summary>

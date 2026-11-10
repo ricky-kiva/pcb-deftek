@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace pcb_deftek.Domain.Models;
 
@@ -13,12 +14,12 @@ public static class DefectKnowledgeBase
     private static readonly Dictionary<DefectClass, DefectClassInfo> InfoByClass;
     private static readonly Dictionary<string, DefectClassInfo> InfoByCode;
     private static readonly Dictionary<int, DefectClassInfo> InfoByIndex;
+    private static readonly DefectClassInfo[] DefinitionsList;
 
     /// <summary>
     /// Gets all registered defect class definitions indexed by <see cref="DefectClass"/>.
     /// </summary>
     public static IReadOnlyDictionary<DefectClass, DefectClassInfo> All { get; }
-
     static DefectKnowledgeBase()
     {
         var definitions = new[]
@@ -135,6 +136,7 @@ public static class DefectKnowledgeBase
             InfoByIndex[def.ClassId] = def;
         }
 
+        DefinitionsList = definitions;
         All = new ReadOnlyDictionary<DefectClass, DefectClassInfo>(InfoByClass);
     }
 
@@ -143,7 +145,7 @@ public static class DefectKnowledgeBase
     /// </summary>
     public static DefectClassInfo GetInfo(DefectClass defectClass)
     {
-        if (InfoByClass.TryGetValue(defectClass, out var info))
+        if (TryGetInfo(defectClass, out var info))
         {
             return info;
         }
@@ -152,30 +154,64 @@ public static class DefectKnowledgeBase
     }
 
     /// <summary>
+    /// Attempts to retrieve diagnostic information for the specified <see cref="DefectClass"/>.
+    /// </summary>
+    public static bool TryGetInfo(DefectClass defectClass, [NotNullWhen(true)] out DefectClassInfo? info) =>
+        InfoByClass.TryGetValue(defectClass, out info);
+
+    /// <summary>
     /// Gets diagnostic information for the specified snake_case class code.
     /// </summary>
     public static DefectClassInfo GetByCode(string code)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(code);
 
-        if (InfoByCode.TryGetValue(code.Trim(), out var info))
+        if (TryGetByCode(code, out var info))
         {
-            return info;
+            return info!;
         }
 
         throw new KeyNotFoundException($"Defect code '{code}' is not registered in the knowledge base.");
     }
+    /// <summary>
+    /// Attempts to retrieve diagnostic information for the specified snake_case class code.
+    /// </summary>
+    public static bool TryGetByCode(string? code, [NotNullWhen(true)] out DefectClassInfo? info)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            info = null;
+            return false;
+        }
+
+        return InfoByCode.TryGetValue(code.Trim(), out info);
+    }
+    /// <summary>
+    /// Determines whether the specified code string corresponds to a recognized defect class.
+    /// </summary>
+    public static bool IsValidCode(string? code) =>
+        !string.IsNullOrWhiteSpace(code) && InfoByCode.ContainsKey(code.Trim());
 
     /// <summary>
     /// Gets diagnostic information for the specified zero-based model class index (0 to 8).
     /// </summary>
     public static DefectClassInfo GetByIndex(int classId)
     {
-        if (InfoByIndex.TryGetValue(classId, out var info))
+        if (TryGetByIndex(classId, out var info))
         {
-            return info;
+            return info!;
         }
 
         throw new ArgumentOutOfRangeException(nameof(classId), classId, "Defect class index must be between 0 and 8.");
     }
+    /// <summary>
+    /// Attempts to retrieve diagnostic information for the specified model class index.
+    /// </summary>
+    public static bool TryGetByIndex(int classId, [NotNullWhen(true)] out DefectClassInfo? info) =>
+        InfoByIndex.TryGetValue(classId, out info);
+    /// <summary>
+    /// Gets all registered defect definitions ordered by sequential class index.
+    /// </summary>
+    public static IReadOnlyList<DefectClassInfo> GetAll() =>
+        DefinitionsList;
 }

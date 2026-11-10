@@ -42,6 +42,20 @@ public class DefectKnowledgeBaseTests
         }
     }
 
+    [Fact]
+    public void GetAll_ShouldReturnAllNineDefinitionsInSequentialOrder()
+    {
+        // Act
+        var all = DefectKnowledgeBase.GetAll();
+
+        // Assert
+        all.Should().HaveCount(9);
+        for (int i = 0; i < all.Count; i++)
+        {
+            all[i].ClassId.Should().Be(i);
+        }
+    }
+
     [Theory]
     [InlineData(0, "short", "Short", DefectSeverity.Critical)]
     [InlineData(1, "spur", "Spur", DefectSeverity.Medium)]
@@ -91,6 +105,105 @@ public class DefectKnowledgeBaseTests
         // Assert
         lowerResult.Class.Should().Be(expectedClass);
         upperResult.Class.Should().Be(expectedClass);
+    }
+
+    [Fact]
+    public void TryGetInfo_WithValidClass_ReturnsTrueAndPopulatesOutParam()
+    {
+        // Act
+        bool success = DefectKnowledgeBase.TryGetInfo(DefectClass.Short, out var info);
+
+        // Assert
+        success.Should().BeTrue();
+        info.Should().NotBeNull();
+        info!.Code.Should().Be("short");
+    }
+
+    [Fact]
+    public void TryGetInfo_WithInvalidEnumCast_ReturnsFalseAndNullOutParam()
+    {
+        // Act
+        bool success = DefectKnowledgeBase.TryGetInfo((DefectClass)99, out var info);
+
+        // Assert
+        success.Should().BeFalse();
+        info.Should().BeNull();
+    }
+
+    [Fact]
+    public void TryGetByCode_WithValidCode_ReturnsTrueAndPopulatesOutParam()
+    {
+        // Act
+        bool success = DefectKnowledgeBase.TryGetByCode("spur", out var info);
+
+        // Assert
+        success.Should().BeTrue();
+        info.Should().NotBeNull();
+        info!.Class.Should().Be(DefectClass.Spur);
+    }
+
+    [Theory]
+    [InlineData("unknown_code")]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void TryGetByCode_WithInvalidOrNullCode_ReturnsFalseAndNullOutParam(string? invalidCode)
+    {
+        // Act
+        bool success = DefectKnowledgeBase.TryGetByCode(invalidCode, out var info);
+
+        // Assert
+        success.Should().BeFalse();
+        info.Should().BeNull();
+    }
+
+    [Fact]
+    public void TryGetByIndex_WithValidIndex_ReturnsTrueAndPopulatesOutParam()
+    {
+        // Act
+        bool success = DefectKnowledgeBase.TryGetByIndex(3, out var info);
+
+        // Assert
+        success.Should().BeTrue();
+        info.Should().NotBeNull();
+        info!.Code.Should().Be("open");
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(9)]
+    [InlineData(100)]
+    public void TryGetByIndex_WithOutOfRangeIndex_ReturnsFalseAndNullOutParam(int invalidIndex)
+    {
+        // Act
+        bool success = DefectKnowledgeBase.TryGetByIndex(invalidIndex, out var info);
+
+        // Assert
+        success.Should().BeFalse();
+        info.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("short", true)]
+    [InlineData("spur", true)]
+    [InlineData("spurious_copper", true)]
+    [InlineData("open", true)]
+    [InlineData("mouse_bite", true)]
+    [InlineData("hole_breakout", true)]
+    [InlineData("conductor_scratch", true)]
+    [InlineData("conductor_foreign_object", true)]
+    [InlineData("base_material_foreign_object", true)]
+    [InlineData("SHORT", true)]
+    [InlineData("invalid_code", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void IsValidCode_ShouldValidateDefectClassCodesCorrectly(string? code, bool expectedValid)
+    {
+        // Act
+        bool result = DefectKnowledgeBase.IsValidCode(code);
+
+        // Assert
+        result.Should().Be(expectedValid);
     }
 
     [Fact]

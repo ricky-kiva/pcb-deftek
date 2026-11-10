@@ -17,9 +17,9 @@ public class DetectedDefect
 
     /// <summary>
     /// Gets the authoritative diagnostic metadata resolved dynamically from the static knowledge base.
-    /// </summary>
     public DefectClassInfo ClassInfo => DefectKnowledgeBase.GetByCode(ClassCode);
 
+    public DefectClass Class => ClassInfo.Class;
     public string ClassName => ClassInfo.DisplayName;
     public string Explanation => ClassInfo.Explanation;
     public DefectSeverity Severity => ClassInfo.Severity;
@@ -37,12 +37,16 @@ public class DetectedDefect
 
         ArgumentException.ThrowIfNullOrWhiteSpace(classCode);
 
-        if (float.IsNaN(confidence) || confidence < 0.0f || confidence > 1.0f)
+        string trimmedCode = classCode.Trim();
+        if (!DefectKnowledgeBase.IsValidCode(trimmedCode))
+            throw new ValidationException($"Unknown defect class code '{classCode}'.", nameof(ClassCode), classCode);
+
+        if (float.IsNaN(confidence) || float.IsInfinity(confidence) || confidence < 0.0f || confidence > 1.0f)
             throw new ValidationException("Confidence score must be normalized between 0.0 and 1.0.", nameof(Confidence), confidence);
 
         Id = id;
         InspectionId = inspectionId;
-        ClassCode = classCode.Trim();
+        ClassCode = trimmedCode;
         Confidence = confidence;
         BoundingBox = boundingBox;
     }
