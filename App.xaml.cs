@@ -5,6 +5,10 @@ using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using pcb_deftek.Infrastructure.Logging;
+using pcb_deftek.Infrastructure.Persistence;
+using pcb_deftek.Infrastructure.Persistence.DatabaseBackup;
+using pcb_deftek.Infrastructure.Persistence.Migrations;
+using pcb_deftek.Infrastructure.Persistence.Repositories;
 using Serilog;
 
 namespace pcb_deftek;
@@ -33,7 +37,7 @@ public partial class App : Application
     public IServiceProvider Services => _serviceProvider
         ?? throw new InvalidOperationException("Service provider has not been initialized.");
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -47,6 +51,18 @@ public partial class App : Application
         var services = new ServiceCollection();
         ConfigureServices(services);
         _serviceProvider = services.BuildServiceProvider();
+
+        // Run automated database migrations on startup
+        try
+        {
+            var migrator = _serviceProvider.GetRequiredService<IDatabaseMigrator>();
+            await migrator.MigrateToLatestAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Critical database migration failure during application startup: {Message}", ex.Message);
+            throw;
+        }
 
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
@@ -76,6 +92,14 @@ public partial class App : Application
         {
             builder.AddSerilog(Log.Logger, dispose: false);
         });
+
+        // Core Persistence Services
+        services.AddSingleton<ISqliteConnectionFactory>(_ => new SqliteConnectionFactory());
+        services.AddSingleton<IDatabaseMigrator, SqliteDatabaseMigrator>();
+        services.AddSingleton<IInspectionRepository, SqliteInspectionRepository>();
+        services.AddSingleton<IDefectRepository, SqliteDefectRepository>();
+        services.AddSingleton<ISettingsRepository, SqliteSettingsRepository>();
+        services.AddSingleton<IDatabaseBackupService, SqliteDatabaseBackupService>();
 
         services.AddSingleton<MainWindow>();
     }
