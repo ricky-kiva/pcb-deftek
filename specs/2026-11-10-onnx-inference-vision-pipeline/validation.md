@@ -10,7 +10,7 @@
 - **Pass Condition:**
   - 100% tests passing, 0 failed, 0 skipped.
   - All unit tests in `pcb-deftek.Tests` and BDD acceptance scenarios in `pcb-deftek.Bdd` pass cleanly.
-
+- **Test Image Fixtures:** In case automated model tests need sample PCB test images, they can be found in `tests/pcb-deftek.Tests/TestData/Model/`.
 ## 3. Functional Acceptance Criteria
 - **Model Loading:** `Assets/Models/best.onnx` loads and initializes without throwing exceptions.
 - **Hardware Fallback:** If DirectML GPU acceleration is unavailable, model execution transparently falls back to CPU without crashing.

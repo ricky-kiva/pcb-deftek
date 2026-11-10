@@ -58,6 +58,7 @@
 ---
 
 ### Task Group 4: Integrated Inference Service, DI Wiring & Benchmark Verification
+*(Note: In case test images are needed for the model's automated tests and benchmarks, they can be found in `tests/pcb-deftek.Tests/TestData/Model/`)*
 - **Task 4.1:** Implement `IPcbDefectDetector` and `PcbDefectDetector`:
   - Orchestrate end-to-end pipeline: Input image $\rightarrow$ Preprocessing $\rightarrow$ ONNX execution $\rightarrow$ Postprocessing $\rightarrow$ `InferenceResult`.
   - Capture precise diagnostics: preprocessing time, model execution time, postprocessing time, total latency, and active execution device.
