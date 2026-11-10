@@ -24,14 +24,14 @@ Phase 3 implements the core machine learning inference and computer vision pipel
 ## 3. In-Scope Deliverables
 1. **Dependencies & Security Inspection:**
    - `Microsoft.ML.OnnxRuntime.DirectML`: ONNX execution with DirectML GPU provider and automatic CPU fallback.
-   - `SkiaSharp`: High-performance cross-platform bitmap manipulation, letterboxing, and RGB channel extraction.
+   - `OpenCvSharp4` & `OpenCvSharp4.Windows`: High-performance SIMD-accelerated computer vision library for image decoding, aspect-ratio letterboxing, RGB channel normalization, and unified live camera frame processing.
    - Inspection of packages via Socket CLI before installation.
 2. **Model Runner & Hardware Execution (`Infrastructure/Inference/`):**
    - `ExecutionDevice` enum (`Cpu`, `GpuDirectML`).
    - `InferenceOptions` configuration (Device preference, device ID, thread count, confidence threshold, NMS IoU threshold).
    - `IOnnxModelRunner` & `OnnxModelRunner`: Thread-safe session management, warm-up execution, dynamic device fallback from DirectML to CPU if DirectX 12 hardware or DirectML provider fails, and resource disposal.
 3. **Computer Vision Preprocessing Engine (`Infrastructure/Vision/`):**
-   - `IVisionPreprocessor` & `SkiaVisionPreprocessor`:
+   - `IVisionPreprocessor` & `OpenCvVisionPreprocessor`:
      - Aspect-ratio-preserving letterboxing to 640x640 with neutral gray padding (`RGB 114, 114, 114`).
      - Planar RGB conversion and float normalization to dense `[1, 3, 640, 640]` float tensor.
      - `LetterboxTransform` metadata tracking scale and offsets for exact coordinate inversion.

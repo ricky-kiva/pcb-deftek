@@ -3,9 +3,9 @@
 ## Task Breakdown
 
 ### Task Group 1: ONNX Runtime Dependencies, Hardware Providers & Model Runner
-- **Task 1.1:** Add `Microsoft.ML.OnnxRuntime.DirectML` and `SkiaSharp` NuGet packages:
+- **Task 1.1:** Add `Microsoft.ML.OnnxRuntime.DirectML`, `OpenCvSharp4`, and `OpenCvSharp4.Windows` NuGet packages:
   - Verify package safety via Socket CLI.
-  - Update `pcb-deftek.csproj` with package references.
+  - Update `pcb-deftek.csproj` with package references (replacing `SkiaSharp`).
   - *Acceptance:* Project builds cleanly with nullable enabled.
   - *Verify:* `dotnet build pcb-deftek.csproj`
   - *Scope:* S (1 file)
@@ -25,7 +25,7 @@
 ---
 
 ### Task Group 2: Vision Preprocessing & Letterbox Resizing Engine
-- **Task 2.1:** Implement `LetterboxTransform` and `SkiaVisionPreprocessor`:
+- **Task 2.1:** Implement `LetterboxTransform` and `OpenCvVisionPreprocessor`:
   - Calculate aspect-ratio scale factors and centering padding offsets for any input image dimensions.
   - Letterbox-resize image onto 640x640 canvas with neutral gray padding (RGB: 114, 114, 114).
   - Extract planar RGB float array normalized to $[0.0, 1.0]$ in `[1, 3, 640, 640]` format.
