@@ -51,9 +51,9 @@
   - *Scope:* M (3 files)
 
 #### Checkpoint 3: Postprocessing & NMS Engine Validation
-- [ ] Synthetic candidate tensors with overlapping detections are properly pruned by NMS.
-- [ ] Coordinates are correctly mapped back to normalized $[0.0, 1.0]$ space without distortion.
-- [ ] All 9 defect classes map correctly to `DefectClass` enum.
+- [x] Synthetic candidate tensors with overlapping detections are properly pruned by NMS.
+- [x] Coordinates are correctly mapped back to normalized $[0.0, 1.0]$ space without distortion.
+- [x] All 9 defect classes map correctly to `DefectClass` enum.
 
 ---
 
