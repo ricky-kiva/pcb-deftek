@@ -1,6 +1,6 @@
 # Domain Model & Interface Contracts: Phase 2
 
-This document defines the domain models, value objects, static knowledge base, and application boundary contracts for the PCB defect detection system. It is structured into three focused, purpose-built diagrams following the **Single Responsibility Principle** and `api-and-interface-design`.
+This document defines the domain models, value objects, static knowledge base, and application boundary contracts for the PCB defect detection system. It is structured into three focused, purpose-built diagrams following the **Single Responsibility Principle**.
 
 ---
 
@@ -138,7 +138,7 @@ classDiagram
 
 ## 3. Application Boundaries & Repository Contracts
 
-Separates external input commands and paginated query results from internal domain aggregates per `api-and-interface-design`.
+Separates external input commands and paginated query results from internal domain aggregates.
 
 ```mermaid
 classDiagram

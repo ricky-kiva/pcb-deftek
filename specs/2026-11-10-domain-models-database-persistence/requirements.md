@@ -27,7 +27,7 @@ Phase 2 establishes the core domain models and SQLite persistence layer for `pcb
   - `InspectionRecord`: Aggregate root containing `Id`, `Name` (editable, default `date-number`), `CreatedAtUtc`, `UpdatedAtUtc`, `DetectionMode` (`SingleFile`, `BatchFolder`, `LiveCamera`), `DefectCount`, `ImagePath`, and list of `DetectedDefect` items. `Status` is derived dynamically (`DefectCount == 0 ? Pass : Fail`).
   - `InspectionStatus`: Enum (`Pass` = 0 defects, `Fail` >= 1 defect).
   - `DetectionMode`: Enum (`SingleFile`, `BatchFolder`, `LiveCamera`).
-- **Boundary Contracts (Per `api-and-interface-design`):**
+- **Boundary Contracts:**
   - `CreateInspectionCommand` & `CreateDefectInput`: Input boundary contracts separating caller parameters from server/aggregate-generated fields.
   - `InspectionQueryFilter`: Query parameters for date range, mode, status, pagination, and sorting.
   - `PagedResult<T>`: Deterministic paginated collection result with metadata (`TotalItems`, `TotalPages`, `HasNextPage`).

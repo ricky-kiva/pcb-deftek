@@ -37,7 +37,7 @@
   - *Acceptance:* Connection factory successfully opens connections with WAL mode and foreign keys enabled.
   - *Verify:* Unit/integration test verifying pragma settings.
   - *Scope:* S (2 files)
-- **Task 2.2:** Implement Bidirectional `IDatabaseMigrator` and Migration Scripts (Per `deprecation-and-migration`):
+- **Task 2.2:** Implement Bidirectional `IDatabaseMigrator` and Migration Scripts:
   - Create `001_initial_schema.up.sql` defining streamlined `SchemaMigrations` (with Checksum & ExecutionDurationMs), `Inspections` (Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, DefectCount, ImagePath), `Defects` (Id, InspectionId, ClassCode, Confidence, Bounding Box), and `AppSettings`.
   - Create `001_initial_schema.down.sql` providing a tested, clean rollback path.
   - Implement transactional migration runner verifying SHA-256 script checksums before execution.

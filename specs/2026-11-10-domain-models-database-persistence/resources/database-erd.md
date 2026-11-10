@@ -1,6 +1,6 @@
 # Database Entity-Relationship Diagram (ERD) & Migration Architecture: Phase 2
 
-This document defines the streamlined SQLite physical schema, constraints, indices, domain mapping contracts, and the bidirectional migration lifecycle in accordance with `api-and-interface-design` and `deprecation-and-migration`.
+This document defines the streamlined SQLite physical schema, constraints, indices, domain mapping contracts, and the bidirectional migration lifecycle.
 
 ```mermaid
 erDiagram
