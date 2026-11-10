@@ -8,7 +8,9 @@ using pcb_deftek.Infrastructure.Logging;
 using pcb_deftek.Infrastructure.Persistence;
 using pcb_deftek.Infrastructure.Persistence.DatabaseBackup;
 using pcb_deftek.Infrastructure.Persistence.Migrations;
+using pcb_deftek.Infrastructure.Inference;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
+using pcb_deftek.Infrastructure.Vision;
 using Serilog;
 
 namespace pcb_deftek;
@@ -100,6 +102,12 @@ public partial class App : Application
         services.AddSingleton<IDefectRepository, SqliteDefectRepository>();
         services.AddSingleton<ISettingsRepository, SqliteSettingsRepository>();
         services.AddSingleton<IDatabaseBackupService, SqliteDatabaseBackupService>();
+
+        // Core Inference & Vision Services
+        services.AddSingleton<IOnnxModelRunner, OnnxModelRunner>();
+        services.AddSingleton<IVisionPreprocessor, OpenCvVisionPreprocessor>();
+        services.AddSingleton<IYoloPostprocessor, YoloPostprocessor>();
+        services.AddSingleton<IPcbDefectDetector, PcbDefectDetector>();
 
         services.AddSingleton<MainWindow>();
     }

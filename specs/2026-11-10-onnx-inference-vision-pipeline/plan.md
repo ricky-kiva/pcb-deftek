@@ -72,5 +72,5 @@
   - *Scope:* M (3-4 files)
 
 #### Checkpoint 4: Solution-Wide Inference Verification
-- [ ] `dotnet test pcb-deftek.slnx` runs all unit and BDD tests with 100% pass rate.
-- [ ] End-to-end inference detects defects and records latency metrics.
+- [x] `dotnet test pcb-deftek.slnx` runs all unit and BDD tests with 100% pass rate.
+- [x] End-to-end inference detects defects and records latency metrics.
