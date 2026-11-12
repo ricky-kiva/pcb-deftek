@@ -123,12 +123,12 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 2.1: Live Inspection Telemetry & Frame Models
 - **Description:** Define data models representing live frame inference results, latency metrics, and real-time telemetry.
 - **Acceptance criteria:**
-  - [ ] `LiveFrameResult` holds annotated `BitmapSource`, raw `Mat` clone, `InferenceResult`, defect count, and `IsPass` flag.
-  - [ ] `LiveInspectionTelemetry` records inference latency in milliseconds, moving-average latency, live FPS, and active device name (CPU/GPU).
-  - [ ] Provides thread-safe snapshot representations for UI binding.
+  - [x] `LiveFrameResult` holds annotated `BitmapSource`, raw `Mat` clone, `InferenceResult`, defect count, and `IsPass` flag.
+  - [x] `LiveInspectionTelemetry` records inference latency in milliseconds, moving-average latency, live FPS, and active device name (CPU/GPU).
+  - [x] Provides thread-safe snapshot representations for UI binding.
 - **Verification:**
-  - [ ] Unit tests verify telemetry metric calculations.
-  - [ ] Build succeeds: `dotnet build pcb-deftek.csproj`
+  - [x] Unit tests verify telemetry metric calculations.
+  - [x] Build succeeds: `dotnet build pcb-deftek.csproj`
 - **Dependencies:** Task Group 1
 - **Files:**
   - `Domain/Models/LiveInspectionTelemetry.cs`
@@ -139,15 +139,15 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 2.2: Live Inspection Engine with Frame Dropping
 - **Description:** Implement `ILiveInspectionEngine` and `LiveInspectionEngine` orchestrating background ONNX inference, stale frame throttling, and live telemetry tracking.
 - **Acceptance criteria:**
-  - [ ] Consumes camera frames from `ICameraService.FrameReceived`.
-  - [ ] Drops stale frames if previous inference is still executing (ensures zero frame backlog and sub-second latency).
-  - [ ] Executes defect detection via `IPcbDefectDetector.DetectAsync` off the UI thread.
-  - [ ] Calculates rolling FPS over a 1-second window.
-  - [ ] Determines live PASS/FAIL status (`PASS` if defect count == 0; `FAIL` if count > 0).
-  - [ ] Emits `LiveFrameResult` to subscribers on each processed frame.
+  - [x] Consumes camera frames from `ICameraService.FrameReceived`.
+  - [x] Drops stale frames if previous inference is still executing (ensures zero frame backlog and sub-second latency).
+  - [x] Executes defect detection via `IPcbDefectDetector.DetectAsync` off the UI thread.
+  - [x] Calculates rolling FPS over a 1-second window.
+  - [x] Determines live PASS/FAIL status (`PASS` if defect count == 0; `FAIL` if count > 0).
+  - [x] Emits `LiveFrameResult` to subscribers on each processed frame.
 - **Verification:**
-  - [ ] Unit and mock pipeline tests pass: `dotnet test tests/pcb-deftek.Tests/ --filter LiveInspectionEngineTests`
-  - [ ] Build succeeds: `dotnet build pcb-deftek.csproj`
+  - [x] Unit and mock pipeline tests pass: `dotnet test tests/pcb-deftek.Tests/ --filter LiveInspectionEngineTests`
+  - [x] Build succeeds: `dotnet build pcb-deftek.csproj`
 - **Dependencies:** Task 2.1
 - **Files:**
   - `Infrastructure/Inference/ILiveInspectionEngine.cs`
@@ -158,10 +158,10 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 ---
 
 ### Checkpoint 2: Real-Time Inference & Telemetry Engine
-- [ ] Background inference loop operational without blocking the UI thread.
-- [ ] Stale frame dropping guarantees instantaneous response time.
-- [ ] Rolling FPS and latency calculations verified.
-- [ ] Clean build with 0 warnings (`dotnet build`).
+- [x] Background inference loop operational without blocking the UI thread.
+- [x] Stale frame dropping guarantees instantaneous response time.
+- [x] Rolling FPS and latency calculations verified.
+- [x] Clean build with 0 warnings (`dotnet build`).
 
 ---
 

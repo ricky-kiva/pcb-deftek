@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using OpenCvSharp;
 using pcb_deftek.Domain.Models;
@@ -61,22 +62,35 @@ public class ImageAnnotationService : IImageAnnotationService
     /// <inheritdoc />
     public BitmapSource? MatToBitmapSource(Mat sourceMat)
     {
-        if (sourceMat == null || sourceMat.Empty())
+        if (sourceMat == null || sourceMat.IsDisposed || sourceMat.Empty())
         {
             return null;
         }
 
         try
         {
-            byte[] bmpBytes = sourceMat.ToBytes(".bmp");
-            var bitmap = new BitmapImage();
-            using var stream = new MemoryStream(bmpBytes);
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.StreamSource = stream;
-            bitmap.EndInit();
-            bitmap.Freeze();
+            PixelFormat pixelFormat = sourceMat.Channels() switch
+            {
+                1 => PixelFormats.Gray8,
+                4 => PixelFormats.Bgra32,
+                _ => PixelFormats.Bgr24
+            };
 
+            int stride = (int)sourceMat.Step();
+            int bufferSize = stride * sourceMat.Height;
+
+            var bitmap = BitmapSource.Create(
+                sourceMat.Width,
+                sourceMat.Height,
+                96.0,
+                96.0,
+                pixelFormat,
+                null,
+                sourceMat.Data,
+                bufferSize,
+                stride);
+
+            bitmap.Freeze();
             return bitmap;
         }
         catch
