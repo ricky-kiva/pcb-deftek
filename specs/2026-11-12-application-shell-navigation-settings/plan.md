@@ -173,10 +173,9 @@
   - *Scope:* M (4 files)
 
 #### Checkpoint 5: End-to-End Shell & Settings Acceptance Verification
-- [ ] Solution compiles cleanly with zero warnings (`dotnet build`).
-- [ ] All unit and BDD tests pass (`dotnet test`).
-- [ ] Full application shell runs interactively without crashes.
-
+- [x] Solution compiles cleanly with zero warnings (`dotnet build`).
+- [x] All unit and BDD tests pass (`dotnet test`).
+- [x] Full application shell runs interactively without crashes.
 ---
 
 ## Risks and Mitigations

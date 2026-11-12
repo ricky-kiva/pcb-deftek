@@ -8,9 +8,13 @@ using pcb_deftek;
 using pcb_deftek.Infrastructure.Inference;
 using pcb_deftek.Infrastructure.Persistence;
 using pcb_deftek.Infrastructure.Vision;
+using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence.DatabaseBackup;
+using pcb_deftek.Infrastructure.Persistence.DatabaseExport;
 using pcb_deftek.Infrastructure.Persistence.Migrations;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
+using pcb_deftek.Presentation.Navigation;
+using pcb_deftek.Presentation.ViewModels;
 using Xunit;
 
 namespace pcb_deftek.Tests;
@@ -95,6 +99,8 @@ public class DependencyInjectionTests
     [InlineData(typeof(IDefectRepository))]
     [InlineData(typeof(ISettingsRepository))]
     [InlineData(typeof(IDatabaseBackupService))]
+    [InlineData(typeof(IDatabaseExportService))]
+    [InlineData(typeof(IUserSettingsService))]
     public void ConfigureServices_WhenCalled_RegistersPersistenceServicesAsSingletons(Type serviceType)
     {
         // Arrange
@@ -124,6 +130,8 @@ public class DependencyInjectionTests
         provider.GetRequiredService<IDefectRepository>().Should().NotBeNull();
         provider.GetRequiredService<ISettingsRepository>().Should().NotBeNull();
         provider.GetRequiredService<IDatabaseBackupService>().Should().NotBeNull();
+        provider.GetRequiredService<IDatabaseExportService>().Should().NotBeNull();
+        provider.GetRequiredService<IUserSettingsService>().Should().NotBeNull();
     }
 
     [Theory]
@@ -158,5 +166,64 @@ public class DependencyInjectionTests
         provider.GetRequiredService<IVisionPreprocessor>().Should().NotBeNull();
         provider.GetRequiredService<IYoloPostprocessor>().Should().NotBeNull();
         provider.GetRequiredService<IPcbDefectDetector>().Should().NotBeNull();
+    }
+
+    [Theory]
+    [InlineData(typeof(INotificationService))]
+    [InlineData(typeof(INavigationService))]
+    [InlineData(typeof(IStartupRoutingService))]
+    [InlineData(typeof(MainViewModel))]
+    [InlineData(typeof(SettingsViewModel))]
+    public void ConfigureServices_WhenCalled_RegistersPresentationServicesAsSingletons(Type serviceType)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        App.ConfigureServices(services);
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == serviceType);
+
+        // Assert
+        descriptor.Should().NotBeNull($"Service {serviceType.Name} must be registered");
+        descriptor!.Lifetime.Should().Be(ServiceLifetime.Singleton);
+    }
+
+    [Theory]
+    [InlineData(typeof(DashboardViewModel))]
+    [InlineData(typeof(LiveDetectionViewModel))]
+    [InlineData(typeof(FileDetectionViewModel))]
+    [InlineData(typeof(HistoryViewModel))]
+    public void ConfigureServices_WhenCalled_RegistersPageViewModelsAsTransient(Type serviceType)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        App.ConfigureServices(services);
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == serviceType);
+
+        // Assert
+        descriptor.Should().NotBeNull($"Service {serviceType.Name} must be registered");
+        descriptor!.Lifetime.Should().Be(ServiceLifetime.Transient);
+    }
+
+    [Fact]
+    public void ConfigureServices_WhenProviderBuilt_ResolvesAllPresentationServicesSuccessfully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        App.ConfigureServices(services);
+        using var provider = services.BuildServiceProvider();
+
+        // Act & Assert
+        provider.GetRequiredService<INotificationService>().Should().NotBeNull();
+        provider.GetRequiredService<INavigationService>().Should().NotBeNull();
+        provider.GetRequiredService<IStartupRoutingService>().Should().NotBeNull();
+        provider.GetRequiredService<MainViewModel>().Should().NotBeNull();
+        provider.GetRequiredService<SettingsViewModel>().Should().NotBeNull();
+        provider.GetRequiredService<DashboardViewModel>().Should().NotBeNull();
+        provider.GetRequiredService<LiveDetectionViewModel>().Should().NotBeNull();
+        provider.GetRequiredService<FileDetectionViewModel>().Should().NotBeNull();
+        provider.GetRequiredService<HistoryViewModel>().Should().NotBeNull();
     }
 }
