@@ -135,9 +135,9 @@ The implementation builds a decoupled ingestion layer, an asynchronous batch exe
 - **Estimated scope:** S (1 file)
 
 #### Checkpoint 2: Batch Engine & Persistence Verification
-- [ ] All batch engine tests pass.
-- [ ] Rolling ETA math is validated without division-by-zero or negative intervals.
-- [ ] SQLite database commits records with defects and correct `DetectionMode`.
+- [x] All batch engine tests pass.
+- [x] Rolling ETA math is validated without division-by-zero or negative intervals.
+- [x] SQLite database commits records with defects and correct DetectionMode.
 
 ---
 
