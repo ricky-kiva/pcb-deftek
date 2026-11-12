@@ -13,6 +13,11 @@ namespace pcb_deftek.Infrastructure.Services;
 /// </summary>
 public class WpfFilePickerService : IFilePickerService
 {
+    /// <summary>
+    /// Optional global hook invoked whenever an OS file/folder dialog has closed.
+    /// </summary>
+    public static Action? OnDialogClosed { get; set; }
+
     private readonly Func<string?, string?, bool, IReadOnlyList<string>> _fileDialogHandler;
     private readonly Func<string?, string?> _folderDialogHandler;
 
@@ -63,15 +68,22 @@ public class WpfFilePickerService : IFilePickerService
             CheckPathExists = true
         };
 
-        var owner = Application.Current?.MainWindow;
-        bool? result = owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog();
-
-        if (result == true)
+        try
         {
-            return dialog.FileNames.ToList();
-        }
+            var owner = Application.Current?.MainWindow;
+            bool? result = owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog();
 
-        return Array.Empty<string>();
+            if (result == true)
+            {
+                return dialog.FileNames.ToList();
+            }
+
+            return Array.Empty<string>();
+        }
+        finally
+        {
+            OnDialogClosed?.Invoke();
+        }
     }
 
     private static string? ShowDefaultFolderDialog(string? title)
@@ -82,14 +94,21 @@ public class WpfFilePickerService : IFilePickerService
             Multiselect = false
         };
 
-        var owner = Application.Current?.MainWindow;
-        bool? result = owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog();
-
-        if (result == true && !string.IsNullOrWhiteSpace(dialog.FolderName))
+        try
         {
-            return dialog.FolderName;
-        }
+            var owner = Application.Current?.MainWindow;
+            bool? result = owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog();
 
-        return null;
+            if (result == true && !string.IsNullOrWhiteSpace(dialog.FolderName))
+            {
+                return dialog.FolderName;
+            }
+
+            return null;
+        }
+        finally
+        {
+            OnDialogClosed?.Invoke();
+        }
     }
 }

@@ -73,6 +73,7 @@ public partial class FileDetectionViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanStart))]
     [NotifyPropertyChangedFor(nameof(CanCancel))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveQueueItemCommand))]
     private bool _isProcessing;
 
     [ObservableProperty]
@@ -258,6 +259,60 @@ public partial class FileDetectionViewModel : ViewModelBase
             StatusText = "Queue cleared.";
             OnPropertyChanged(nameof(HasItems));
             OnPropertyChanged(nameof(CanStart));
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether a queue item can be removed.
+    /// </summary>
+    public bool CanRemoveQueueItem(FileDetectionQueueItemViewModel? item) => !IsProcessing;
+
+    /// <summary>
+    /// Removes an individual item from the queue when idle.
+    /// </summary>
+    /// <param name="item">The queue item to remove.</param>
+    [RelayCommand(CanExecute = nameof(CanRemoveQueueItem))]
+    public void RemoveQueueItem(FileDetectionQueueItemViewModel? item)
+    {
+        if (item == null || IsProcessing)
+        {
+            return;
+        }
+
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess())
+        {
+            dispatcher.Invoke(() => RemoveQueueItem(item));
+            return;
+        }
+
+        lock (_queueLock)
+        {
+            if (QueueItems.Remove(item))
+            {
+                TotalCount = QueueItems.Count;
+                if (item.Status == BatchItemStatus.Pass)
+                {
+                    PassCount = Math.Max(0, PassCount - 1);
+                }
+                else if (item.Status == BatchItemStatus.Fail)
+                {
+                    FailCount = Math.Max(0, FailCount - 1);
+                }
+                else if (item.Status == BatchItemStatus.Error)
+                {
+                    ErrorCount = Math.Max(0, ErrorCount - 1);
+                }
+
+                if (item.Status != BatchItemStatus.Pending && item.Status != BatchItemStatus.Processing)
+                {
+                    ProcessedCount = Math.Max(0, ProcessedCount - 1);
+                }
+
+                PercentComplete = TotalCount > 0 ? (int)Math.Round((double)ProcessedCount / TotalCount * 100.0) : 0;
+                OnPropertyChanged(nameof(HasItems));
+                OnPropertyChanged(nameof(CanStart));
+            }
         }
     }
 

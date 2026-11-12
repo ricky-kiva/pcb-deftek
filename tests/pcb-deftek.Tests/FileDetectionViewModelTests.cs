@@ -437,4 +437,110 @@ public class FileDetectionViewModelTests
         item.ToggleDefectsExpandedCommand.Execute(null);
         item.IsDefectsExpanded.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task RemoveQueueItemCommand_WhenIdle_RemovesItemAndRecalculatesTotals()
+    {
+        // Arrange
+        var files = new[] { @"C:\pcb\board1.jpg", @"C:\pcb\board2.jpg" };
+        _mockDiscovery
+            .Setup(d => d.DiscoverImageFilesAsync(files, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(files);
+
+        var sut = CreateSut();
+        await sut.DropFilesCommand.ExecuteAsync(files);
+        sut.QueueItems.Should().HaveCount(2);
+        sut.TotalCount.Should().Be(2);
+
+        var itemToRemove = sut.QueueItems[0];
+
+        // Act
+        sut.RemoveQueueItemCommand.CanExecute(itemToRemove).Should().BeTrue();
+        sut.RemoveQueueItemCommand.Execute(itemToRemove);
+
+        // Assert
+        sut.QueueItems.Should().HaveCount(1);
+        sut.TotalCount.Should().Be(1);
+        sut.QueueItems.Should().NotContain(itemToRemove);
+    }
+
+    [Fact]
+    public async Task RemoveQueueItemCommand_WhenProcessing_CannotExecute()
+    {
+        // Arrange
+        var files = new[] { @"C:\pcb\board1.jpg" };
+        _mockDiscovery
+            .Setup(d => d.DiscoverImageFilesAsync(files, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(files);
+
+        var tcs = new TaskCompletionSource<BatchInspectionSummary>();
+        _mockEngine
+            .Setup(e => e.ExecuteBatchAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<IProgress<BatchProgressReport>?>(),
+                It.IsAny<float?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(tcs.Task);
+
+        var sut = CreateSut();
+        await sut.DropFilesCommand.ExecuteAsync(files);
+        var item = sut.QueueItems[0];
+
+        // Act
+        var startTask = sut.StartBatchCommand.ExecuteAsync(null);
+        sut.IsProcessing.Should().BeTrue();
+
+        // Assert
+        sut.RemoveQueueItemCommand.CanExecute(item).Should().BeFalse();
+        sut.RemoveQueueItemCommand.Execute(item);
+        sut.QueueItems.Should().HaveCount(1);
+
+        // Cleanup
+        tcs.SetResult(new BatchInspectionSummary(BatchStatus.Completed, 1, 1, 1, 0, 0, TimeSpan.FromSeconds(1), Array.Empty<BatchInspectionItem>()));
+        await startTask;
+    }
+
+    [Fact]
+    public async Task RemoveQueueItemCommand_WhenProcessedPassAndFailItemsRemoved_UpdatesCountersAccurately()
+    {
+        // Arrange
+        var files = new[] { @"C:\pcb\board1.jpg", @"C:\pcb\board2.jpg" };
+        _mockDiscovery
+            .Setup(d => d.DiscoverImageFilesAsync(files, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(files);
+
+        var sut = CreateSut();
+        await sut.DropFilesCommand.ExecuteAsync(files);
+
+        sut.QueueItems[0].UpdateFrom(new BatchInspectionItem(@"C:\pcb\board1.jpg", "board1.jpg", BatchItemStatus.Pass, 0, TimeSpan.FromMilliseconds(50), null, Guid.NewGuid(), null));
+        sut.QueueItems[1].UpdateFrom(new BatchInspectionItem(@"C:\pcb\board2.jpg", "board2.jpg", BatchItemStatus.Fail, 1, TimeSpan.FromMilliseconds(60), null, Guid.NewGuid(), null));
+
+        // Simulate batch finished state
+        sut.PassCount = 1;
+        sut.FailCount = 1;
+        sut.ProcessedCount = 2;
+        sut.PercentComplete = 100;
+
+        // Act: Remove the failed item
+        sut.RemoveQueueItemCommand.Execute(sut.QueueItems[1]);
+
+        // Assert
+        sut.QueueItems.Should().HaveCount(1);
+        sut.TotalCount.Should().Be(1);
+        sut.FailCount.Should().Be(0);
+        sut.PassCount.Should().Be(1);
+        sut.ProcessedCount.Should().Be(1);
+        sut.PercentComplete.Should().Be(100);
+
+        // Act: Remove the passed item
+        sut.RemoveQueueItemCommand.Execute(sut.QueueItems[0]);
+
+        // Assert
+        sut.QueueItems.Should().BeEmpty();
+        sut.TotalCount.Should().Be(0);
+        sut.PassCount.Should().Be(0);
+        sut.ProcessedCount.Should().Be(0);
+        sut.PercentComplete.Should().Be(0);
+        sut.HasItems.Should().BeFalse();
+    }
 }

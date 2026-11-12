@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using pcb_deftek.Presentation.ViewModels;
+using pcb_deftek.Infrastructure.Services;
 
 namespace pcb_deftek.Presentation.Views;
 
@@ -17,10 +18,35 @@ public partial class FileDetectionView : UserControl
     public FileDetectionView()
     {
         InitializeComponent();
+        WpfFilePickerService.OnDialogClosed = MarkDialogClosed;
+    }
+
+    private static DateTime _lastDialogClosedTimeUtc = DateTime.MinValue;
+
+    /// <summary>
+    /// Records the timestamp when an OS file or folder dialog has closed.
+    /// Used to suppress leaked mouse messages from double-clicking inside native dialogs.
+    /// </summary>
+    public static void MarkDialogClosed()
+    {
+        _lastDialogClosedTimeUtc = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Checks whether an OS dialog was closed within the suppression cooldown window.
+    /// </summary>
+    public static bool IsRecentDialogClose()
+    {
+        return (DateTime.UtcNow - _lastDialogClosedTimeUtc).TotalMilliseconds < 450;
     }
 
     private void OnBrowseButtonClicked(object sender, RoutedEventArgs e)
     {
+        if (IsRecentDialogClose())
+        {
+            return;
+        }
+
         if (sender is Button button && button.ContextMenu != null)
         {
             button.ContextMenu.PlacementTarget = button;
@@ -65,8 +91,19 @@ public partial class FileDetectionView : UserControl
         e.Handled = true;
     }
 
-    private void OnDropTargetClicked(object sender, MouseButtonEventArgs e)
+    private void OnDropTargetMouseDown(object sender, MouseButtonEventArgs e)
     {
+        if (e.ChangedButton != MouseButton.Left || e.ClickCount > 1)
+        {
+            return;
+        }
+
+        if (IsRecentDialogClose())
+        {
+            e.Handled = true;
+            return;
+        }
+
         // Only trigger browse if user clicked the border background, not an inner child button
         if (e.OriginalSource is DependencyObject source)
         {
@@ -79,6 +116,7 @@ public partial class FileDetectionView : UserControl
 
         if (DataContext is FileDetectionViewModel viewModel && viewModel.BrowseFilesCommand.CanExecute(null))
         {
+            e.Handled = true;
             viewModel.BrowseFilesCommand.Execute(null);
         }
     }

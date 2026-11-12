@@ -77,4 +77,28 @@ public class FilePickerServiceTests
         IFilePickerService.DefaultImageFilter.Should().Contain("*.bmp");
         IFilePickerService.DefaultImageFilter.Should().Contain("*.webp");
     }
+
+    [Fact]
+    public void FileDetectionView_MarkDialogClosed_EnforcesRecentDialogCloseCooldown()
+    {
+        // Act
+        pcb_deftek.Presentation.Views.FileDetectionView.MarkDialogClosed();
+
+        // Assert
+        pcb_deftek.Presentation.Views.FileDetectionView.IsRecentDialogClose().Should().BeTrue();
+    }
+
+    [Fact]
+    public void WpfFilePickerService_OnDialogClosedHook_CanBeConfigured()
+    {
+        // Arrange
+        var invoked = false;
+        WpfFilePickerService.OnDialogClosed = () => invoked = true;
+
+        // Act
+        WpfFilePickerService.OnDialogClosed?.Invoke();
+
+        // Assert
+        invoked.Should().BeTrue();
+    }
 }
