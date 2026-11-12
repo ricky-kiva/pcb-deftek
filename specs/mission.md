@@ -28,6 +28,7 @@ A fast, responsive, and modern Windows desktop inspection suite that seamlessly 
 These features comprise the primary deliverables for initial development and validation:
 - **Defect Detection Engine:** Automated detection for all 9 defect classes with CPU and GPU hardware acceleration support.
 - **Application Shell & Layout:**
+  - Native Windows 11 Fluent Theme foundation (`PresentationFramework.Fluent`, `ThemeMode="System"`, Mica window backdrop).
   - Collapsible Sidebar Sheet on the left: Dashboard, Live Detection, File-Based Detection, History, and Settings anchored at the bottom.
   - Compact footer with dot-separated items: Social media icons (GitHub, LinkedIn, Instagram), Buy Me a Coffee link, and developer portfolio link.
 - **File-Based Detection:** Large drag-and-drop upload area supporting single-file, multi-file, and folder uploads (or File Explorer prompt), with progress bar, inline estimated completion time (ETA), and Windows completion toast notification.

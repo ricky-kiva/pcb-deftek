@@ -3,7 +3,7 @@
 ## 1. Technical Baseline
 - **Runtime & Framework:** .NET 10.0 LTS Windows Desktop (`net10.0-windows`), C# 13.
 - **Compiler Configuration:** `<Nullable>enable</Nullable>`, `<ImplicitUsings>enable</ImplicitUsings>`, `<UseWPF>true</UseWPF>`.
-- **UI Framework:** Windows Presentation Foundation (WPF) with Fluent styling and modular Resource Dictionaries.
+- **UI Framework:** Windows Presentation Foundation (WPF) with native built-in Fluent Theme (`PresentationFramework.Fluent`, `ThemeMode="System"`, Windows 11 Mica backdrop) and modular Resource Dictionaries.
 - **Architecture Pattern:** MVVM (Model-View-ViewModel) using `CommunityToolkit.Mvvm`.
 - **Dependency Injection:** `Microsoft.Extensions.DependencyInjection`.
 
@@ -15,7 +15,8 @@
 - **Computer Vision & Image Manipulation:**
   - `OpenCvSharp4` / `OpenCvSharp4.Windows` (webcam frame capture, video decoding, bitmap manipulation, letterboxing, and viewport cropping)
 - **UI Components & Desktop Integration:**
-  - Modern WPF controls, Fluent styling, and vector iconography
+  - WPF native Fluent Theme (`PresentationFramework.Fluent` with modern Windows 11 controls, light/dark mode adaptation, and system accent colors)
+  - Modular domain resource dictionaries (inspection status colors, custom layout templates, vector iconography)
   - Interactive charting (line charts with dual-series PASS/FAIL and vertical bar charts with interactive hover feedback)
   - Drag-and-drop support for dashboard metric card reordering
   - Windows Notifications (`Microsoft.Toolkit.Uwp.Notifications` / Windows toast notifications) for batch completion, PDF export, and database export alerts

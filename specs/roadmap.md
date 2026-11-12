@@ -21,7 +21,7 @@
 - Test inference accuracy and performance against benchmark PCB images.
 
 ### Phase 4: Application Shell, Navigation & Settings
-- Build Fluent shell window featuring:
+- Build shell window using WPF's native Fluent Theme (`PresentationFramework.Fluent`, `ThemeMode="System"`, Mica backdrop) featuring:
   - Collapsible Sidebar Sheet on the left: Dashboard, Live Detection, File-Based Detection, History, and Settings (anchored at the bottom).
   - Compact footer with dot-separated (`·`) items: Social media icons (GitHub, LinkedIn, Instagram), Buy Me a Coffee link (Ko-fi), and developer portfolio link.
 - Implement modular view navigation and ViewModel-DataTemplate mapping.

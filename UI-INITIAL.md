@@ -1,6 +1,6 @@
 # UI Structure & Requirements
 
-This specification focuses exclusively on **page structure, component hierarchy, layout, and interactions**.
+This specification focuses exclusively on **page structure, component hierarchy, layout, and interactions**. The application should use WPF's new Fluent Theme as its visual & UIfoundation.
 
 ## 1. General Application Layout
 
