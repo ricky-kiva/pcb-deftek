@@ -59,6 +59,19 @@ public class BatchInspectionEngine : IBatchInspectionEngine
                 Items: Array.Empty<BatchInspectionItem>());
         }
 
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return new BatchInspectionSummary(
+                Status: BatchStatus.Cancelled,
+                TotalCount: filePaths.Count,
+                ProcessedCount: 0,
+                PassCount: 0,
+                FailCount: 0,
+                ErrorCount: 0,
+                TotalDuration: TimeSpan.Zero,
+                Items: Array.Empty<BatchInspectionItem>());
+        }
+
         return await Task.Run(async () =>
         {
             var items = new List<BatchInspectionItem>(filePaths.Count);

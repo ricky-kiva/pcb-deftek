@@ -51,11 +51,13 @@ Following `UI-INITIAL.md` (Section 4):
   - Interactive click prompt triggering the Windows file/folder picker.
   - Dedicated action buttons: `Browse Files` and `Browse Folder`.
   - Drag-over visual highlight feedback (`DragEnter`, `DragLeave`, `Drop`).
-- **Row 2 — Processing Progress & ETA:**
+- **Row 2 — Processing Progress, Inline ETA & Inline Cancel Button:**
   - Standard Fluent `ProgressBar` bound to `PercentComplete`.
-  - Inline progress text showing: `Processed N of Total (X%) • ETA: mm:ss • Speed: ~X.X s/board`.
-  - Live summary counter badges: Total queued, Passed (green), Failed (red).
-  - Action controls: `Start Inspection` (when items are queued) and `Cancel Inspection` (when active).
+  - Inline progress & cancellation row:
+    - Formatted progress text: `Processed N of Total (X%) • ETA: mm:ss • Speed: ~X.X s/board`.
+    - **Cancel Processing Button:** Positioned directly adjacent to the ETA indicator. Visible and enabled whenever batch processing is actively running (`IsProcessing = true`), providing a one-click mechanism to abort the active batch without leaving the progress area.
+  - Live summary counter badges: Total queued, Passed (green badge), Failed (red badge).
+  - Secondary action controls: `Start Inspection` (when items are queued and idle) and `Clear Queue` (when idle).
 - **Inspection Queue / Results Table:**
   - Clean table or virtualized list displaying queued/processed items: Filename, Status badge (`Pending`, `Processing`, `Pass`, `Fail`, `Error`), Defect Count, Duration, and Detected Classes.
 
@@ -73,13 +75,13 @@ Following `UI-INITIAL.md` (Section 4):
 
 ### 3.2. Presentation Layer
 1. **ViewModel (`FileDetectionViewModel`):**
-   - Commands for file browsing, folder browsing, drag-and-drop ingestion, starting batch, canceling batch, and clearing queue.
-   - Observable properties for progress percentage, inline ETA string, status text, summary counters, and item collection.
+   - Commands for file browsing, folder browsing, drag-and-drop ingestion, starting batch, canceling batch (`CancelBatchCommand` bound to inline cancel button), and clearing queue.
+   - Observable properties for progress percentage, inline ETA string, status text, summary counters, item collection, and cancellation availability (`CanCancel`).
    - Integration with `INotificationService` and `IUserSettingsService` (reading default confidence threshold).
 2. **View (`FileDetectionView.xaml`):**
    - Fluent design with light/dark theme adaptation.
    - Large drag-and-drop drop-target zone.
-   - Progress bar with inline ETA indicators.
+   - Progress bar with inline ETA indicator and adjacent Cancel Processing button.
    - Virtualized queue/results grid with status chips and defect counts.
 
 ### 3.3. Verification & Acceptance

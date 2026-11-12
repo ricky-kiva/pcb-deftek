@@ -195,6 +195,25 @@ public class BatchInspectionEngineTests : IDisposable
     }
 
     [Fact]
+    public async Task ExecuteBatchAsync_WhenCancelledBeforeStart_ReturnsCancelledSummaryImmediately()
+    {
+        // Arrange
+        var files = new[] { @"C:\pcb\b1.jpg", @"C:\pcb\b2.jpg" };
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var sut = new BatchInspectionEngine(_mockDetector.Object, _mockRepository.Object, _logger);
+
+        // Act
+        var summary = await sut.ExecuteBatchAsync(files, cancellationToken: cts.Token);
+
+        // Assert
+        summary.Status.Should().Be(BatchStatus.Cancelled);
+        summary.ProcessedCount.Should().Be(0);
+        summary.Items.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task ExecuteBatchAsync_WithRealSqliteRepository_PersistsInspectionAndDefects()
     {
         // Arrange: Real SQLite persistence

@@ -183,13 +183,12 @@ The implementation builds a decoupled ingestion layer, an asynchronous batch exe
 ### Task Group 4: Presentation Layer — FileDetectionView XAML & Drag-and-Drop UX
 
 #### Task 4.1: FileDetectionView XAML Layout
-- **Description:** Build the `FileDetectionView.xaml` layout adhering to `UI-INITIAL.md` (Section 4) and WPF Fluent Theme guidelines.
+- **Description:** Build the `FileDetectionView.xaml` layout adhering to `UI-INITIAL.md` (Section 4) and WPF Fluent Theme guidelines, featuring an inline Cancel Processing button directly beside the ETA indicator.
 - **Acceptance criteria:**
   - [ ] **Row 1 — Upload Zone:** Large drag-and-drop area with dashed border, upload icon, supporting text ("Drag & drop PCB images or folders here, or click to browse"), and action buttons (`Browse Files`, `Browse Folder`).
-  - [ ] **Row 2 — Progress & ETA:** Fluent `ProgressBar` bound to `PercentComplete`, inline text displaying `Processed N of Total (X%) • ETA: mm:ss`, and live counter badges (Total, Pass in green, Fail in red).
-  - [ ] **Action Controls:** `Start Batch` and `Cancel` buttons with appropriate enabled/disabled state bindings.
+  - [ ] **Row 2 — Progress, ETA & Inline Cancel Button:** Fluent `ProgressBar` bound to `PercentComplete`, inline progress text displaying `Processed N of Total (X%) • ETA: mm:ss`, and a compact **Cancel Processing button** positioned directly adjacent to the ETA indicator (bound to `CancelBatchCommand`, visible/enabled when `IsProcessing` is true).
+  - [ ] **Counter Badges & Controls:** Live counter badges (Total, Pass in green, Fail in red), plus `Start Inspection` and `Clear Queue` action buttons.
   - [ ] **Results Grid:** Virtualized `ListView` or `DataGrid` displaying queue items with status chips, defect count, duration, and class details.
-- **Verification:**
   - [ ] Build succeeds without XAML markup errors.
 - **Dependencies:** Task Group 3
 - **Files:**
@@ -213,8 +212,8 @@ The implementation builds a decoupled ingestion layer, an asynchronous batch exe
 #### Checkpoint 4: UI & Drag-and-Drop Verification
 - [ ] View renders cleanly under both Light and Dark Fluent themes.
 - [ ] Drag-and-drop visual highlight activates upon drag-over.
-- [ ] Progress bar, inline ETA, and queue list reflect ViewModel state.
-
+- [ ] Progress bar, inline ETA, and inline Cancel Processing button reflect ViewModel state and trigger cancellation promptly.
+- [ ] Queue list displays item status chips, defect counts, and durations.
 ---
 
 ### Task Group 5: DI Wiring, Integration & Reqnroll BDD Scenarios
