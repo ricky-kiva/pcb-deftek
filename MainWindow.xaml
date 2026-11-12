@@ -234,7 +234,7 @@
                 </Button>
 
                 <Button Command="{Binding OpenExternalUrlCommand}"
-                        CommandParameter="https://linkedin.com/ricky-fadel"
+                        CommandParameter="https://linkedin.com/in/ricky-fadel"
                         Style="{StaticResource FooterLinkButtonStyle}"
                         ToolTip="LinkedIn: ricky-fadel"
                         Margin="4,0,0,0">
