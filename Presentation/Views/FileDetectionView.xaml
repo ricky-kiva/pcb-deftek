@@ -18,8 +18,11 @@
                        FontWeight="SemiBold"
                        HorizontalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-            <TextBlock Text="Drag-and-drop batch upload and ETA processing progress will be rendered here."
+            <TextBlock Text="Phase 5 delivery: Drag-and-drop single, multi-image, and folder batch detection with asynchronous progress worker, inline ETA estimation, and Windows completion toast notification."
                        FontSize="13"
+                       TextWrapping="Wrap"
+                       MaxWidth="560"
+                       TextAlignment="Center"
                        Margin="0,8,0,0"
                        HorizontalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />

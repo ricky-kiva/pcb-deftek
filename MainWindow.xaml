@@ -12,6 +12,9 @@
         WindowStartupLocation="CenterScreen"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}">
 
+    <Window.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding CloseSettingsCommand}" />
+    </Window.InputBindings>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -104,16 +107,24 @@
                                     </Binding.Converter>
                                 </Binding>
                             </RadioButton.IsChecked>
-                            <StackPanel Orientation="Horizontal">
-                                <Path Data="{StaticResource IconDashboard}"
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="24" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Path Grid.Column="0"
+                                      Data="{StaticResource IconDashboard}"
                                       Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"
                                       Width="18" Height="18"
                                       Stretch="Uniform"
-                                      Margin="4,0,12,0" />
-                                <TextBlock Text="Dashboard"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="Dashboard"
                                            VerticalAlignment="Center"
+                                           Margin="10,0,0,0"
                                            Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                            </StackPanel>
+                            </Grid>
                         </RadioButton>
 
                         <!-- 2. Live Detection -->
@@ -128,16 +139,24 @@
                                     </Binding.Converter>
                                 </Binding>
                             </RadioButton.IsChecked>
-                            <StackPanel Orientation="Horizontal">
-                                <Path Data="{StaticResource IconLiveDetection}"
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="24" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Path Grid.Column="0"
+                                      Data="{StaticResource IconLiveDetection}"
                                       Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"
                                       Width="18" Height="18"
                                       Stretch="Uniform"
-                                      Margin="4,0,12,0" />
-                                <TextBlock Text="Live Detection"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="Live Detection"
                                            VerticalAlignment="Center"
+                                           Margin="10,0,0,0"
                                            Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                            </StackPanel>
+                            </Grid>
                         </RadioButton>
 
                         <!-- 3. File-Based Detection -->
@@ -152,16 +171,24 @@
                                     </Binding.Converter>
                                 </Binding>
                             </RadioButton.IsChecked>
-                            <StackPanel Orientation="Horizontal">
-                                <Path Data="{StaticResource IconFileDetection}"
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="24" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Path Grid.Column="0"
+                                      Data="{StaticResource IconFileDetection}"
                                       Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"
                                       Width="18" Height="18"
                                       Stretch="Uniform"
-                                      Margin="4,0,12,0" />
-                                <TextBlock Text="File-Based Detection"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="File-Based Detection"
                                            VerticalAlignment="Center"
+                                           Margin="10,0,0,0"
                                            Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                            </StackPanel>
+                            </Grid>
                         </RadioButton>
 
                         <!-- 4. History -->
@@ -176,16 +203,24 @@
                                     </Binding.Converter>
                                 </Binding>
                             </RadioButton.IsChecked>
-                            <StackPanel Orientation="Horizontal">
-                                <Path Data="{StaticResource IconHistory}"
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="24" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Path Grid.Column="0"
+                                      Data="{StaticResource IconHistory}"
                                       Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"
                                       Width="18" Height="18"
                                       Stretch="Uniform"
-                                      Margin="4,0,12,0" />
-                                <TextBlock Text="History"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="History"
                                            VerticalAlignment="Center"
+                                           Margin="10,0,0,0"
                                            Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                            </StackPanel>
+                            </Grid>
                         </RadioButton>
                     </StackPanel>
 
@@ -195,16 +230,24 @@
                                  Style="{StaticResource SidebarNavigationItemStyle}"
                                  ToolTip="Settings"
                                  GroupName="SidebarNavigationGroup">
-                        <StackPanel Orientation="Horizontal">
-                            <Path Data="{StaticResource IconSettings}"
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="24" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0"
+                                  Data="{StaticResource IconSettings}"
                                   Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"
                                   Width="18" Height="18"
                                   Stretch="Uniform"
-                                  Margin="4,0,12,0" />
-                            <TextBlock Text="Settings"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1"
+                                       Text="Settings"
                                        VerticalAlignment="Center"
+                                       Margin="10,0,0,0"
                                        Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                        </StackPanel>
+                        </Grid>
                     </RadioButton>
                 </Grid>
             </Border>

@@ -18,8 +18,11 @@
                        FontWeight="SemiBold"
                        HorizontalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-            <TextBlock Text="Aggregated defect trends, metric cards, and audit filters will be rendered here."
+            <TextBlock Text="Phase 8 delivery: Interactive metric cards (Total PCBs, Defects, PASS/FAIL line chart, Distribution bar chart), multi-scale date &amp; severity filters, and root-cause diagnostic accordions."
                        FontSize="13"
+                       TextWrapping="Wrap"
+                       MaxWidth="560"
+                       TextAlignment="Center"
                        Margin="0,8,0,0"
                        HorizontalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
