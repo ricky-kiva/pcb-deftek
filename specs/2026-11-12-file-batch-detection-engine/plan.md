@@ -249,10 +249,10 @@ The implementation builds a decoupled ingestion layer, an asynchronous batch exe
 - **Estimated scope:** S (2 files)
 
 #### Checkpoint 5: End-to-End Acceptance Verification
-- [ ] All 5 task groups complete.
-- [ ] Solution compiles cleanly with zero warnings (`dotnet build`).
-- [ ] All unit, integration, and BDD tests pass (`dotnet test`).
-- [ ] Checkpoint 5 verified and ready for PR.
+- [x] All 5 task groups complete.
+- [x] Solution compiles cleanly with zero warnings (`dotnet build`).
+- [x] All unit, integration, and BDD tests pass (`dotnet test`).
+- [x] Checkpoint 5 verified and ready for PR.
 
 ---
 

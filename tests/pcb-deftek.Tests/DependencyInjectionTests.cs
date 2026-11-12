@@ -13,6 +13,7 @@ using pcb_deftek.Infrastructure.Persistence.DatabaseBackup;
 using pcb_deftek.Infrastructure.Persistence.DatabaseExport;
 using pcb_deftek.Infrastructure.Persistence.Migrations;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
+using pcb_deftek.Infrastructure.Services;
 using pcb_deftek.Presentation.Navigation;
 using pcb_deftek.Presentation.ViewModels;
 using Xunit;
@@ -139,6 +140,7 @@ public class DependencyInjectionTests
     [InlineData(typeof(IVisionPreprocessor))]
     [InlineData(typeof(IYoloPostprocessor))]
     [InlineData(typeof(IPcbDefectDetector))]
+    [InlineData(typeof(IBatchInspectionEngine))]
     public void ConfigureServices_WhenCalled_RegistersInferenceServicesAsSingletons(Type serviceType)
     {
         // Arrange
@@ -207,6 +209,23 @@ public class DependencyInjectionTests
         descriptor!.Lifetime.Should().Be(ServiceLifetime.Transient);
     }
 
+    [Theory]
+    [InlineData(typeof(IFileDiscoveryService))]
+    [InlineData(typeof(IFilePickerService))]
+    public void ConfigureServices_WhenCalled_RegistersFileIngestionServicesAsSingletons(Type serviceType)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        App.ConfigureServices(services);
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == serviceType);
+
+        // Assert
+        descriptor.Should().NotBeNull($"Service {serviceType.Name} must be registered");
+        descriptor!.Lifetime.Should().Be(ServiceLifetime.Singleton);
+    }
+
     [Fact]
     public void ConfigureServices_WhenProviderBuilt_ResolvesAllPresentationServicesSuccessfully()
     {
@@ -219,6 +238,9 @@ public class DependencyInjectionTests
         provider.GetRequiredService<INotificationService>().Should().NotBeNull();
         provider.GetRequiredService<INavigationService>().Should().NotBeNull();
         provider.GetRequiredService<IStartupRoutingService>().Should().NotBeNull();
+        provider.GetRequiredService<IFileDiscoveryService>().Should().NotBeNull();
+        provider.GetRequiredService<IFilePickerService>().Should().NotBeNull();
+        provider.GetRequiredService<IBatchInspectionEngine>().Should().NotBeNull();
         provider.GetRequiredService<MainViewModel>().Should().NotBeNull();
         provider.GetRequiredService<SettingsViewModel>().Should().NotBeNull();
         provider.GetRequiredService<DashboardViewModel>().Should().NotBeNull();
