@@ -64,6 +64,9 @@ public class PresentationResourceDictionaryTests
         dictionary.Contains("IconCrop").Should().BeTrue();
         dictionary.Contains("IconCapture").Should().BeTrue();
         dictionary.Contains("IconClose").Should().BeTrue();
+        dictionary.Contains("IconUpload").Should().BeTrue();
+        dictionary.Contains("IconFolder").Should().BeTrue();
+        dictionary.Contains("IconPlay").Should().BeTrue();
     }
 
     [Fact]

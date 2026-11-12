@@ -2,30 +2,468 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:pcb_deftek.Presentation.ViewModels"
+             xmlns:converters="clr-namespace:pcb_deftek.Presentation.Converters"
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="800">
-    <Grid Margin="24">
-        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-            <Path Data="{StaticResource IconFileDetection}"
-                  Fill="{DynamicResource AccentFillColorDefaultBrush}"
-                  Width="48" Height="48"
-                  Stretch="Uniform"
-                  HorizontalAlignment="Center"
-                  Margin="0,0,0,16" />
-            <TextBlock Text="File &amp; Batch Inspection"
-                       FontSize="20"
-                       FontWeight="SemiBold"
-                       HorizontalAlignment="Center"
-                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-            <TextBlock Text="Phase 5 delivery: Drag-and-drop single, multi-image, and folder batch detection with asynchronous progress worker, inline ETA estimation, and Windows completion toast notification."
-                       FontSize="13"
-                       TextWrapping="Wrap"
-                       MaxWidth="560"
-                       TextAlignment="Center"
-                       Margin="0,8,0,0"
-                       HorizontalAlignment="Center"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-        </StackPanel>
+             d:DataContext="{d:DesignInstance Type=vm:FileDetectionViewModel}"
+             d:DesignHeight="700" d:DesignWidth="900">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+        <converters:CountToVisibilityConverter x:Key="InverseCountToVisibilityConverter" Invert="True" />
+        <converters:BatchStatusToForegroundBrushConverter x:Key="BatchStatusToForegroundBrushConverter" />
+        <converters:BatchStatusToBackgroundBrushConverter x:Key="BatchStatusToBackgroundBrushConverter" />
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibilityConverter" />
+
+        <!-- Accent Action Button Style -->
+        <Style x:Key="PrimaryAccentButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="RootBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RootBorder" Property="Background" Value="{DynamicResource AccentFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="RootBorder" Property="Background" Value="{DynamicResource AccentFillColorTertiaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="RootBorder" Property="Background" Value="{DynamicResource AccentFillColorDisabledBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorDisabledBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Subtle Inline Cancel Button Style -->
+        <Style x:Key="InlineCancelButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#1AE81123" />
+            <Setter Property="Foreground" Value="#E81123" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#4DE81123" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="RootBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RootBorder" Property="Background" Value="#33E81123" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="RootBorder" Property="Background" Value="#4DE81123" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="RootBorder" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="24,18,24,16">
+        <Grid.RowDefinitions>
+            <!-- Row 0: Page Header -->
+            <RowDefinition Height="Auto" />
+            <!-- Row 1: Drag & Drop Upload Zone -->
+            <RowDefinition Height="Auto" />
+            <!-- Row 2: Progress, Telemetry & Inline Cancel Button -->
+            <RowDefinition Height="Auto" />
+            <!-- Row 3: Queue & Detection Results Grid -->
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Page Header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+            <StackPanel DockPanel.Dock="Left">
+                <TextBlock Text="File &amp; Batch Inspection"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                <TextBlock Text="Automated defect detection across single images, multi-file selections, and recursive directory batches."
+                           FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Margin="0,2,0,0" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Row 1: Drag & Drop Upload Zone -->
+        <Border x:Name="DropTargetBorder"
+                Grid.Row="1"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                BorderThickness="1.5"
+                CornerRadius="8"
+                Padding="24,18"
+                MinHeight="130"
+                AllowDrop="True"
+                Cursor="Hand"
+                DragEnter="OnDropTargetDragEnter"
+                DragOver="OnDropTargetDragOver"
+                DragLeave="OnDropTargetDragLeave"
+                Drop="OnDropTargetDrop"
+                PreviewMouseLeftButtonUp="OnDropTargetClicked">
+            <Grid>
+                <!-- Subtle Dashed Indicator -->
+                <Rectangle Stroke="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                           StrokeDashArray="4 2"
+                           StrokeThickness="1"
+                           RadiusX="6"
+                           RadiusY="6"
+                           IsHitTestVisible="False" />
+
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="12">
+                    <Path Data="{StaticResource IconUpload}"
+                          Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                          Width="26" Height="26"
+                          Stretch="Uniform"
+                          HorizontalAlignment="Center"
+                          Margin="0,0,0,6" />
+
+                    <TextBlock Text="Drag &amp; drop PCB images or folders here, or click to browse"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+
+                    <TextBlock Text="Supports .jpg, .jpeg, .png, .bmp, .webp • Recursive directory traversal"
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Margin="0,3,0,12" />
+
+                    <!-- Action Buttons -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Command="{Binding BrowseFilesCommand}"
+                                Height="30"
+                                Padding="12,0"
+                                Margin="0,0,8,0"
+                                ToolTip="Select individual or multiple PCB image files">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconFileDetection}"
+                                      Fill="{DynamicResource TextFillColorPrimaryBrush}"
+                                      Width="13" Height="13"
+                                      Stretch="Uniform"
+                                      Margin="0,0,6,0" />
+                                <TextBlock Text="Browse Files" FontSize="12" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding BrowseFolderCommand}"
+                                Height="30"
+                                Padding="12,0"
+                                ToolTip="Select an entire folder of PCB images to inspect recursively">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconFolder}"
+                                      Fill="{DynamicResource TextFillColorPrimaryBrush}"
+                                      Width="13" Height="13"
+                                      Stretch="Uniform"
+                                      Margin="0,0,6,0" />
+                                <TextBlock Text="Browse Folder" FontSize="12" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Row 2: Progress, Telemetry & Inline Cancel Button -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16,12"
+                Margin="0,12,0,12">
+            <StackPanel>
+                <!-- Top Row: Controls & Telemetry Badges -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Main Execution Controls -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Command="{Binding StartBatchCommand}"
+                                Style="{StaticResource PrimaryAccentButtonStyle}"
+                                Height="32"
+                                Padding="14,0"
+                                IsEnabled="{Binding CanStart}"
+                                ToolTip="Start sequential automated defect detection on all queued items">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconPlay}"
+                                      Fill="{DynamicResource TextOnAccentFillColorPrimaryBrush}"
+                                      Width="12" Height="12"
+                                      Stretch="Uniform"
+                                      Margin="0,0,6,0" />
+                                <TextBlock Text="Start Inspection" FontSize="12" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding ClearQueueCommand}"
+                                Height="32"
+                                Padding="12,0"
+                                Margin="8,0,0,0"
+                                IsEnabled="{Binding HasItems}"
+                                ToolTip="Clear all queued items">
+                            <TextBlock Text="Clear Queue" FontSize="12" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Right: Live Counter Badges -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Total Queue Pill -->
+                        <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                CornerRadius="4"
+                                Padding="8,4"
+                                Margin="0,0,6,0">
+                            <TextBlock Text="{Binding TotalCount, StringFormat='Total: {0}'}"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </Border>
+
+                        <!-- Passed Pill -->
+                        <Border Background="{StaticResource StatusPassLightBrush}"
+                                BorderBrush="{StaticResource StatusPassBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="8,4"
+                                Margin="0,0,6,0">
+                            <TextBlock Text="{Binding PassCount, StringFormat='PASS: {0}'}"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource StatusPassBrush}" />
+                        </Border>
+
+                        <!-- Failed Pill -->
+                        <Border Background="{StaticResource StatusFailLightBrush}"
+                                BorderBrush="{StaticResource StatusFailBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="8,4"
+                                Margin="0,0,6,0">
+                            <TextBlock Text="{Binding FailCount, StringFormat='FAIL: {0}'}"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource StatusFailBrush}" />
+                        </Border>
+
+                        <!-- Errors Pill (Conditional) -->
+                        <Border Background="{StaticResource SeverityHighTintBrush}"
+                                BorderBrush="{StaticResource SeverityHighBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="8,4"
+                                Visibility="{Binding ErrorCount, Converter={StaticResource CountToVisibilityConverter}}">
+                            <TextBlock Text="{Binding ErrorCount, StringFormat='Errors: {0}'}"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource SeverityHighBrush}" />
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Processing Progress Bar -->
+                <ProgressBar Value="{Binding PercentComplete}"
+                             Minimum="0" Maximum="100"
+                             Height="6"
+                             Margin="0,10,0,8" />
+
+                <!-- Bottom Row: Inline Progress Text, ETA & Adjacent Cancel Button -->
+                <Grid>
+                    <!-- Left: Status message -->
+                    <TextBlock HorizontalAlignment="Left"
+                               VerticalAlignment="Center"
+                               Text="{Binding StatusText}"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                    <!-- Right: Inline ETA & Adjacent Cancel Processing Button -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <!-- Dynamic Rolling ETA Text -->
+                        <TextBlock Text="{Binding EtaText}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"
+                                   Visibility="{Binding EtaText, Converter={StaticResource NullOrEmptyToVisibilityConverter}}" />
+
+                        <!-- Cancel Processing Button (Positioned directly next to ETA) -->
+                        <Button Command="{Binding CancelBatchCommand}"
+                                Style="{StaticResource InlineCancelButtonStyle}"
+                                Height="26"
+                                Padding="8,0"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding CanCancel, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                ToolTip="Cancel processing remaining queued boards">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconClose}"
+                                      Fill="#E81123"
+                                      Width="10" Height="10"
+                                      Stretch="Uniform"
+                                      Margin="0,0,4,0" />
+                                <TextBlock Text="Cancel" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Row 3: Queue & Detection Results Grid -->
+        <Border Grid.Row="3"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="0">
+            <Grid>
+                <!-- Empty Queue Watermark -->
+                <StackPanel VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            Visibility="{Binding TotalCount, Converter={StaticResource InverseCountToVisibilityConverter}}">
+                    <Path Data="{StaticResource IconFileDetection}"
+                          Fill="{DynamicResource TextFillColorTertiaryBrush}"
+                          Width="36" Height="36"
+                          Stretch="Uniform"
+                          HorizontalAlignment="Center"
+                          Margin="0,0,0,10" />
+                    <TextBlock Text="No PCB images queued for inspection"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="Drag and drop image files or folders above to populate the queue."
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+
+                <!-- Virtualized Item List -->
+                <ListView ItemsSource="{Binding QueueItems}"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding TotalCount, Converter={StaticResource CountToVisibilityConverter}}">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="Height" Value="38" />
+                            <Setter Property="Padding" Value="10,0" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="VerticalContentAlignment" Value="Center" />
+                            <Setter Property="BorderThickness" Value="0,0,0,1" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+
+                    <ListView.View>
+                        <GridView>
+                            <!-- File Name -->
+                            <GridViewColumn Header="File Name" Width="200">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:FileDetectionQueueItemViewModel}">
+                                        <TextBlock Text="{Binding FileName}"
+                                                   FontWeight="SemiBold"
+                                                   FontSize="12"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- Status Badge -->
+                            <GridViewColumn Header="Status" Width="100">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:FileDetectionQueueItemViewModel}">
+                                        <Border Background="{Binding Status, Converter={StaticResource BatchStatusToBackgroundBrushConverter}}"
+                                                CornerRadius="4"
+                                                Padding="6,2"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StatusBadgeText}"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding Status, Converter={StaticResource BatchStatusToForegroundBrushConverter}}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- Defect Count -->
+                            <GridViewColumn Header="Defects" Width="80">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:FileDetectionQueueItemViewModel}">
+                                        <TextBlock Text="{Binding DefectCount}"
+                                                   FontSize="12"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- Duration -->
+                            <GridViewColumn Header="Duration" Width="90">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:FileDetectionQueueItemViewModel}">
+                                        <TextBlock Text="{Binding FormattedDuration}"
+                                                   FontSize="12"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- Full Path -->
+                            <GridViewColumn Header="Path" Width="360">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:FileDetectionQueueItemViewModel}">
+                                        <TextBlock Text="{Binding FilePath}"
+                                                   FontSize="11"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>
