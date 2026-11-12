@@ -170,14 +170,14 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 3.1: Live Snapshot Service & History Persistence
 - **Description:** Implement `ILiveSnapshotService` to capture the current live frame, encode images to disk, and persist an `InspectionRecord` into SQLite with `DetectionMode.LiveCamera`.
 - **Acceptance criteria:**
-  - [ ] Captures the active frame's raw image and annotated overlay image.
-  - [ ] Saves image files to persistent app data directory (`%LOCALAPPDATA%\PcbDeftek\pcb-deftek\Captures`).
-  - [ ] Inserts `InspectionRecord` into SQLite via `IInspectionRepository.InsertAsync` with `DetectionMode.LiveCamera`.
-  - [ ] Persists all detected `BoundingBox` entities, defect classes, confidence scores, and diagnostic metadata.
-  - [ ] Returns the newly created `InspectionRecord`.
+  - [x] Captures the active frame's raw image and annotated overlay image.
+  - [x] Saves image files to persistent app data directory (`%LOCALAPPDATA%\PcbDeftek\pcb-deftek\Captures`).
+  - [x] Inserts `InspectionRecord` into SQLite via `IInspectionRepository.InsertAsync` with `DetectionMode.LiveCamera`.
+  - [x] Persists all detected `BoundingBox` entities, defect classes, confidence scores, and diagnostic metadata.
+  - [x] Returns the newly created `InspectionRecord`.
 - **Verification:**
-  - [ ] Integration test persists and verifies live camera capture in SQLite.
-  - [ ] Tests pass: `dotnet test tests/pcb-deftek.Tests/ --filter LiveSnapshotServiceTests`
+  - [x] Integration test persists and verifies live camera capture in SQLite.
+  - [x] Tests pass: `dotnet test tests/pcb-deftek.Tests/ --filter LiveSnapshotServiceTests`
 - **Dependencies:** Task Group 2
 - **Files:**
   - `Infrastructure/Services/ILiveSnapshotService.cs`
@@ -188,9 +188,9 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 ---
 
 ### Checkpoint 3: Snapshot Capture & History Persistence
-- [ ] Frame snapshot captures unannotated raw image and annotated overlay image to disk.
-- [ ] SQLite database stores complete inspection record with `DetectionMode.LiveCamera` and bounding boxes.
-- [ ] Clean build with 0 warnings (`dotnet build`).
+- [x] Frame snapshot captures unannotated raw image and annotated overlay image to disk.
+- [x] SQLite database stores complete inspection record with `DetectionMode.LiveCamera` and bounding boxes.
+- [x] Clean build with 0 warnings (`dotnet build`).
 
 ---
 
