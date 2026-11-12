@@ -18,8 +18,11 @@
                        FontWeight="SemiBold"
                        HorizontalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-            <TextBlock Text="Real-time webcam inference viewport and floating telemetry HUD will be rendered here."
+            <TextBlock Text="Phase 6 delivery: Full-screen video stream with real-time YOLOv8 bounding boxes, top-right floating telemetry HUD, camera source selector, confidence slider, spacebar capture, and cursor auto-hide."
                        FontSize="13"
+                       TextWrapping="Wrap"
+                       MaxWidth="560"
+                       TextAlignment="Center"
                        Margin="0,8,0,0"
                        HorizontalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />

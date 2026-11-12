@@ -18,8 +18,11 @@
                        FontWeight="SemiBold"
                        HorizontalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-            <TextBlock Text="Date-grouped thumbnail gallery and interactive defect viewer will be rendered here."
+            <TextBlock Text="Phase 7 delivery: Date-grouped inspection thumbnail gallery with inline renaming, pan/smooth zoom viewer, bounding box auto-focus, viewport cropping, and diagnostic defect sidebar."
                        FontSize="13"
+                       TextWrapping="Wrap"
+                       MaxWidth="560"
+                       TextAlignment="Center"
                        Margin="0,8,0,0"
                        HorizontalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />

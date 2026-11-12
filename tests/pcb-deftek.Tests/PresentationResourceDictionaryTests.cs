@@ -63,6 +63,7 @@ public class PresentationResourceDictionaryTests
         dictionary.Contains("IconZoomReset").Should().BeTrue();
         dictionary.Contains("IconCrop").Should().BeTrue();
         dictionary.Contains("IconCapture").Should().BeTrue();
+        dictionary.Contains("IconClose").Should().BeTrue();
     }
 
     [Fact]

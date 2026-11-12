@@ -21,6 +21,11 @@ public partial class MainViewModel : ViewModelBase
     public INavigationService NavigationService { get; }
 
     /// <summary>
+    /// Gets the settings view model backing the settings modal overlay.
+    /// </summary>
+    public SettingsViewModel? SettingsViewModel { get; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the navigation sidebar is expanded or collapsed.
     /// </summary>
     [ObservableProperty]
@@ -39,11 +44,28 @@ public partial class MainViewModel : ViewModelBase
     /// Initializes a new instance of <see cref="MainViewModel"/>.
     /// </summary>
     /// <param name="navigationService">Navigation service responsible for view transitions.</param>
+    /// <param name="settingsViewModel">Optional settings view model instance.</param>
     /// <param name="urlLauncher">Optional custom delegate for launching external URLs (useful in testing).</param>
-    public MainViewModel(INavigationService navigationService, Action<string>? urlLauncher = null)
+    public MainViewModel(
+        INavigationService navigationService,
+        SettingsViewModel? settingsViewModel = null,
+        Action<string>? urlLauncher = null)
     {
         NavigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        SettingsViewModel = settingsViewModel;
+        if (SettingsViewModel != null)
+        {
+            SettingsViewModel.RequestClose += (_, _) => IsSettingsOpen = false;
+        }
         _urlLauncher = urlLauncher ?? DefaultUrlLauncher;
+    }
+
+    /// <summary>
+    /// Test-convenience constructor specifying a custom URL launcher without settings view model.
+    /// </summary>
+    public MainViewModel(INavigationService navigationService, Action<string> urlLauncher)
+        : this(navigationService, null, urlLauncher)
+    {
     }
 
     [RelayCommand]
@@ -79,6 +101,10 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private void OpenSettings()
     {
+        if (SettingsViewModel != null)
+        {
+            _ = SettingsViewModel.LoadAsync();
+        }
         IsSettingsOpen = true;
     }
 
