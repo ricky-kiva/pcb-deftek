@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:pcb_deftek.Presentation.ViewModels"
+                    xmlns:views="clr-namespace:pcb_deftek.Presentation.Views">
+
+    <!-- View-ViewModel DataTemplate Declarations for Automatic View Resolution -->
+    <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+        <views:DashboardView />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:LiveDetectionViewModel}">
+        <views:LiveDetectionView />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:FileDetectionViewModel}">
+        <views:FileDetectionView />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:HistoryViewModel}">
+        <views:HistoryView />
+    </DataTemplate>
+
+</ResourceDictionary>

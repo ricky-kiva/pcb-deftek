@@ -1,0 +1,28 @@
+<UserControl x:Class="pcb_deftek.Presentation.Views.LiveDetectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <Grid Margin="24">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconLiveDetection}"
+                  Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                  Width="48" Height="48"
+                  Stretch="Uniform"
+                  HorizontalAlignment="Center"
+                  Margin="0,0,0,16" />
+            <TextBlock Text="Live Camera Inspection"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            <TextBlock Text="Real-time webcam inference viewport and floating telemetry HUD will be rendered here."
+                       FontSize="13"
+                       Margin="0,8,0,0"
+                       HorizontalAlignment="Center"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+    </Grid>
+</UserControl>
