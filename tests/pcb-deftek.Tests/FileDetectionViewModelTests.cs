@@ -12,6 +12,7 @@ using pcb_deftek.Infrastructure.Inference;
 using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
+using pcb_deftek.Infrastructure.Vision;
 using pcb_deftek.Presentation.ViewModels;
 using Xunit;
 
@@ -315,5 +316,62 @@ public class FileDetectionViewModelTests
         // Assert
         sut.IsProcessing.Should().BeFalse();
         sut.StatusText.Should().Contain("Cancelled");
+    }
+
+    [Fact]
+    public async Task DropFilesCommand_WhenCalledFromBackgroundThread_DoesNotThrowAndPopulatesQueue()
+    {
+        // Arrange
+        var files = new[] { @"C:\pcb\bg1.jpg", @"C:\pcb\bg2.jpg" };
+        _mockDiscovery
+            .Setup(d => d.DiscoverImageFilesAsync(files, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(files);
+
+        var sut = CreateSut();
+
+        // Act: Invoke DropFilesCommand from a background threadpool thread
+        await Task.Run(async () =>
+        {
+            await sut.DropFilesCommand.ExecuteAsync(files);
+        });
+
+        // Assert
+        sut.QueueItems.Should().HaveCount(2);
+        sut.TotalCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void FileDetectionQueueItemViewModel_DefectSummary_DisplaysFormattedDefectsOrClean()
+    {
+        // Arrange
+        var item = new FileDetectionQueueItemViewModel(@"C:\pcb\board.jpg");
+
+        item.Status.Should().Be(BatchItemStatus.Pending);
+        item.DefectSummary.Should().Be("Queued");
+
+        // Pass state
+        item.Status = BatchItemStatus.Pass;
+        item.DefectSummary.Should().Be("Clean (No defects)");
+        item.StatusBadgeTooltip.Should().Contain("Clean");
+
+        // Fail state with defects
+        var detected = new[]
+        {
+            new DetectedDefect(Guid.NewGuid(), Guid.NewGuid(), "hole_breakout", 0.92f, new BoundingBox(0.1f, 0.1f, 0.2f, 0.2f))
+        };
+        var result = new InferenceResult(
+            Guid.NewGuid(),
+            detected,
+            new LetterboxTransform(640, 640, 640, 640, 1.0f, 0, 0),
+            ExecutionDevice.Cpu,
+            new InferenceTiming(5, 20, 2, 27));
+
+        item.UpdateFrom(new BatchInspectionItem(@"C:\pcb\board.jpg", "board.jpg", BatchItemStatus.Fail, 1, TimeSpan.FromMilliseconds(169), null, Guid.NewGuid(), result));
+
+        item.Status.Should().Be(BatchItemStatus.Fail);
+        item.DefectCount.Should().Be(1);
+        item.DefectSummary.Should().Contain("Hole breakout");
+        item.DefectSummary.Should().Contain("92%");
+        item.StatusBadgeTooltip.Should().Contain("Inspection Failed");
     }
 }

@@ -28,11 +28,14 @@ public partial class FileDetectionQueueItemViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsFail))]
     [NotifyPropertyChangedFor(nameof(IsError))]
     [NotifyPropertyChangedFor(nameof(StatusBadgeText))]
+    [NotifyPropertyChangedFor(nameof(StatusBadgeTooltip))]
+    [NotifyPropertyChangedFor(nameof(DefectSummary))]
     private BatchItemStatus _status = BatchItemStatus.Pending;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DefectSummary))]
+    [NotifyPropertyChangedFor(nameof(StatusBadgeTooltip))]
     private int _defectCount;
-
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FormattedDuration))]
     private TimeSpan _duration = TimeSpan.Zero;
@@ -44,6 +47,7 @@ public partial class FileDetectionQueueItemViewModel : ObservableObject
     private Guid? _inspectionId;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DefectSummary))]
     private InferenceResult? _result;
 
     /// <summary>
@@ -91,6 +95,39 @@ public partial class FileDetectionQueueItemViewModel : ObservableObject
     public string FormattedDuration => Duration > TimeSpan.Zero
         ? $"{Duration.TotalMilliseconds:N0} ms"
         : "-";
+
+    /// <summary>
+    /// Gets a detailed tooltip explaining the inspection status for the operator.
+    /// </summary>
+    public string StatusBadgeTooltip => Status switch
+    {
+        BatchItemStatus.Pass => "Inspection Passed: Clean board with zero defects detected.",
+        BatchItemStatus.Fail => $"Inspection Failed: {DefectCount} defect(s) detected ({DefectSummary}).",
+        BatchItemStatus.Error => $"Inspection Error: {ErrorMessage ?? "Unexpected processing failure."}",
+        BatchItemStatus.Processing => "Currently analyzing PCB board image...",
+        _ => "Queued for automated optical inspection."
+    };
+
+    /// <summary>
+    /// Gets a human-readable summary of detected defects or status.
+    /// </summary>
+    public string DefectSummary
+    {
+        get
+        {
+            if (Status == BatchItemStatus.Pending) return "Queued";
+            if (Status == BatchItemStatus.Processing) return "Inspecting...";
+            if (Status == BatchItemStatus.Error) return ErrorMessage ?? "Error";
+            if (Status == BatchItemStatus.Pass) return "Clean (No defects)";
+
+            if (Result?.Defects != null && Result.Defects.Count > 0)
+            {
+                return string.Join(", ", Result.Defects.Select(d => $"{d.ClassName} ({d.Confidence:P0})"));
+            }
+
+            return DefectCount > 0 ? $"{DefectCount} defect(s)" : "Clean";
+        }
+    }
 
     /// <summary>
     /// Updates this ViewModel's properties from a completed <see cref="BatchInspectionItem"/>.

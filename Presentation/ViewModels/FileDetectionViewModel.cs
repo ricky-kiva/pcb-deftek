@@ -31,6 +31,7 @@ public partial class FileDetectionViewModel : ViewModelBase
     private readonly IUserSettingsService _userSettingsService;
     private readonly ILogger<FileDetectionViewModel> _logger;
 
+    private readonly object _queueLock = new();
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _cancellationRequested;
 
@@ -108,6 +109,8 @@ public partial class FileDetectionViewModel : ViewModelBase
         _notificationService = notificationService;
         _userSettingsService = userSettingsService;
         _logger = logger ?? NullLogger<FileDetectionViewModel>.Instance;
+
+        System.Windows.Data.BindingOperations.EnableCollectionSynchronization(QueueItems, _queueLock);
     }
 
     /// <inheritdoc />
@@ -139,14 +142,14 @@ public partial class FileDetectionViewModel : ViewModelBase
         {
             var pickedPaths = await _filePickerService.PickFilesAsync(
                 title: "Select PCB Images for Batch Inspection",
-                multiselect: true).ConfigureAwait(false);
+                multiselect: true);
 
             if (pickedPaths.Count == 0)
             {
                 return;
             }
 
-            var discovered = await _fileDiscoveryService.DiscoverImageFilesAsync(pickedPaths).ConfigureAwait(false);
+            var discovered = await _fileDiscoveryService.DiscoverImageFilesAsync(pickedPaths);
             AddPathsToQueue(discovered);
         }
         catch (Exception ex)
@@ -170,7 +173,7 @@ public partial class FileDetectionViewModel : ViewModelBase
         try
         {
             var folder = await _filePickerService.PickFolderAsync(
-                title: "Select PCB Image Batch Folder").ConfigureAwait(false);
+                title: "Select PCB Image Batch Folder");
 
             if (string.IsNullOrWhiteSpace(folder))
             {
@@ -178,7 +181,7 @@ public partial class FileDetectionViewModel : ViewModelBase
             }
 
             StatusText = "Scanning directory for PCB images...";
-            var discovered = await _fileDiscoveryService.DiscoverImageFilesAsync(folder).ConfigureAwait(false);
+            var discovered = await _fileDiscoveryService.DiscoverImageFilesAsync(folder);
             AddPathsToQueue(discovered);
             StatusText = $"Discovered {discovered.Count} image(s) in folder.";
         }
@@ -202,7 +205,7 @@ public partial class FileDetectionViewModel : ViewModelBase
 
         try
         {
-            var discovered = await _fileDiscoveryService.DiscoverImageFilesAsync(paths).ConfigureAwait(false);
+            var discovered = await _fileDiscoveryService.DiscoverImageFilesAsync(paths);
             AddPathsToQueue(discovered);
         }
         catch (Exception ex)
@@ -223,17 +226,27 @@ public partial class FileDetectionViewModel : ViewModelBase
             return;
         }
 
-        QueueItems.Clear();
-        TotalCount = 0;
-        ProcessedCount = 0;
-        PassCount = 0;
-        FailCount = 0;
-        ErrorCount = 0;
-        PercentComplete = 0;
-        EtaText = null;
-        StatusText = "Queue cleared.";
-        OnPropertyChanged(nameof(HasItems));
-        OnPropertyChanged(nameof(CanStart));
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess())
+        {
+            dispatcher.Invoke(ClearQueue);
+            return;
+        }
+
+        lock (_queueLock)
+        {
+            QueueItems.Clear();
+            TotalCount = 0;
+            ProcessedCount = 0;
+            PassCount = 0;
+            FailCount = 0;
+            ErrorCount = 0;
+            PercentComplete = 0;
+            EtaText = null;
+            StatusText = "Queue cleared.";
+            OnPropertyChanged(nameof(HasItems));
+            OnPropertyChanged(nameof(CanStart));
+        }
     }
 
     /// <summary>
@@ -310,7 +323,7 @@ public partial class FileDetectionViewModel : ViewModelBase
                 filePaths,
                 progress,
                 (float)ConfidenceThreshold,
-                _cancellationTokenSource.Token).ConfigureAwait(false);
+                _cancellationTokenSource.Token);
             IsProcessing = false;
 
             ProcessedCount = summary.ProcessedCount;
@@ -336,13 +349,13 @@ public partial class FileDetectionViewModel : ViewModelBase
             }
             else
             {
-                StatusText = $"Completed: {summary.PassCount} passed, {summary.FailCount} failed, {summary.ErrorCount} errors.";
+                StatusText = $"Completed: {summary.PassCount} clean (PASS), {summary.FailCount} defective (FAIL), {summary.ErrorCount} errors ({summary.TotalDuration.TotalMilliseconds:N0} ms).";
 
                 try
                 {
                     await _notificationService.ShowToastAsync(
                         "Batch Inspection Complete",
-                        $"Processed {summary.TotalCount} boards: {summary.PassCount} passed, {summary.FailCount} failed in {summary.TotalDuration:mm\\:ss}.").ConfigureAwait(false);
+                        $"Processed {summary.TotalCount} boards: {summary.PassCount} passed, {summary.FailCount} defective (FAIL) in {summary.TotalDuration:mm\\:ss}.");
                 }
                 catch (Exception notifEx)
                 {
@@ -398,19 +411,29 @@ public partial class FileDetectionViewModel : ViewModelBase
 
     private void AddPathsToQueue(IEnumerable<string> paths)
     {
-        var existing = new HashSet<string>(QueueItems.Select(i => i.FilePath), StringComparer.OrdinalIgnoreCase);
-
-        foreach (var path in paths)
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess())
         {
-            if (!string.IsNullOrWhiteSpace(path) && !existing.Contains(path))
-            {
-                existing.Add(path);
-                QueueItems.Add(new FileDetectionQueueItemViewModel(path));
-            }
+            dispatcher.Invoke(() => AddPathsToQueue(paths));
+            return;
         }
 
-        TotalCount = QueueItems.Count;
-        OnPropertyChanged(nameof(HasItems));
-        OnPropertyChanged(nameof(CanStart));
+        lock (_queueLock)
+        {
+            var existing = new HashSet<string>(QueueItems.Select(i => i.FilePath), StringComparer.OrdinalIgnoreCase);
+
+            foreach (var path in paths)
+            {
+                if (!string.IsNullOrWhiteSpace(path) && !existing.Contains(path))
+                {
+                    existing.Add(path);
+                    QueueItems.Add(new FileDetectionQueueItemViewModel(path));
+                }
+            }
+
+            TotalCount = QueueItems.Count;
+            OnPropertyChanged(nameof(HasItems));
+            OnPropertyChanged(nameof(CanStart));
+        }
     }
 }

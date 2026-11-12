@@ -259,7 +259,7 @@
                                 CornerRadius="4"
                                 Padding="8,4"
                                 Margin="0,0,6,0">
-                            <TextBlock Text="{Binding PassCount, StringFormat='PASS: {0}'}"
+                            <TextBlock Text="{Binding PassCount, StringFormat='PASS (Clean): {0}'}"
                                        FontSize="11"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource StatusPassBrush}" />
@@ -272,7 +272,7 @@
                                 CornerRadius="4"
                                 Padding="8,4"
                                 Margin="0,0,6,0">
-                            <TextBlock Text="{Binding FailCount, StringFormat='FAIL: {0}'}"
+                            <TextBlock Text="{Binding FailCount, StringFormat='FAIL (Defects): {0}'}"
                                        FontSize="11"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource StatusFailBrush}" />
@@ -410,6 +410,7 @@
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate DataType="{x:Type vm:FileDetectionQueueItemViewModel}">
                                         <Border Background="{Binding Status, Converter={StaticResource BatchStatusToBackgroundBrushConverter}}"
+                                                ToolTip="{Binding StatusBadgeTooltip}"
                                                 CornerRadius="4"
                                                 Padding="6,2"
                                                 HorizontalAlignment="Left"
@@ -419,6 +420,20 @@
                                                        FontWeight="SemiBold"
                                                        Foreground="{Binding Status, Converter={StaticResource BatchStatusToForegroundBrushConverter}}" />
                                         </Border>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- Detected Defects -->
+                            <GridViewColumn Header="Detected Defects" Width="200">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:FileDetectionQueueItemViewModel}">
+                                        <TextBlock Text="{Binding DefectSummary}"
+                                                   FontSize="11"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{Binding Status, Converter={StaticResource BatchStatusToForegroundBrushConverter}}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding DefectSummary}" />
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
