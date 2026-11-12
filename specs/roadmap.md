@@ -21,41 +21,63 @@
 - Test inference accuracy and performance against benchmark PCB images.
 
 ### Phase 4: Application Shell, Navigation & Settings
-- Build Fluent shell window with modular view navigation and ViewModel-DataTemplate mapping.
-- Implement Settings modal: confidence threshold, 9 defect class toggles, CPU/GPU selector, startup page selector, and model/developer metadata.
-- Persist settings to local SQLite configuration.
+- Build Fluent shell window featuring:
+  - Collapsible Sidebar Sheet on the left: Dashboard, Live Detection, File-Based Detection, History, and Settings (anchored at the bottom).
+  - Compact footer with dot-separated (`·`) items: Social media icons (GitHub, LinkedIn, Instagram), Buy Me a Coffee link (Ko-fi), and developer portfolio link.
+- Implement modular view navigation and ViewModel-DataTemplate mapping.
+- Implement startup navigation routing: Default startup page selector and "Skip dashboard on startup" preference routing.
+- Implement Database export service & routine (exporting SQLite database to user-configured path, default Windows Downloads folder, with completion Windows notification).
+- Align defect class abbreviations (`SH`, `OP`, `MB`, `SP`, `SC`, `HB`, `CS`, `CFO`, `BMFO`) and diagnostic metadata contracts for UI view models.
+- Implement Settings modal / panel:
+  - Inference & Model Controls: Confidence threshold slider/input, dynamic detection device selector (CPU/GPU).
+  - Application Preferences: Default startup page dropdown selector.
+  - About & Attribution: Model metadata (`pcb-defect-yolov8m-dspcbsd` and developer links), Developer links (website, GitHub, Instagram, LinkedIn, Ko-fi).
+  - Export: Report export location setting, Database export location setting, and manual Database Export button with Windows completion notification.
+- Persist settings and user preferences to local SQLite configuration via repository.
 
 ### Phase 5: File & Batch Detection Engine
-- Implement file service for single image, multi-image, video, and recursive folder inspection.
-- Asynchronous batch worker with `IProgress<T>` reporting and cancellation support.
-- Windows completion toast notification.
+- Implement file service with drag-and-drop upload area supporting single-file, multi-file, and folder uploads (with Windows File Explorer dialog prompt).
+- Asynchronous batch worker with `IProgress<T>` reporting, cancellation support, and inline estimated completion time (ETA) calculation.
+- Send Windows completion toast notification when batch processing finishes.
 - Persistence of batch inspection sessions and defect bounding boxes.
 
 ### Phase 6: Live Camera Inspection Module
-- Implement camera frame acquisition service (built-in/USB webcam).
+- Implement camera frame acquisition service (built-in/USB webcam) with camera source selector dropdown.
 - Background real-time inference loop off UI thread with live FPS and latency meters.
-- Live inspection view: PASS/FAIL status banner, live defect count, real-time confidence slider.
-- Frame capture on `Space` shortcut or capture button, committing snapshot to inspection history.
+- Live inspection view: Full-screen video viewport displaying live camera feed with rendered defect bounding boxes (sidebar collapsed by default).
+- Floating controls HUD:
+  - Top-right 3-card vertical stack: First card (Live PASS/FAIL status badge, detected defect counter); Second card (Telemetry toggle + inference latency ms, FPS); Third card (Camera source selector dropdown).
+  - Bottom-left: Confidence threshold slider.
+  - Bottom-right: Capture button with `Space` keyboard shortcut hint, committing snapshot to inspection history.
+- Auto-hide behavior: Gradually fade out configuration controls when cursor is stationary for a few seconds (retaining PASS/FAIL badge, defect counter, and telemetry if toggled).
 
 ### Phase 7: History & Interactive Defect Viewer
-- History view with date-based grouping and thumbnail cards (PASS/FAIL badge, editable filename).
-- High-performance viewer: pan, smooth zoom (scroll & touchpad), and reset view button.
-- Bounding box selection: click-to-select defect with auto-zoom and gradual zoom-out.
-- Defect detail panel: Class, Confidence, Root Cause, Impact, Severity, Recommended Action.
-- Region cropping tool with user zoom-out guidance notice.
+- History view with date-based grouping and gallery thumbnail cards (1:1 square preview, top-left PASS/FAIL badge, default `Date-Number` filename with double-click inline editing).
+- High-performance Interactive Image Viewer:
+  - Main viewing area: Pan and smooth zoom (scroll and touchpad gestures), interactive defect bounding boxes with click-to-focus/zoom, floating Reset View button, and floating Crop button (exports currently visible viewport as new image).
+  - Image Information Sidebar on the right with two distinct states:
+    - *Default State*: Editable filename field, detection timestamp, and summary list of detected defect classes with confidence scores.
+    - *Focused State*: Selected defect details (Defect class name, confidence score, severity, root cause, impact, and recommended action).
 
 ### Phase 8: Defect Statistics Dashboard
-- Dashboard view (default startup option).
-- Aggregate metrics: total PCBs inspected, total defects detected, PASS/FAIL rate, mode breakdown (camera vs file).
-- Defect distribution charts and expandable accordion view for defect class details.
-- Filter bar: Day, Week, Month, Custom Date Range, and Severity filter.
+- Dashboard view (default startup view unless skipped):
+  - Row 1 (Filters & Actions):
+    - Left: Date Range Selector (Day, Week, Month button group + Custom date-range button), Defect Type multi-select Combobox (9 classes), Defect Severity multi-select dropdown (Critical, High, Medium-High, Medium, Low-Medium).
+    - Right: PDF Export Data button, Notification button (modal displaying inference and data-export progress bars), and 1-column vs 2-column Metric Card Layout Toggle.
+  - Row 2 (Metric Cards):
+    - 4 metric cards: Total PCBs Inspected, Total Defects Detected, PASS/FAIL Inspection Rate (dual-line chart: green PASS line, red FAIL line), Defect Distribution Across Defect Classes (vertical bar chart with abbreviated labels `SH`, `OP`, etc.).
+    - Card interactions: Drag-and-drop card reordering, click chart to open enlarged chart modal, and interactive hover feedback on data points.
+  - Row 3 (Defect Class Information):
+    - Single Accordion containing defect cards: Defect class name, two-column layout with severity + 1:1 square image (left) and 4 info sections (right: Explanation, Root Cause, Impact, Recommended Action).
+  - Row 4 (Startup Preference):
+    - "Skip dashboard on startup" checkbox navigating directly to Live Detection on subsequent launches.
 
 ### Phase 9: Audit-Ready PDF Export Engine
-- QuestPDF report layout: inspection summary, defect distribution charts, inspection images with bounding box overlays, and defect metadata table.
-- Dashboard "Export Data" integration with save-file dialog and background generation.
+- QuestPDF report layout: All 4 metric cards arranged in a single column, followed by annotated PCB detection images with bounding boxes and corresponding diagnostic metadata.
+- Dashboard "Export Data" integration: Asynchronous background PDF generation respecting currently applied filters, defaulting export path to Windows Downloads folder with Windows completion notification.
 
 ### Phase 10: Hardening, BDD Verification & Launch Readiness
-- End-to-end Reqnroll BDD scenarios verification across all critical workflows.
+- End-to-end Reqnroll BDD scenarios verification across all critical workflows (including batch ETA, camera auto-hide, viewer sidebar state transitions, dashboard drag-and-drop, and export notifications).
 - Performance verification: memory footprint, UI responsiveness under continuous camera inference.
 - CI/CD build and test automation.
 - Execute launch readiness checklist using `shipping-and-launch` skill.

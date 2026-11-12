@@ -13,14 +13,18 @@
   - `Microsoft.ML.OnnxRuntime.DirectML` (GPU execution with CPU fallback)
   - Inference model: `Assets/Models/best.onnx`
 - **Computer Vision & Image Manipulation:**
-  - `OpenCvSharp4` / `OpenCvSharp4.Windows` (webcam frame capture, video decoding)
-  - `SkiaSharp` or standard WPF imaging for bitmap manipulation, letterboxing, and cropping
+  - `OpenCvSharp4` / `OpenCvSharp4.Windows` (webcam frame capture, video decoding, bitmap manipulation, letterboxing, and viewport cropping)
+- **UI Components & Desktop Integration:**
+  - Modern WPF controls, Fluent styling, and vector iconography
+  - Interactive charting (line charts with dual-series PASS/FAIL and vertical bar charts with interactive hover feedback)
+  - Drag-and-drop support for dashboard metric card reordering
+  - Windows Notifications (`Microsoft.Toolkit.Uwp.Notifications` / Windows toast notifications) for batch completion, PDF export, and database export alerts
 - **Data Persistence:**
   - `Microsoft.Data.Sqlite` for local SQLite database management
-  - Automated schema migration runner and database backup routine
-  - Path: `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\app.db`
+  - Automated schema migration runner, database backup routine, and user-initiated database export service
+  - Path: `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\app.db` (default export path: Windows Downloads folder)
 - **PDF Report Generation:**
-  - `QuestPDF` for structured, code-first document layouts
+  - `QuestPDF` for structured, code-first document layouts (single-column metric card summaries + annotated inspection images)
 - **Logging & Diagnostics:**
   - `Serilog`, `Serilog.Sinks.File`, `Serilog.Sinks.Debug`
   - Custom exceptions under `/Common/Exceptions` with centralized UI exception handling
@@ -28,7 +32,6 @@
   - `xUnit` for unit and integration testing
   - `FluentAssertions` & `Moq`
   - `Reqnroll` (Cucumber for .NET) for behavior-driven acceptance tests
-
 ## 3. Core Commands
 - **Build Solution:** `dotnet build`
 - **Run Application:** `dotnet run --project pcb-deftek.csproj`
@@ -44,7 +47,7 @@
 
 ## 5. System Boundaries & Constraints
 - **Always:**
-  - Run inference, camera processing, and file I/O asynchronously off the UI thread.
+  - Run inference, camera processing, file I/O, PDF generation, and database export operations asynchronously off the UI thread.
   - Validate hardware compatibility before initializing DirectML GPU provider.
   - Log structured diagnostics with Serilog.
   - Adhere to Nullable Reference Types with zero warnings.

@@ -27,19 +27,27 @@ A fast, responsive, and modern Windows desktop inspection suite that seamlessly 
 ### 5.1. Essential Features
 These features comprise the primary deliverables for initial development and validation:
 - **Defect Detection Engine:** Automated detection for all 9 defect classes with CPU and GPU hardware acceleration support.
-- **File-Based Detection:** Single image, image batch, video file, and recursive folder processing with progress tracking and completion toast notification.
-- **Live Camera Detection:** Direct camera stream, live FPS and inference latency metrics, live PASS/FAIL status counter, live confidence threshold slider, and spacebar/button image capture with bounding boxes.
-- **Inspection History:** Persistent local storage, date-grouped items, thumbnails with PASS/FAIL badges and editable filenames.
-- **Defect Viewer:** Interactive pan and smooth zoom (scroll/touchpad), auto-focus on selected defect bounding box, gradual zoom-out, and localized region cropping with guidance notice.
-- **Defect Detail Panel:** Class, confidence score, root cause, impact, severity, and recommended corrective action.
-- **Statistics Dashboard:** Default startup view (configurable), total PCBs inspected, total defects detected, defect distribution across 9 classes, expandable accordions, PASS/FAIL rate, detection mode breakdown (camera vs file), and multi-scale date filtering (day, week, month, custom).
-- **Data Export:** PDF export capturing active dashboard metrics, charts, detection images with bounding boxes, and defect metadata.
-- **Settings:** Confidence threshold slider, defect class toggles, hardware detection device selection (CPU/GPU), startup navigation behavior, model metadata, and developer contact/Ko-fi links.
+- **Application Shell & Layout:**
+  - Collapsible Sidebar Sheet on the left: Dashboard, Live Detection, File-Based Detection, History, and Settings anchored at the bottom.
+  - Compact footer with dot-separated items: Social media icons (GitHub, LinkedIn, Instagram), Buy Me a Coffee link, and developer portfolio link.
+- **File-Based Detection:** Large drag-and-drop upload area supporting single-file, multi-file, and folder uploads (or File Explorer prompt), with progress bar, inline estimated completion time (ETA), and Windows completion toast notification.
+- **Live Camera Detection:** Full-screen video viewport with rendered defect bounding boxes and collapsed sidebar by default; floating top-right 3-card HUD (PASS/FAIL badge + defect count, telemetry toggle + latency/FPS display, camera source selector dropdown); bottom-left confidence slider; bottom-right capture button with `Space` shortcut; and cursor idle auto-hide behavior.
+- **Inspection History:** Persistent local storage, date-grouped gallery thumbnail cards with 1:1 square preview, top-left PASS/FAIL badge, and default `Date-Number` filename with double-click inline editing.
+- **Interactive Defect Viewer:**
+  - Main viewing area: Interactive pan and smooth zoom (scroll and touchpad gestures), click-to-focus on defect bounding boxes, floating Reset View button, and floating Crop button (exports currently visible viewport).
+  - Image Information Sidebar: Two distinct states: *Default* (editable filename, detection timestamp, summary list of detected classes with confidence scores) and *Focused* (selected defect's class name, confidence, severity, root cause, impact, and recommended action).
+- **Statistics Dashboard:**
+  - Filter bar: Date Range Selector (Day, Week, Month button group + Custom date-range button), Defect Type multi-select Combobox (9 classes), Defect Severity multi-select Dropdown (Critical, High, Medium-High, Medium, Low-Medium).
+  - Action bar: PDF Export Data button, Notification button (modal displaying inference and data-export progress bars), and 1-column vs 2-column Metric Card Layout Toggle.
+  - Metric Cards: 4 cards (Total PCBs Inspected, Total Defects Detected, PASS/FAIL Inspection Rate line chart with green/red lines, Defect Distribution Across Defect Classes vertical bar chart with abbreviated labels); drag-and-drop card reordering; click-to-enlarge chart dialog; interactive hover feedback.
+  - Defect Class Information: Single Accordion containing defect cards (defect class name, severity information, 1:1 sample image, explanation, root cause, impact, and recommended action).
+  - Startup Preference: "Skip dashboard on startup" checkbox navigating directly to Live Detection on launch.
+- **Data & Report Export:** PDF export capturing all 4 metric cards in a single column and annotated PCB detection images with bounding boxes/metadata, defaulting to the Windows Downloads folder with a Windows notification on completion.
+- **Settings:** Confidence threshold slider/input, dynamic CPU/GPU device selection, default startup page selector, About & Attribution (model info and developer links/social icons/Ko-fi), Report export location setting, and Database export location setting + manual database export trigger with Windows notification.
 
 ### 5.2. Future Enhancements
 These capabilities are confirmed enhancements that will be implemented in future phases after all essential features above are complete and validated:
 - **Large Video Processing:** Advanced video streaming strategies and warning dialogs before processing large video files.
-- **Defect Severity Definitions:** Formal defect severity classifications and severity-based dashboard filtering once stakeholder definitions are provided.
 - **Corporate Identity & Custom Storage:** Finalization of formal company and application names, including customized database storage paths (`%LOCALAPPDATA%\<Company>\<App>\app.db`).
 - **Application Icon & Visual Assets:** Official application icon, splash branding, and polished desktop assets.
 - **GitHub Release & Distribution:** Production packaging and official GitHub Release distribution following the `shipping-and-launch` readiness checklist.
