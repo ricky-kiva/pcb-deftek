@@ -36,12 +36,11 @@
 - **Sequential Safety:** Items are processed sequentially to prevent GPU/CPU memory exhaustion on DirectML.
 - **Individual File Resilience:** A corrupted or invalid image file records an `Error` item state, logs a warning via Serilog, and allows the batch to proceed to the next item without aborting.
 
-### 3.4. Inline Progress & Dynamic ETA Calculation
+### 3.4. Inline Progress, Dynamic ETA & Inline Cancel Button
 - **Progress Bar:** Reflects exact integer `PercentComplete` (0–100%).
-- **Inline Text:** Displays formatted progress: `Processed N of Total (X%) • ETA: mm:ss`.
+- **Inline Text & Controls:** Displays formatted progress: `Processed N of Total (X%) • ETA: mm:ss` alongside a dedicated, compact Cancel Processing button.
 - **Warmup State:** Displays `"Calculating..."` during initial warmup (first 1–2 items) before displaying stabilized rolling average times.
 - **Counters:** Live badges reflect Total, Passed (green), and Failed (red) counts as each item completes.
-
 ### 3.5. Persistence Integration
 - **Record Creation:** Every successfully inspected board is persisted into SQLite via `IInspectionRepository.InsertAsync`.
 - **Mode Tagging:** Single-item inspections are tagged with `DetectionMode.SingleFile`; multi-item/folder batch inspections are tagged with `DetectionMode.BatchFolder`.
@@ -52,10 +51,10 @@
 - **Headless Fallback:** In test/headless environments, notifications dispatch safely without throwing COM/WinRT exceptions.
 
 ### 3.7. Cancellation Support
-- **Cancel Button:** Operator can request cancellation at any point during active batch execution.
-- **Clean Halt:** The engine completes or cancels the current item and halts further processing.
+- **Cancel Button Placement:** A dedicated Cancel Processing button is positioned directly adjacent to the ETA indicator in the progress row, ensuring instant operator access without searching through navigation controls.
+- **Clean Halt:** Clicking the cancel button requests immediate cooperative cancellation via `CancellationTokenSource`, completing or aborting the active image pass and halting all remaining queue execution.
 - **Preserved Data:** Previously processed items remain safely committed in SQLite.
-
+- **Visual State:** The cancel button is enabled and visible when `IsProcessing` is true, and automatically disables upon completion or cancellation.
 ---
 
 ## 4. Performance & Threading Verification
