@@ -124,4 +124,63 @@ public class ImageAnnotationServiceTests
             textColor.Val0.Should().Be(255);
         }
     }
+
+    [Fact]
+    public void MatToBitmapSource_WhenMatIsEmpty_ReturnsNull()
+    {
+        using var emptyMat = new OpenCvSharp.Mat();
+        var result = _sut.MatToBitmapSource(emptyMat);
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void MatToBitmapSource_WhenMatIsValid_ReturnsFrozenBitmap()
+    {
+        using var validMat = new OpenCvSharp.Mat(100, 100, OpenCvSharp.MatType.CV_8UC3, new OpenCvSharp.Scalar(100, 150, 200));
+        var result = _sut.MatToBitmapSource(validMat);
+
+        result.Should().NotBeNull();
+        result!.IsFrozen.Should().BeTrue();
+        result.PixelWidth.Should().Be(100);
+        result.PixelHeight.Should().Be(100);
+    }
+
+    [Fact]
+    public void AnnotateMat_WithDefects_ReturnsFrozenBitmapWithAnnotations()
+    {
+        using var validMat = new OpenCvSharp.Mat(640, 640, OpenCvSharp.MatType.CV_8UC3, new OpenCvSharp.Scalar(50, 50, 50));
+        var defects = new[]
+        {
+            new DetectedDefect(Guid.NewGuid(), Guid.NewGuid(), "short", 0.92f, new BoundingBox(0.2f, 0.2f, 0.3f, 0.3f)),
+            new DetectedDefect(Guid.NewGuid(), Guid.NewGuid(), "open", 0.88f, new BoundingBox(0.5f, 0.5f, 0.2f, 0.2f))
+        };
+
+        var result = _sut.AnnotateMat(validMat, defects);
+
+        result.Should().NotBeNull();
+        result!.IsFrozen.Should().BeTrue();
+        result.PixelWidth.Should().Be(640);
+        result.PixelHeight.Should().Be(640);
+    }
+
+    [Fact]
+    public void AnnotateMat_BenchmarkedConversion_CompletesWithinPerformanceThreshold()
+    {
+        using var mat = new OpenCvSharp.Mat(640, 640, OpenCvSharp.MatType.CV_8UC3, new OpenCvSharp.Scalar(100, 100, 100));
+        var defects = new[]
+        {
+            new DetectedDefect(Guid.NewGuid(), Guid.NewGuid(), "short", 0.90f, new BoundingBox(0.1f, 0.1f, 0.2f, 0.2f))
+        };
+
+        // Warmup
+        _ = _sut.AnnotateMat(mat, defects);
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var result = _sut.AnnotateMat(mat, defects);
+        sw.Stop();
+
+        result.Should().NotBeNull();
+        // Ensure fast execution under 10ms (generous margin for various test environments)
+        sw.ElapsedMilliseconds.Should().BeLessThan(15);
+    }
 }

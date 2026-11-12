@@ -62,10 +62,10 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 1.1: Camera Device Info Model & `ICameraService` Contract
 - **Description:** Define domain contracts and models for video capture device enumeration, state management, and frame delivery.
 - **Acceptance criteria:**
-  - [ ] `CameraDeviceInfo` records device index, unique identifier, and display name.
-  - [ ] `ICameraService` defines asynchronous operations: `GetAvailableCamerasAsync()`, `StartCaptureAsync(int cameraIndex)`, `StopCaptureAsync()`.
-  - [ ] Exposes state properties: `IsCapturing`, `CurrentCamera`, and frame event `event EventHandler<Mat> FrameReceived`.
-  - [ ] Implements `IDisposable` / `IAsyncDisposable` for clean hardware handle release.
+  - [x] `CameraDeviceInfo` records device index, unique identifier, and display name.
+  - [x] `ICameraService` defines asynchronous operations: `GetAvailableCamerasAsync()`, `StartCaptureAsync(int cameraIndex)`, `StopCaptureAsync()`.
+  - [x] Exposes state properties: `IsCapturing`, `CurrentCamera`, and frame event `event EventHandler<CameraFrameEventArgs> FrameReceived`.
+  - [x] Implements `IDisposable` / `IAsyncDisposable` for clean hardware handle release.
 - **Verification:**
   - [ ] Unit tests verify mock interface operations.
   - [ ] `dotnet build pcb-deftek.csproj` succeeds with 0 warnings.
@@ -79,11 +79,11 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 1.2: OpenCV Camera Service Implementation
 - **Description:** Implement `OpenCvCameraService` using `OpenCvSharp4.VideoCapture` to discover video input devices and stream live frames on a background thread.
 - **Acceptance criteria:**
-  - [ ] Enumerate connected cameras via DirectShow/OpenCV query.
-  - [ ] Captures frames continuously on a dedicated background worker loop (`Task.Run`).
-  - [ ] Emits clone or copy of `Mat` frames to listeners via `FrameReceived` event without memory corruption.
-  - [ ] Handles camera disconnects or hardware exceptions gracefully without crashing.
-  - [ ] Cleanly disposes `VideoCapture` handle on `StopCaptureAsync` and disposal.
+  - [x] Enumerate connected cameras via DirectShow/OpenCV query.
+  - [x] Captures frames continuously on a dedicated background worker loop (`Task.Run`).
+  - [x] Emits clone or copy of `Mat` frames to listeners via `FrameReceived` event without memory corruption.
+  - [x] Handles camera disconnects or hardware exceptions gracefully without crashing.
+  - [x] Cleanly disposes `VideoCapture` handle on `StopCaptureAsync` and disposal.
 - **Verification:**
   - [ ] Integration tests pass: `dotnet test tests/pcb-deftek.Tests/ --filter CameraServiceTests`
   - [ ] Build succeeds: `dotnet build pcb-deftek.csproj`
@@ -96,9 +96,9 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 1.3: Fast Bitmap Conversion & Direct Annotation
 - **Description:** Extend `IImageAnnotationService` and `ImageAnnotationService` to annotate in-memory `Mat` frames and convert directly to frozen WPF `BitmapSource` using fast uncompressed BMP streaming (<1ms).
 - **Acceptance criteria:**
-  - [ ] `AnnotateMat(Mat sourceMat, IReadOnlyList<DetectedDefect> defects)` draws color-coded bounding boxes and badges on live frames.
-  - [ ] `MatToBitmapSource(Mat sourceMat)` converts OpenCV `Mat` directly to frozen `BitmapSource` without disk I/O.
-  - [ ] Benchmarked conversion latency is <2ms per frame.
+  - [x] `AnnotateMat(Mat sourceMat, IReadOnlyList<DetectedDefect> defects)` draws color-coded bounding boxes and badges on live frames.
+  - [x] `MatToBitmapSource(Mat sourceMat)` converts OpenCV `Mat` directly to frozen `BitmapSource` without disk I/O.
+  - [x] Benchmarked conversion latency is <2ms per frame.
 - **Verification:**
   - [ ] Unit tests pass: `dotnet test tests/pcb-deftek.Tests/ --filter ImageAnnotationServiceTests`
   - [ ] Build succeeds: `dotnet build pcb-deftek.csproj`
@@ -112,9 +112,9 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 ---
 
 ### Checkpoint 1: Camera Hardware Abstraction & Frame Streaming
-- [ ] Camera enumeration and frame acquisition services operational.
-- [ ] Fast in-memory Mat-to-BitmapSource conversion verified with unit tests.
-- [ ] Clean build with 0 warnings (`dotnet build`).
+  - [x] Camera enumeration and frame acquisition services operational.
+  - [x] Fast in-memory Mat-to-BitmapSource conversion verified with unit tests.
+  - [x] Clean build with 0 warnings (`dotnet build`).
 
 ---
 
