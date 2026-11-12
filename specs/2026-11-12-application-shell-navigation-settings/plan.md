@@ -51,9 +51,9 @@
   - *Scope:* S (2 files)
 
 #### Checkpoint 2: Database Export & Notification Service Validation
-- [ ] Database export produces valid SQLite copies of `app.db` off the UI thread.
-- [ ] Destination path defaults to Windows Downloads folder.
-- [ ] Notifications trigger gracefully in both desktop and automated test environments.
+- [x] Database export produces valid SQLite copies of `app.db` off the UI thread.
+- [x] Destination path defaults to Windows Downloads folder.
+- [x] Notifications trigger gracefully in both desktop and automated test environments.
 
 ---
 
