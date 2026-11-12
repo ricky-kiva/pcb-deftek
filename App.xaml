@@ -13,6 +13,7 @@
                 <ResourceDictionary Source="/Presentation/Styles/StatusColors.xaml" />
                 <ResourceDictionary Source="/Presentation/Styles/Icons.xaml" />
                 <ResourceDictionary Source="/Presentation/Styles/Controls.xaml" />
+                <ResourceDictionary Source="/Presentation/Styles/DataTemplates.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

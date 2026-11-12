@@ -100,11 +100,10 @@
   - *Scope:* S (2 files)
 
 #### Checkpoint 3: Shell Layout & Navigation Routing Validation
-- [ ] Sidebar displays navigation items in exact order (Dashboard, Live, File, History, Settings).
-- [ ] Sidebar collapses and expands cleanly.
-- [ ] Footer displays all links separated by `·` and safely launches URLs.
-- [ ] Startup routing directs to Live Detection if skip-dashboard is enabled, or to default page.
-
+- [x] Sidebar displays navigation items in exact order (Dashboard, Live, File, History, Settings).
+- [x] Sidebar collapses and expands cleanly.
+- [x] Footer displays all links separated by `·` and safely launches URLs.
+- [x] Startup routing directs to Live Detection if skip-dashboard is enabled, or to default page.
 ---
 
 ### Task Group 4: Settings Dialog / Panel & Preference Persistence

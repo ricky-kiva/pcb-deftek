@@ -3,10 +3,305 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:pcb_deftek"
+        xmlns:vm="clr-namespace:pcb_deftek.Presentation.ViewModels"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="pcb-deftek — Automated PCB Defect Detection &amp; Analysis"
+        Width="1280" Height="820"
+        MinWidth="1024" MinHeight="680"
+        WindowStartupLocation="CenterScreen"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}">
 
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/pcb-deftek;component/Presentation/Styles/StatusColors.xaml" />
+                <ResourceDictionary Source="/pcb-deftek;component/Presentation/Styles/Icons.xaml" />
+                <ResourceDictionary Source="/pcb-deftek;component/Presentation/Styles/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- Row 0: Primary Workspace -->
+            <RowDefinition Height="*" />
+            <!-- Row 1: Compact Footer -->
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Primary Workspace (Sidebar + Content) -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <!-- Column 0: Collapsible Sidebar Sheet -->
+                <ColumnDefinition Width="Auto" />
+                <!-- Column 1: Center Active Content Viewport -->
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Collapsible Sidebar Sheet -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource LayerFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="0,0,1,0"
+                    SnapsToDevicePixels="True">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Width" Value="220" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                <Setter Property="Width" Value="60" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <Grid Margin="6,12">
+                    <Grid.RowDefinitions>
+                        <!-- Row 0: Sidebar Header with Hamburger Toggle -->
+                        <RowDefinition Height="Auto" />
+                        <!-- Row 1: Ordered Navigation Items -->
+                        <RowDefinition Height="Auto" />
+                        <!-- Row 2: Spacer -->
+                        <RowDefinition Height="*" />
+                        <!-- Row 3: Settings Anchored at Bottom -->
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Sidebar Header: Toggle Button & Branding -->
+                    <DockPanel Grid.Row="0" Margin="4,0,4,16">
+                        <Button DockPanel.Dock="Left"
+                                Command="{Binding ToggleSidebarCommand}"
+                                Style="{StaticResource FooterLinkButtonStyle}"
+                                Width="36" Height="36"
+                                ToolTip="Toggle navigation menu">
+                            <Path Data="{StaticResource IconMenu}"
+                                  Fill="{DynamicResource TextFillColorPrimaryBrush}"
+                                  Width="18" Height="18"
+                                  Stretch="Uniform" />
+                        </Button>
+                        <TextBlock Text="PCB Deftek"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                   Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    </DockPanel>
+
+                    <!-- Ordered Navigation Items (Dashboard, Live, File, History) -->
+                    <StackPanel Grid.Row="1">
+                        <!-- 1. Dashboard -->
+                        <RadioButton Command="{Binding NavigateToDashboardCommand}"
+                                     Style="{StaticResource SidebarNavigationItemStyle}"
+                                     ToolTip="Dashboard"
+                                     GroupName="SidebarNavigationGroup">
+                            <RadioButton.IsChecked>
+                                <Binding Path="NavigationService.CurrentViewModel" Mode="OneWay">
+                                    <Binding.Converter>
+                                        <localConv:ViewModelTypeMatchConverter xmlns:localConv="clr-namespace:pcb_deftek.Presentation.Converters" TargetType="{x:Type vm:DashboardViewModel}" />
+                                    </Binding.Converter>
+                                </Binding>
+                            </RadioButton.IsChecked>
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource IconDashboard}"
+                                      Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"
+                                      Width="18" Height="18"
+                                      Stretch="Uniform"
+                                      Margin="4,0,12,0" />
+                                <TextBlock Text="Dashboard"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            </StackPanel>
+                        </RadioButton>
+
+                        <!-- 2. Live Detection -->
+                        <RadioButton Command="{Binding NavigateToLiveDetectionCommand}"
+                                     Style="{StaticResource SidebarNavigationItemStyle}"
+                                     ToolTip="Live Detection"
+                                     GroupName="SidebarNavigationGroup">
+                            <RadioButton.IsChecked>
+                                <Binding Path="NavigationService.CurrentViewModel" Mode="OneWay">
+                                    <Binding.Converter>
+                                        <localConv:ViewModelTypeMatchConverter xmlns:localConv="clr-namespace:pcb_deftek.Presentation.Converters" TargetType="{x:Type vm:LiveDetectionViewModel}" />
+                                    </Binding.Converter>
+                                </Binding>
+                            </RadioButton.IsChecked>
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource IconLiveDetection}"
+                                      Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"
+                                      Width="18" Height="18"
+                                      Stretch="Uniform"
+                                      Margin="4,0,12,0" />
+                                <TextBlock Text="Live Detection"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            </StackPanel>
+                        </RadioButton>
+
+                        <!-- 3. File-Based Detection -->
+                        <RadioButton Command="{Binding NavigateToFileDetectionCommand}"
+                                     Style="{StaticResource SidebarNavigationItemStyle}"
+                                     ToolTip="File-Based Detection"
+                                     GroupName="SidebarNavigationGroup">
+                            <RadioButton.IsChecked>
+                                <Binding Path="NavigationService.CurrentViewModel" Mode="OneWay">
+                                    <Binding.Converter>
+                                        <localConv:ViewModelTypeMatchConverter xmlns:localConv="clr-namespace:pcb_deftek.Presentation.Converters" TargetType="{x:Type vm:FileDetectionViewModel}" />
+                                    </Binding.Converter>
+                                </Binding>
+                            </RadioButton.IsChecked>
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource IconFileDetection}"
+                                      Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"
+                                      Width="18" Height="18"
+                                      Stretch="Uniform"
+                                      Margin="4,0,12,0" />
+                                <TextBlock Text="File-Based Detection"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            </StackPanel>
+                        </RadioButton>
+
+                        <!-- 4. History -->
+                        <RadioButton Command="{Binding NavigateToHistoryCommand}"
+                                     Style="{StaticResource SidebarNavigationItemStyle}"
+                                     ToolTip="History"
+                                     GroupName="SidebarNavigationGroup">
+                            <RadioButton.IsChecked>
+                                <Binding Path="NavigationService.CurrentViewModel" Mode="OneWay">
+                                    <Binding.Converter>
+                                        <localConv:ViewModelTypeMatchConverter xmlns:localConv="clr-namespace:pcb_deftek.Presentation.Converters" TargetType="{x:Type vm:HistoryViewModel}" />
+                                    </Binding.Converter>
+                                </Binding>
+                            </RadioButton.IsChecked>
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource IconHistory}"
+                                      Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"
+                                      Width="18" Height="18"
+                                      Stretch="Uniform"
+                                      Margin="4,0,12,0" />
+                                <TextBlock Text="History"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
+
+                    <!-- 5. Settings Anchored at Bottom -->
+                    <RadioButton Grid.Row="3"
+                                 Command="{Binding OpenSettingsCommand}"
+                                 Style="{StaticResource SidebarNavigationItemStyle}"
+                                 ToolTip="Settings"
+                                 GroupName="SidebarNavigationGroup">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconSettings}"
+                                  Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}"
+                                  Width="18" Height="18"
+                                  Stretch="Uniform"
+                                  Margin="4,0,12,0" />
+                            <TextBlock Text="Settings"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding DataContext.IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </StackPanel>
+                    </RadioButton>
+                </Grid>
+            </Border>
+
+            <!-- Center Active Content Viewport -->
+            <Grid Grid.Column="1">
+                <ContentControl Content="{Binding NavigationService.CurrentViewModel}" />
+            </Grid>
+        </Grid>
+
+        <!-- Compact Footer -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource LayerFillColorAltBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="16,4"
+                SnapsToDevicePixels="True">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <!-- 1. Social Media Icons: GitHub, LinkedIn, Instagram -->
+                <Button Command="{Binding OpenExternalUrlCommand}"
+                        CommandParameter="https://github.com/ricky-kiva"
+                        Style="{StaticResource FooterLinkButtonStyle}"
+                        ToolTip="GitHub: ricky-kiva">
+                    <Path Data="{StaticResource IconGitHub}"
+                          Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                          Width="14" Height="14"
+                          Stretch="Uniform" />
+                </Button>
+
+                <Button Command="{Binding OpenExternalUrlCommand}"
+                        CommandParameter="https://linkedin.com/ricky-fadel"
+                        Style="{StaticResource FooterLinkButtonStyle}"
+                        ToolTip="LinkedIn: ricky-fadel"
+                        Margin="4,0,0,0">
+                    <Path Data="{StaticResource IconLinkedIn}"
+                          Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                          Width="14" Height="14"
+                          Stretch="Uniform" />
+                </Button>
+
+                <Button Command="{Binding OpenExternalUrlCommand}"
+                        CommandParameter="https://instagram.com/r.ckyslash"
+                        Style="{StaticResource FooterLinkButtonStyle}"
+                        ToolTip="Instagram: r.ckyslash"
+                        Margin="4,0,0,0">
+                    <Path Data="{StaticResource IconInstagram}"
+                          Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                          Width="14" Height="14"
+                          Stretch="Uniform" />
+                </Button>
+
+                <!-- Separator Dot -->
+                <TextBlock Text="·"
+                           VerticalAlignment="Center"
+                           Margin="8,0"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+
+                <!-- 2. Buy Me a Coffee -->
+                <Button Command="{Binding OpenExternalUrlCommand}"
+                        CommandParameter="https://ko-fi.com/rickyslash"
+                        Style="{StaticResource FooterLinkButtonStyle}"
+                        ToolTip="Support on Ko-fi">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Buy Me a " VerticalAlignment="Center" FontSize="12" />
+                        <Path Data="{StaticResource IconCoffee}"
+                              Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                              Width="14" Height="14"
+                              Stretch="Uniform"
+                              VerticalAlignment="Center"
+                              Margin="2,0,0,0" />
+                    </StackPanel>
+                </Button>
+
+                <!-- Separator Dot -->
+                <TextBlock Text="·"
+                           VerticalAlignment="Center"
+                           Margin="8,0"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+
+                <!-- 3. Made with Heart by Rickyslash -->
+                <Button Command="{Binding OpenExternalUrlCommand}"
+                        CommandParameter="https://rickyslash.my.id"
+                        Style="{StaticResource FooterLinkButtonStyle}"
+                        ToolTip="Visit Rickyslash's Website">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Made with " VerticalAlignment="Center" FontSize="12" />
+                        <Path Data="{StaticResource IconHeart}"
+                              Fill="#E81123"
+                              Width="12" Height="12"
+                              Stretch="Uniform"
+                              VerticalAlignment="Center"
+                              Margin="1,0" />
+                        <TextBlock Text=" by Rickyslash" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

@@ -5,14 +5,17 @@ using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using pcb_deftek.Infrastructure.Logging;
+using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence;
 using pcb_deftek.Infrastructure.Persistence.DatabaseBackup;
+using pcb_deftek.Infrastructure.Persistence.DatabaseExport;
 using pcb_deftek.Infrastructure.Persistence.Migrations;
 using pcb_deftek.Infrastructure.Inference;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Vision;
+using pcb_deftek.Presentation.Navigation;
+using pcb_deftek.Presentation.ViewModels;
 using Serilog;
-
 namespace pcb_deftek;
 
 /// <summary>
@@ -65,6 +68,16 @@ public partial class App : Application
             Log.Fatal(ex, "Critical database migration failure during application startup: {Message}", ex.Message);
             throw;
         }
+        // Evaluate startup preferences and route initial view model
+        try
+        {
+            var router = _serviceProvider.GetRequiredService<IStartupRoutingService>();
+            await router.RouteStartupAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Non-critical startup routing evaluation warning: {Message}", ex.Message);
+        }
 
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
@@ -102,12 +115,27 @@ public partial class App : Application
         services.AddSingleton<IDefectRepository, SqliteDefectRepository>();
         services.AddSingleton<ISettingsRepository, SqliteSettingsRepository>();
         services.AddSingleton<IDatabaseBackupService, SqliteDatabaseBackupService>();
+        services.AddSingleton<IDatabaseExportService, SqliteDatabaseExportService>();
+
+        // Notification Services
+        services.AddSingleton<INotificationService, WindowsNotificationService>();
 
         // Core Inference & Vision Services
         services.AddSingleton<IOnnxModelRunner, OnnxModelRunner>();
         services.AddSingleton<IVisionPreprocessor, OpenCvVisionPreprocessor>();
         services.AddSingleton<IYoloPostprocessor, YoloPostprocessor>();
         services.AddSingleton<IPcbDefectDetector, PcbDefectDetector>();
+
+        // Navigation & Presentation Services
+        services.AddSingleton<INavigationService, NavigationService>();
+        services.AddSingleton<IStartupRoutingService, StartupRoutingService>();
+        services.AddSingleton<MainViewModel>();
+
+        // Page ViewModels
+        services.AddTransient<DashboardViewModel>();
+        services.AddTransient<LiveDetectionViewModel>();
+        services.AddTransient<FileDetectionViewModel>();
+        services.AddTransient<HistoryViewModel>();
 
         services.AddSingleton<MainWindow>();
     }
