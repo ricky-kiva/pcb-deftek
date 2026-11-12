@@ -28,9 +28,9 @@
   - *Scope:* M (4-5 files)
 
 #### Checkpoint 1: UI Foundation, Styles & Domain Metadata Validation
-- [ ] `CommunityToolkit.Mvvm` and toast notification packages installed and verified.
-- [ ] All 9 defect classes provide valid abbreviations (`SH` through `BMFO`) in `DefectKnowledgeBase`.
-- [ ] WPF's native Fluent Theme (`ThemeMode="System"`) configured with Mica backdrop and layered domain resource dictionaries.
+- [x] `CommunityToolkit.Mvvm` and toast notification packages installed and verified.
+- [x] All 9 defect classes provide valid abbreviations (`SH` through `BMFO`) in `DefectKnowledgeBase`.
+- [x] WPF's native Fluent Theme (`ThemeMode="System"`) configured with Mica backdrop and layered domain resource dictionaries.
 ---
 
 ### Task Group 2: Database Export Service & Notification Infrastructure
