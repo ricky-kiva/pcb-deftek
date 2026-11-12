@@ -81,9 +81,9 @@ The implementation builds a decoupled ingestion layer, an asynchronous batch exe
 - **Estimated scope:** S (2 files)
 
 #### Checkpoint 1: Ingestion Infrastructure
-- [ ] `FileDiscoveryServiceTests` pass cleanly.
-- [ ] Image filtering, recursion, and deduplication logic verified.
-- [ ] Dialog service cleanly abstracted behind interface.
+- [x] `FileDiscoveryServiceTests` pass cleanly.
+- [x] Image filtering, recursion, and deduplication logic verified.
+- [x] Dialog service cleanly abstracted behind interface.
 
 ---
 
