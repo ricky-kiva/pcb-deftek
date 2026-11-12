@@ -1,8 +1,19 @@
 ﻿<Application x:Class="pcb_deftek.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:pcb_deftek">
+             xmlns:local="clr-namespace:pcb_deftek"
+             ThemeMode="System">
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Built-in WPF Fluent Theme (.NET 9+ / .NET 10) -->
+                <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.xaml" />
+
+                <!-- Domain-Specific Resource Dictionaries -->
+                <ResourceDictionary Source="/Presentation/Styles/StatusColors.xaml" />
+                <ResourceDictionary Source="/Presentation/Styles/Icons.xaml" />
+                <ResourceDictionary Source="/Presentation/Styles/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

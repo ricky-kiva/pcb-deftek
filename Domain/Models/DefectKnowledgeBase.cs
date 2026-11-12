@@ -13,9 +13,9 @@ public static class DefectKnowledgeBase
 {
     private static readonly Dictionary<DefectClass, DefectClassInfo> InfoByClass;
     private static readonly Dictionary<string, DefectClassInfo> InfoByCode;
+    private static readonly Dictionary<string, DefectClassInfo> InfoByAbbreviation;
     private static readonly Dictionary<int, DefectClassInfo> InfoByIndex;
     private static readonly DefectClassInfo[] DefinitionsList;
-
     /// <summary>
     /// Gets all registered defect class definitions indexed by <see cref="DefectClass"/>.
     /// </summary>
@@ -28,6 +28,7 @@ public static class DefectKnowledgeBase
                 Class: DefectClass.Short,
                 ClassId: 0,
                 Code: "short",
+                Abbreviation: "SH",
                 DisplayName: "Short",
                 Explanation: "An unintended connection between two or more conductors caused by residual copper.",
                 Severity: DefectSeverity.Critical,
@@ -39,6 +40,7 @@ public static class DefectKnowledgeBase
                 Class: DefectClass.Spur,
                 ClassId: 1,
                 Code: "spur",
+                Abbreviation: "SP",
                 DisplayName: "Spur",
                 Explanation: "An irregular, sharp, pointed protrusion along a conductor's edge.",
                 Severity: DefectSeverity.Medium,
@@ -50,6 +52,7 @@ public static class DefectKnowledgeBase
                 Class: DefectClass.SpuriousCopper,
                 ClassId: 2,
                 Code: "spurious_copper",
+                Abbreviation: "SC",
                 DisplayName: "Spurious copper",
                 Explanation: "Irregular or unwanted copper residue found on base material, within holes, or on copper surfaces.",
                 Severity: DefectSeverity.MediumHigh,
@@ -61,6 +64,7 @@ public static class DefectKnowledgeBase
                 Class: DefectClass.Open,
                 ClassId: 3,
                 Code: "open",
+                Abbreviation: "OP",
                 DisplayName: "Open",
                 Explanation: "A break in a conductor's path, interrupting the flow of electric current.",
                 Severity: DefectSeverity.High,
@@ -72,6 +76,7 @@ public static class DefectKnowledgeBase
                 Class: DefectClass.MouseBite,
                 ClassId: 4,
                 Code: "mouse_bite",
+                Abbreviation: "MB",
                 DisplayName: "Mouse bite",
                 Explanation: "A small, localized depression or crack at the edge of a conductor.",
                 Severity: DefectSeverity.LowMedium,
@@ -83,6 +88,7 @@ public static class DefectKnowledgeBase
                 Class: DefectClass.HoleBreakout,
                 ClassId: 5,
                 Code: "hole_breakout",
+                Abbreviation: "HB",
                 DisplayName: "Hole breakout",
                 Explanation: "A situation where a drilled hole's center significantly deviates from its bounding pad, causing missing copper along part of the hole's edge.",
                 Severity: DefectSeverity.Medium,
@@ -94,6 +100,7 @@ public static class DefectKnowledgeBase
                 Class: DefectClass.ConductorScratch,
                 ClassId: 6,
                 Code: "conductor_scratch",
+                Abbreviation: "CS",
                 DisplayName: "Conductor scratch",
                 Explanation: "A linear or multi-linear scratch defect on copper wires or copper surfaces.",
                 Severity: DefectSeverity.Medium,
@@ -105,6 +112,7 @@ public static class DefectKnowledgeBase
                 Class: DefectClass.ConductorForeignObject,
                 ClassId: 7,
                 Code: "conductor_foreign_object",
+                Abbreviation: "CFO",
                 DisplayName: "Conductor foreign object",
                 Explanation: "Impurities, bubbles, dirt, deposits, or contamination (oils, oxides, chemical residue, fingerprints) present on a conductor.",
                 Severity: DefectSeverity.Medium,
@@ -116,6 +124,7 @@ public static class DefectKnowledgeBase
                 Class: DefectClass.BaseMaterialForeignObject,
                 ClassId: 8,
                 Code: "base_material_foreign_object",
+                Abbreviation: "BMFO",
                 DisplayName: "Base material foreign object",
                 Explanation: "Foreign material (bubbles, chips, particles, grease, adhesives, oxidation) present on the base material or inside holes.",
                 Severity: DefectSeverity.LowMedium,
@@ -127,12 +136,14 @@ public static class DefectKnowledgeBase
 
         InfoByClass = new Dictionary<DefectClass, DefectClassInfo>();
         InfoByCode = new Dictionary<string, DefectClassInfo>(StringComparer.OrdinalIgnoreCase);
+        InfoByAbbreviation = new Dictionary<string, DefectClassInfo>(StringComparer.OrdinalIgnoreCase);
         InfoByIndex = new Dictionary<int, DefectClassInfo>();
 
         foreach (var def in definitions)
         {
             InfoByClass[def.Class] = def;
             InfoByCode[def.Code] = def;
+            InfoByAbbreviation[def.Abbreviation] = def;
             InfoByIndex[def.ClassId] = def;
         }
 
@@ -191,6 +202,41 @@ public static class DefectKnowledgeBase
     /// </summary>
     public static bool IsValidCode(string? code) =>
         !string.IsNullOrWhiteSpace(code) && InfoByCode.ContainsKey(code.Trim());
+
+    /// <summary>
+    /// Gets diagnostic information for the specified standardized 2-4 letter defect abbreviation (e.g., "SH", "OP", "BMFO").
+    /// </summary>
+    public static DefectClassInfo GetByAbbreviation(string abbreviation)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(abbreviation);
+
+        if (TryGetByAbbreviation(abbreviation, out var info))
+        {
+            return info;
+        }
+
+        throw new KeyNotFoundException($"Defect abbreviation '{abbreviation}' is not registered in the knowledge base.");
+    }
+
+    /// <summary>
+    /// Attempts to retrieve diagnostic information for the specified standardized defect abbreviation.
+    /// </summary>
+    public static bool TryGetByAbbreviation(string? abbreviation, [NotNullWhen(true)] out DefectClassInfo? info)
+    {
+        if (string.IsNullOrWhiteSpace(abbreviation))
+        {
+            info = null;
+            return false;
+        }
+
+        return InfoByAbbreviation.TryGetValue(abbreviation.Trim(), out info);
+    }
+
+    /// <summary>
+    /// Determines whether the specified string corresponds to a recognized standardized defect abbreviation.
+    /// </summary>
+    public static bool IsValidAbbreviation(string? abbreviation) =>
+        !string.IsNullOrWhiteSpace(abbreviation) && InfoByAbbreviation.ContainsKey(abbreviation.Trim());
 
     /// <summary>
     /// Gets diagnostic information for the specified zero-based model class index (0 to 8).

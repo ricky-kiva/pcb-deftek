@@ -236,4 +236,111 @@ public class DefectKnowledgeBaseTests
         // Act & Assert
         Assert.Throws<KeyNotFoundException>(() => DefectKnowledgeBase.GetByCode("unknown_defect_code"));
     }
+
+    [Theory]
+    [InlineData(DefectClass.Short, "SH")]
+    [InlineData(DefectClass.Spur, "SP")]
+    [InlineData(DefectClass.SpuriousCopper, "SC")]
+    [InlineData(DefectClass.Open, "OP")]
+    [InlineData(DefectClass.MouseBite, "MB")]
+    [InlineData(DefectClass.HoleBreakout, "HB")]
+    [InlineData(DefectClass.ConductorScratch, "CS")]
+    [InlineData(DefectClass.ConductorForeignObject, "CFO")]
+    [InlineData(DefectClass.BaseMaterialForeignObject, "BMFO")]
+    public void DefectClass_ShouldExposeStandardizedAbbreviation(DefectClass defectClass, string expectedAbbreviation)
+    {
+        // Act
+        var info = DefectKnowledgeBase.GetInfo(defectClass);
+
+        // Assert
+        info.Abbreviation.Should().Be(expectedAbbreviation);
+    }
+
+    [Theory]
+    [InlineData("SH", DefectClass.Short)]
+    [InlineData("sh", DefectClass.Short)]
+    [InlineData("SP", DefectClass.Spur)]
+    [InlineData("SC", DefectClass.SpuriousCopper)]
+    [InlineData("OP", DefectClass.Open)]
+    [InlineData("MB", DefectClass.MouseBite)]
+    [InlineData("HB", DefectClass.HoleBreakout)]
+    [InlineData("CS", DefectClass.ConductorScratch)]
+    [InlineData("CFO", DefectClass.ConductorForeignObject)]
+    [InlineData("BMFO", DefectClass.BaseMaterialForeignObject)]
+    [InlineData("bmfo", DefectClass.BaseMaterialForeignObject)]
+    public void GetByAbbreviation_WithValidAbbreviation_ReturnsMatchingDefectClassInfo(string abbreviation, DefectClass expectedClass)
+    {
+        // Act
+        var result = DefectKnowledgeBase.GetByAbbreviation(abbreviation);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Class.Should().Be(expectedClass);
+    }
+
+    [Fact]
+    public void TryGetByAbbreviation_WithValidAbbreviation_ReturnsTrueAndInfo()
+    {
+        // Act
+        bool success = DefectKnowledgeBase.TryGetByAbbreviation("CFO", out var info);
+
+        // Assert
+        success.Should().BeTrue();
+        info.Should().NotBeNull();
+        info!.Class.Should().Be(DefectClass.ConductorForeignObject);
+    }
+
+    [Theory]
+    [InlineData("UNKNOWN")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void TryGetByAbbreviation_WithInvalidOrNullAbbreviation_ReturnsFalseAndNull(string? invalidAbbreviation)
+    {
+        // Act
+        bool success = DefectKnowledgeBase.TryGetByAbbreviation(invalidAbbreviation, out var info);
+
+        // Assert
+        success.Should().BeFalse();
+        info.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("SH", true)]
+    [InlineData("sh", true)]
+    [InlineData("BMFO", true)]
+    [InlineData("INVALID", false)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    [InlineData(null, false)]
+    public void IsValidAbbreviation_ShouldValidateAbbreviationsCorrectly(string? abbreviation, bool expectedValid)
+    {
+        // Act
+        bool result = DefectKnowledgeBase.IsValidAbbreviation(abbreviation);
+
+        // Assert
+        result.Should().Be(expectedValid);
+    }
+
+    [Fact]
+    public void GetByAbbreviation_WithNull_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => DefectKnowledgeBase.GetByAbbreviation(null!));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void GetByAbbreviation_WithEmptyOrWhitespace_ThrowsArgumentException(string invalid)
+    {
+        // Act & Assert
+        Assert.ThrowsAny<ArgumentException>(() => DefectKnowledgeBase.GetByAbbreviation(invalid));
+    }
+
+    [Fact]
+    public void GetByAbbreviation_WithUnknown_ThrowsKeyNotFoundException()
+    {
+        // Act & Assert
+        Assert.Throws<KeyNotFoundException>(() => DefectKnowledgeBase.GetByAbbreviation("XYZ"));
+    }
 }

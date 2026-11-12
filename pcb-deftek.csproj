@@ -26,9 +26,11 @@
     </None>
   </ItemGroup>
    <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4" />
+    <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
     <PackageReference Include="OpenCvSharp4" Version="4.13.0.20261107" />
     <PackageReference Include="OpenCvSharp4.Windows" Version="4.13.0.20261107" />
     <PackageReference Include="Serilog" Version="4.4.0" />

@@ -1,0 +1,130 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Reusable Sidebar Navigation RadioButton Style -->
+    <Style x:Key="SidebarNavigationItemStyle" TargetType="RadioButton">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Margin" Value="4,2" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="RootBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <!-- Active Accent Indicator on Left Edge -->
+                            <Rectangle x:Name="ActivePill"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Center"
+                                       Width="3"
+                                       Height="16"
+                                       RadiusX="1.5"
+                                       RadiusY="1.5"
+                                       Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                                       Visibility="Collapsed"
+                                       Margin="-6,0,0,0" />
+
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              RecognizesAccessKey="True" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Pointer Hover -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="RootBorder" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                        </Trigger>
+                        <!-- Checked / Active Route State -->
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="RootBorder" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                            <Setter TargetName="ActivePill" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <!-- Pressed State -->
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="RootBorder" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                        </Trigger>
+                        <!-- Disabled State -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Transparent Footer Hyperlink Button Style -->
+    <Style x:Key="FooterLinkButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="4,2" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="4"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Floating HUD Card Container Style (Translucent rounded overlay) -->
+    <Style x:Key="FloatingHudCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource HudCardBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HudCardBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="12"
+                                  Color="#000000"
+                                  Opacity="0.12"
+                                  ShadowDepth="2" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- PASS / FAIL Status Badge Container Style -->
+    <Style x:Key="StatusBadgeStyle" TargetType="Border">
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <!-- Defect Severity Pill Style -->
+    <Style x:Key="SeverityBadgeStyle" TargetType="Border">
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+</ResourceDictionary>

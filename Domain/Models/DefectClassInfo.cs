@@ -8,6 +8,7 @@ public record DefectClassInfo(
     DefectClass Class,
     int ClassId,
     string Code,
+    string Abbreviation,
     string DisplayName,
     string Explanation,
     DefectSeverity Severity,
