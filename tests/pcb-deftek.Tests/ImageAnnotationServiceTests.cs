@@ -87,4 +87,41 @@ public class ImageAnnotationServiceTests
         result.Should().NotBeNull();
         Math.Max(result!.PixelWidth, result.PixelHeight).Should().BeLessThanOrEqualTo(64);
     }
+
+    [Theory]
+    [InlineData(DefectClass.Short, 255, 102, 0)]          // Blue
+    [InlineData(DefectClass.Spur, 220, 220, 0)]           // Cyan
+    [InlineData(DefectClass.SpuriousCopper, 255, 255, 255)]// White
+    [InlineData(DefectClass.Open, 80, 160, 79)]           // Fern
+    [InlineData(DefectClass.MouseBite, 140, 48, 0)]       // Dark Blue
+    [InlineData(DefectClass.HoleBreakout, 180, 105, 255)] // Pink
+    [InlineData(DefectClass.ConductorScratch, 35, 17, 232)]// Red
+    [InlineData(DefectClass.ConductorForeignObject, 0, 215, 255)]// Yellow
+    [InlineData(DefectClass.BaseMaterialForeignObject, 113, 204, 46)]// Green
+    public void GetDefectColor_MapsAllNineClassesToExactColors(DefectClass defectClass, double b, double g, double r)
+    {
+        var color = ImageAnnotationService.GetDefectColor(defectClass);
+        color.Val0.Should().Be(b);
+        color.Val1.Should().Be(g);
+        color.Val2.Should().Be(r);
+    }
+
+    [Theory]
+    [InlineData(DefectClass.SpuriousCopper, true)]
+    [InlineData(DefectClass.Spur, true)]
+    [InlineData(DefectClass.ConductorForeignObject, true)]
+    [InlineData(DefectClass.Short, false)]
+    [InlineData(DefectClass.ConductorScratch, false)]
+    public void GetContrastingTextColor_ReturnsExpectedContrast(DefectClass defectClass, bool expectsDarkText)
+    {
+        var textColor = ImageAnnotationService.GetContrastingTextColor(defectClass);
+        if (expectsDarkText)
+        {
+            textColor.Val0.Should().BeLessThan(50);
+        }
+        else
+        {
+            textColor.Val0.Should().Be(255);
+        }
+    }
 }

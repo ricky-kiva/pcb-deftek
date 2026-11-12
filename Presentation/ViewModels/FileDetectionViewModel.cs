@@ -370,7 +370,7 @@ public partial class FileDetectionViewModel : ViewModelBase
             }
             else
             {
-                StatusText = $"Completed: {summary.PassCount} clean (PASS), {summary.FailCount} defective (FAIL), {summary.ErrorCount} errors ({summary.TotalDuration.TotalMilliseconds:N0} ms).";
+                StatusText = $"Completed: {summary.TotalDuration.TotalMilliseconds:N0} ms";
 
                 try
                 {

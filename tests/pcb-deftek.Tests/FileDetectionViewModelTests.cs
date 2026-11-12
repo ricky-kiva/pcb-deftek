@@ -256,7 +256,7 @@ public class FileDetectionViewModelTests
         sut.PassCount.Should().Be(1);
         sut.FailCount.Should().Be(1);
         sut.PercentComplete.Should().Be(100);
-        sut.StatusText.Should().Contain("Completed");
+        sut.StatusText.Should().StartWith("Completed:").And.EndWith("ms");
 
         sut.QueueItems[0].Status.Should().Be(BatchItemStatus.Pass);
         sut.QueueItems[1].Status.Should().Be(BatchItemStatus.Fail);

@@ -9,13 +9,10 @@ namespace pcb_deftek.Infrastructure.Vision;
 
 /// <summary>
 /// OpenCV-powered service that draws defect bounding boxes, class abbreviations, and confidence percentages
-/// onto PCB board images and produces frozen WPF <see cref="BitmapSource"/> instances.
+/// onto PCB board images using defect-specific colors and produces frozen WPF <see cref="BitmapSource"/> instances.
 /// </summary>
 public class ImageAnnotationService : IImageAnnotationService
 {
-    private static readonly Scalar DefectBoxColor = new(28, 43, 196); // #C42B1C in BGR format
-    private static readonly Scalar TextColor = new(255, 255, 255);    // White
-
     /// <inheritdoc />
     public BitmapSource? AnnotateImage(string imagePath, IReadOnlyList<DetectedDefect> defects, int maxDimension = 0)
     {
@@ -50,8 +47,11 @@ public class ImageAnnotationService : IImageAnnotationService
                     int x2 = Math.Min(w - 1, x1 + bw);
                     int y2 = Math.Min(h - 1, y1 + bh);
 
+                    var boxColor = GetDefectColor(defect.Class);
+                    var labelTextColor = GetContrastingTextColor(defect.Class);
+
                     // Draw bounding box
-                    Cv2.Rectangle(mat, new Point(x1, y1), new Point(x2, y2), DefectBoxColor, thickness);
+                    Cv2.Rectangle(mat, new Point(x1, y1), new Point(x2, y2), boxColor, thickness);
 
                     // Compute label text
                     string label = $"{defect.ClassInfo.Abbreviation} {defect.Confidence:P0}";
@@ -62,10 +62,10 @@ public class ImageAnnotationService : IImageAnnotationService
                     int labelX2 = Math.Min(w - 1, x1 + textSize.Width + 6);
 
                     // Draw label badge background
-                    Cv2.Rectangle(mat, new Point(x1, labelY1), new Point(labelX2, labelY2), DefectBoxColor, -1);
+                    Cv2.Rectangle(mat, new Point(x1, labelY1), new Point(labelX2, labelY2), boxColor, -1);
 
                     // Draw label text
-                    Cv2.PutText(mat, label, new Point(x1 + 3, labelY2 - 3), HersheyFonts.HersheySimplex, fontScale, TextColor, 1, LineTypes.AntiAlias);
+                    Cv2.PutText(mat, label, new Point(x1 + 3, labelY2 - 3), HersheyFonts.HersheySimplex, fontScale, labelTextColor, 1, LineTypes.AntiAlias);
                 }
             }
 
@@ -94,4 +94,30 @@ public class ImageAnnotationService : IImageAnnotationService
             return null;
         }
     }
+
+    /// <summary>
+    /// Gets the distinct BGR display color for the specified defect class.
+    /// </summary>
+    public static Scalar GetDefectColor(DefectClass defectClass) => defectClass switch
+    {
+        DefectClass.Short => new Scalar(255, 102, 0),                      // Blue (SH)
+        DefectClass.Spur => new Scalar(220, 220, 0),                       // Cyan (SP)
+        DefectClass.SpuriousCopper => new Scalar(255, 255, 255),           // White (SC)
+        DefectClass.Open => new Scalar(80, 160, 79),                       // Fern Green (OP)
+        DefectClass.MouseBite => new Scalar(140, 48, 0),                   // Dark Blue / Navy (MB)
+        DefectClass.HoleBreakout => new Scalar(180, 105, 255),             // Pink (HB)
+        DefectClass.ConductorScratch => new Scalar(35, 17, 232),            // Red (CS)
+        DefectClass.ConductorForeignObject => new Scalar(0, 215, 255),      // Yellow (CFO)
+        DefectClass.BaseMaterialForeignObject => new Scalar(113, 204, 46),  // Green (BMFO)
+        _ => new Scalar(28, 43, 196)                                       // Default Crimson Red
+    };
+
+    /// <summary>
+    /// Gets the contrasting label text color (dark text for bright backgrounds, white text for dark/vivid backgrounds).
+    /// </summary>
+    public static Scalar GetContrastingTextColor(DefectClass defectClass) => defectClass switch
+    {
+        DefectClass.SpuriousCopper or DefectClass.Spur or DefectClass.ConductorForeignObject => new Scalar(20, 20, 20),
+        _ => new Scalar(255, 255, 255)
+    };
 }

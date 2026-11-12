@@ -127,8 +127,8 @@
                     BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                     BorderThickness="1.5"
                     CornerRadius="8"
-                    Padding="24,18"
-                    MinHeight="130"
+                    Padding="24,24"
+                    MinHeight="145"
                     AllowDrop="True"
                     Cursor="Hand"
                     DragEnter="OnDropTargetDragEnter"
@@ -159,14 +159,15 @@
                                    HorizontalAlignment="Center"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
 
-                        <TextBlock Text="Supports .jpg, .jpeg, .png, .bmp, .webp • Recursive directory traversal"
+                        <TextBlock Text="Supports .jpg, .jpeg, .png, .bmp, .webp"
                                    FontSize="12"
                                    HorizontalAlignment="Center"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                   Margin="0,3,0,12" />
+                                   Margin="0,3,0,14" />
 
                         <!-- Single Unified Browse Button with Context Menu -->
                         <Button x:Name="BrowseButton"
+                                HorizontalAlignment="Center"
                                 Height="32"
                                 Padding="16,0"
                                 Click="OnBrowseButtonClicked"
@@ -385,12 +386,37 @@
                               Visibility="{Binding TotalCount, Converter={StaticResource CountToVisibilityConverter}}">
                         <ListView.ItemContainerStyle>
                             <Style TargetType="ListViewItem">
-                                <Setter Property="MinHeight" Value="46" />
-                                <Setter Property="Padding" Value="10,4" />
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                <Setter Property="VerticalContentAlignment" Value="Center" />
+                                <Setter Property="MinHeight" Value="52" />
+                                <Setter Property="Padding" Value="12,6" />
+                                <Setter Property="Margin" Value="0,1" />
+                                <Setter Property="Background" Value="Transparent" />
                                 <Setter Property="BorderThickness" Value="0,0,0,1" />
                                 <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="VerticalContentAlignment" Value="Center" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListViewItem">
+                                            <Border x:Name="ItemBorder"
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <GridViewRowPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <!-- Queue Item Hover: Subtle neutral tint preserving all text and badge contrast -->
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                                </Trigger>
+                                                <!-- Selected State: Soft tertiary background -->
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
                             </Style>
                         </ListView.ItemContainerStyle>
 
