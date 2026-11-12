@@ -29,58 +29,48 @@ public class ImageAnnotationService : IImageAnnotationService
                 return null;
             }
 
-            int w = mat.Width;
-            int h = mat.Height;
+            AnnotateMatInternal(mat, defects, maxDimension);
+            return MatToBitmapSource(mat);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
-            if (defects != null && defects.Count > 0)
-            {
-                int minDim = Math.Min(w, h);
-                int thickness = Math.Clamp((int)Math.Round(minDim / 200.0), 1, 4);
-                double fontScale = Math.Clamp(minDim / 600.0, 0.35, 1.2);
+    /// <inheritdoc />
+    public BitmapSource? AnnotateMat(Mat sourceMat, IReadOnlyList<DetectedDefect> defects, int maxDimension = 0)
+    {
+        if (sourceMat == null || sourceMat.Empty())
+        {
+            return null;
+        }
 
-                foreach (var defect in defects)
-                {
-                    int x1 = Math.Clamp((int)Math.Round(defect.BoundingBox.X * w), 0, w - 1);
-                    int y1 = Math.Clamp((int)Math.Round(defect.BoundingBox.Y * h), 0, h - 1);
-                    int bw = Math.Clamp((int)Math.Round(defect.BoundingBox.Width * w), 1, w - x1);
-                    int bh = Math.Clamp((int)Math.Round(defect.BoundingBox.Height * h), 1, h - y1);
-                    int x2 = Math.Min(w - 1, x1 + bw);
-                    int y2 = Math.Min(h - 1, y1 + bh);
+        try
+        {
+            using var mat = sourceMat.Clone();
+            AnnotateMatInternal(mat, defects, maxDimension);
+            return MatToBitmapSource(mat);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
-                    var boxColor = GetDefectColor(defect.Class);
-                    var labelTextColor = GetContrastingTextColor(defect.Class);
+    /// <inheritdoc />
+    public BitmapSource? MatToBitmapSource(Mat sourceMat)
+    {
+        if (sourceMat == null || sourceMat.Empty())
+        {
+            return null;
+        }
 
-                    // Draw bounding box
-                    Cv2.Rectangle(mat, new Point(x1, y1), new Point(x2, y2), boxColor, thickness);
-
-                    // Compute label text
-                    string label = $"{defect.ClassInfo.Abbreviation} {defect.Confidence:P0}";
-                    var textSize = Cv2.GetTextSize(label, HersheyFonts.HersheySimplex, fontScale, 1, out int baseline);
-
-                    int labelY1 = Math.Max(0, y1 - textSize.Height - 4);
-                    int labelY2 = y1;
-                    int labelX2 = Math.Min(w - 1, x1 + textSize.Width + 6);
-
-                    // Draw label badge background
-                    Cv2.Rectangle(mat, new Point(x1, labelY1), new Point(labelX2, labelY2), boxColor, -1);
-
-                    // Draw label text
-                    Cv2.PutText(mat, label, new Point(x1 + 3, labelY2 - 3), HersheyFonts.HersheySimplex, fontScale, labelTextColor, 1, LineTypes.AntiAlias);
-                }
-            }
-
-            // Downscale if maximum dimension is specified (for thumbnails)
-            if (maxDimension > 0 && Math.Max(w, h) > maxDimension)
-            {
-                double scale = (double)maxDimension / Math.Max(w, h);
-                int targetW = Math.Max(1, (int)Math.Round(w * scale));
-                int targetH = Math.Max(1, (int)Math.Round(h * scale));
-                Cv2.Resize(mat, mat, new Size(targetW, targetH), interpolation: InterpolationFlags.Area);
-            }
-
-            byte[] pngBytes = mat.ToBytes(".png");
+        try
+        {
+            byte[] bmpBytes = sourceMat.ToBytes(".bmp");
             var bitmap = new BitmapImage();
-            using var stream = new MemoryStream(pngBytes);
+            using var stream = new MemoryStream(bmpBytes);
             bitmap.BeginInit();
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
             bitmap.StreamSource = stream;
@@ -92,6 +82,58 @@ public class ImageAnnotationService : IImageAnnotationService
         catch
         {
             return null;
+        }
+    }
+
+    private static void AnnotateMatInternal(Mat mat, IReadOnlyList<DetectedDefect> defects, int maxDimension)
+    {
+        int w = mat.Width;
+        int h = mat.Height;
+
+        if (defects != null && defects.Count > 0)
+        {
+            int minDim = Math.Min(w, h);
+            int thickness = Math.Clamp((int)Math.Round(minDim / 200.0), 1, 4);
+            double fontScale = Math.Clamp(minDim / 600.0, 0.35, 1.2);
+
+            foreach (var defect in defects)
+            {
+                int x1 = Math.Clamp((int)Math.Round(defect.BoundingBox.X * w), 0, w - 1);
+                int y1 = Math.Clamp((int)Math.Round(defect.BoundingBox.Y * h), 0, h - 1);
+                int bw = Math.Clamp((int)Math.Round(defect.BoundingBox.Width * w), 1, w - x1);
+                int bh = Math.Clamp((int)Math.Round(defect.BoundingBox.Height * h), 1, h - y1);
+                int x2 = Math.Min(w - 1, x1 + bw);
+                int y2 = Math.Min(h - 1, y1 + bh);
+
+                var boxColor = GetDefectColor(defect.Class);
+                var labelTextColor = GetContrastingTextColor(defect.Class);
+
+                // Draw bounding box
+                Cv2.Rectangle(mat, new Point(x1, y1), new Point(x2, y2), boxColor, thickness);
+
+                // Compute label text
+                string label = $"{defect.ClassInfo.Abbreviation} {defect.Confidence:P0}";
+                var textSize = Cv2.GetTextSize(label, HersheyFonts.HersheySimplex, fontScale, 1, out int baseline);
+
+                int labelY1 = Math.Max(0, y1 - textSize.Height - 4);
+                int labelY2 = y1;
+                int labelX2 = Math.Min(w - 1, x1 + textSize.Width + 6);
+
+                // Draw label badge background
+                Cv2.Rectangle(mat, new Point(x1, labelY1), new Point(labelX2, labelY2), boxColor, -1);
+
+                // Draw label text
+                Cv2.PutText(mat, label, new Point(x1 + 3, labelY2 - 3), HersheyFonts.HersheySimplex, fontScale, labelTextColor, 1, LineTypes.AntiAlias);
+            }
+        }
+
+        // Downscale if maximum dimension is specified (for thumbnails)
+        if (maxDimension > 0 && Math.Max(w, h) > maxDimension)
+        {
+            double scale = (double)maxDimension / Math.Max(w, h);
+            int targetW = Math.Max(1, (int)Math.Round(w * scale));
+            int targetH = Math.Max(1, (int)Math.Round(h * scale));
+            Cv2.Resize(mat, mat, new Size(targetW, targetH), interpolation: InterpolationFlags.Area);
         }
     }
 
