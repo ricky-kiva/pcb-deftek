@@ -61,4 +61,14 @@
     <!-- Close / Dismiss (X) -->
     <StreamGeometry x:Key="IconClose">M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z</StreamGeometry>
 
+    <!-- File & Batch Inspection Geometries -->
+    <!-- Upload / Cloud Drop -->
+    <StreamGeometry x:Key="IconUpload">M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z</StreamGeometry>
+
+    <!-- Folder Browse -->
+    <StreamGeometry x:Key="IconFolder">M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z</StreamGeometry>
+
+    <!-- Start / Play Arrow -->
+    <StreamGeometry x:Key="IconPlay">M8,5.14V19.14L19,12.14L8,5.14Z</StreamGeometry>
+
 </ResourceDictionary>

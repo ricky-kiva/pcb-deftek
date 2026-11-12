@@ -209,10 +209,10 @@ The implementation builds a decoupled ingestion layer, an asynchronous batch exe
 - **Estimated scope:** XS (1 file)
 
 #### Checkpoint 4: UI & Drag-and-Drop Verification
-- [ ] View renders cleanly under both Light and Dark Fluent themes.
-- [ ] Drag-and-drop visual highlight activates upon drag-over.
-- [ ] Progress bar, inline ETA, and inline Cancel Processing button reflect ViewModel state and trigger cancellation promptly.
-- [ ] Queue list displays item status chips, defect counts, and durations.
+- [x] View renders cleanly under both Light and Dark Fluent themes.
+- [x] Drag-and-drop visual highlight activates upon drag-over.
+- [x] Progress bar, inline ETA, and inline Cancel Processing button reflect ViewModel state and trigger cancellation promptly.
+- [x] Queue list displays item status chips, defect counts, and durations.
 ---
 
 ### Task Group 5: DI Wiring, Integration & Reqnroll BDD Scenarios
