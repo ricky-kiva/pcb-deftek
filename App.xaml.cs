@@ -12,6 +12,7 @@ using pcb_deftek.Infrastructure.Persistence.DatabaseExport;
 using pcb_deftek.Infrastructure.Persistence.Migrations;
 using pcb_deftek.Infrastructure.Inference;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
+using pcb_deftek.Infrastructure.Services;
 using pcb_deftek.Infrastructure.Vision;
 using pcb_deftek.Presentation.Navigation;
 using pcb_deftek.Presentation.ViewModels;
@@ -117,8 +118,12 @@ public partial class App : Application
         services.AddSingleton<IUserSettingsService, UserSettingsService>();
         services.AddSingleton<IDatabaseBackupService, SqliteDatabaseBackupService>();
         services.AddSingleton<IDatabaseExportService, SqliteDatabaseExportService>();
-        // Notification Services
+
+        // Notification & File Ingestion Services
         services.AddSingleton<INotificationService, WindowsNotificationService>();
+        services.AddSingleton<IFileDiscoveryService, FileDiscoveryService>();
+        services.AddSingleton<IFilePickerService, WpfFilePickerService>();
+        services.AddSingleton<IBatchInspectionEngine, BatchInspectionEngine>();
 
         // Core Inference & Vision Services
         services.AddSingleton<IOnnxModelRunner, OnnxModelRunner>();

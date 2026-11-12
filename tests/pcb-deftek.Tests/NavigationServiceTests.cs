@@ -2,6 +2,11 @@ using System;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using pcb_deftek.Infrastructure.Inference;
+using pcb_deftek.Infrastructure.Notifications;
+using pcb_deftek.Infrastructure.Persistence.Repositories;
+using pcb_deftek.Infrastructure.Services;
 using pcb_deftek.Presentation.Navigation;
 using pcb_deftek.Presentation.ViewModels;
 using Xunit;
@@ -20,6 +25,11 @@ public class NavigationServiceTests
         services.AddTransient<TestPageBViewModel>();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<LiveDetectionViewModel>();
+        services.AddSingleton(new Mock<IFileDiscoveryService>().Object);
+        services.AddSingleton(new Mock<IFilePickerService>().Object);
+        services.AddSingleton(new Mock<IBatchInspectionEngine>().Object);
+        services.AddSingleton(new Mock<INotificationService>().Object);
+        services.AddSingleton(new Mock<IUserSettingsService>().Object);
         services.AddTransient<FileDetectionViewModel>();
         services.AddTransient<HistoryViewModel>();
 
@@ -105,7 +115,7 @@ public class NavigationServiceTests
     {
         var dashboard = new DashboardViewModel();
         var live = new LiveDetectionViewModel();
-        var file = new FileDetectionViewModel();
+        var file = _serviceProvider.GetRequiredService<FileDetectionViewModel>();
         var history = new HistoryViewModel();
 
         dashboard.Title.Should().Be("Dashboard");

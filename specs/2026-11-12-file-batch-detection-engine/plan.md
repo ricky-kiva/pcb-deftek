@@ -173,10 +173,9 @@ The implementation builds a decoupled ingestion layer, an asynchronous batch exe
 - **Files:**
   - `tests/pcb-deftek.Tests/FileDetectionViewModelTests.cs`
 - **Estimated scope:** S (1 file)
-
 #### Checkpoint 3: ViewModel Commanding & State Verification
-- [ ] ViewModel unit tests pass.
-- [ ] Property notifications, queue population, and cancellation transitions validated.
+- [x] ViewModel unit tests pass.
+- [x] Property notifications, queue population, and cancellation transitions validated.
 
 ---
 
