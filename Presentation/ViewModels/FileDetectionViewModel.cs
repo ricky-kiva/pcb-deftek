@@ -29,6 +29,7 @@ public partial class FileDetectionViewModel : ViewModelBase
     private readonly IBatchInspectionEngine _batchInspectionEngine;
     private readonly INotificationService _notificationService;
     private readonly IUserSettingsService _userSettingsService;
+    private readonly pcb_deftek.Infrastructure.Vision.IImageAnnotationService _imageAnnotationService;
     private readonly ILogger<FileDetectionViewModel> _logger;
 
     private readonly object _queueLock = new();
@@ -77,6 +78,15 @@ public partial class FileDetectionViewModel : ViewModelBase
     [ObservableProperty]
     private double _confidenceThreshold = 0.25;
 
+    [ObservableProperty]
+    private bool _isPreviewModalOpen;
+
+    [ObservableProperty]
+    private FileDetectionQueueItemViewModel? _previewItem;
+
+    [ObservableProperty]
+    private System.Windows.Media.ImageSource? _largePreviewImage;
+
     /// <summary>Gets a value indicating whether there are items in the queue.</summary>
     public bool HasItems => QueueItems.Count > 0;
 
@@ -95,6 +105,7 @@ public partial class FileDetectionViewModel : ViewModelBase
         IBatchInspectionEngine batchInspectionEngine,
         INotificationService notificationService,
         IUserSettingsService userSettingsService,
+        pcb_deftek.Infrastructure.Vision.IImageAnnotationService? imageAnnotationService = null,
         ILogger<FileDetectionViewModel>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(fileDiscoveryService);
@@ -108,6 +119,7 @@ public partial class FileDetectionViewModel : ViewModelBase
         _batchInspectionEngine = batchInspectionEngine;
         _notificationService = notificationService;
         _userSettingsService = userSettingsService;
+        _imageAnnotationService = imageAnnotationService ?? new pcb_deftek.Infrastructure.Vision.ImageAnnotationService();
         _logger = logger ?? NullLogger<FileDetectionViewModel>.Instance;
 
         System.Windows.Data.BindingOperations.EnableCollectionSynchronization(QueueItems, _queueLock);
@@ -313,7 +325,12 @@ public partial class FileDetectionViewModel : ViewModelBase
 
             if (report.LatestCompletedItem != null && lookup.TryGetValue(report.LatestCompletedItem.FilePath, out var queueItem))
             {
-                queueItem.UpdateFrom(report.LatestCompletedItem);
+                var thumbnail = _imageAnnotationService.AnnotateImage(
+                    report.LatestCompletedItem.FilePath,
+                    report.LatestCompletedItem.InferenceResult?.Defects ?? Array.Empty<DetectedDefect>(),
+                    maxDimension: 80);
+
+                queueItem.UpdateFrom(report.LatestCompletedItem, thumbnail);
             }
         });
 
@@ -333,13 +350,17 @@ public partial class FileDetectionViewModel : ViewModelBase
             PercentComplete = summary.TotalCount > 0
                 ? (int)Math.Clamp(Math.Round((double)summary.ProcessedCount / summary.TotalCount * 100.0), 0, 100)
                 : 0;
-
-            // Ensure all completed items reflect final summary state
+            // Ensure all completed items reflect final summary state with thumbnails
             foreach (var completedItem in summary.Items)
             {
                 if (lookup.TryGetValue(completedItem.FilePath, out var queueItem))
                 {
-                    queueItem.UpdateFrom(completedItem);
+                    var thumbnail = queueItem.ThumbnailImage ?? _imageAnnotationService.AnnotateImage(
+                        completedItem.FilePath,
+                        completedItem.InferenceResult?.Defects ?? Array.Empty<DetectedDefect>(),
+                        maxDimension: 80);
+
+                    queueItem.UpdateFrom(completedItem, thumbnail);
                 }
             }
 
@@ -407,6 +428,35 @@ public partial class FileDetectionViewModel : ViewModelBase
         {
             _logger.LogWarning(ex, "Error while signalling batch cancellation.");
         }
+    }
+
+    /// <summary>
+    /// Opens the enlarged modal dialog displaying the annotated PCB image with bounding boxes.
+    /// </summary>
+    /// <param name="item">The queue item to preview.</param>
+    [RelayCommand]
+    public void OpenPreview(FileDetectionQueueItemViewModel? item)
+    {
+        if (item == null)
+        {
+            return;
+        }
+
+        PreviewItem = item;
+        var defects = item.Result?.Defects ?? Array.Empty<DetectedDefect>();
+        LargePreviewImage = _imageAnnotationService.AnnotateImage(item.FilePath, defects);
+        IsPreviewModalOpen = true;
+    }
+
+    /// <summary>
+    /// Closes the enlarged preview modal dialog.
+    /// </summary>
+    [RelayCommand]
+    public void ClosePreview()
+    {
+        IsPreviewModalOpen = false;
+        PreviewItem = null;
+        LargePreviewImage = null;
     }
 
     private void AddPathsToQueue(IEnumerable<string> paths)

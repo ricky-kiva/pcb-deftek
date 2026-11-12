@@ -19,6 +19,16 @@ public partial class FileDetectionView : UserControl
         InitializeComponent();
     }
 
+    private void OnBrowseButtonClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.ContextMenu != null)
+        {
+            button.ContextMenu.PlacementTarget = button;
+            button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            button.ContextMenu.IsOpen = true;
+        }
+    }
+
     private void OnDropTargetDragEnter(object sender, DragEventArgs e)
     {
         UpdateDragHighlight(e, isHovering: true);

@@ -130,7 +130,7 @@ public partial class App : Application
         services.AddSingleton<IVisionPreprocessor, OpenCvVisionPreprocessor>();
         services.AddSingleton<IYoloPostprocessor, YoloPostprocessor>();
         services.AddSingleton<IPcbDefectDetector, PcbDefectDetector>();
-
+        services.AddSingleton<IImageAnnotationService, ImageAnnotationService>();
         // Navigation & Presentation Services
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IStartupRoutingService, StartupRoutingService>();

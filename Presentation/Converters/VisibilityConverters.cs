@@ -91,11 +91,8 @@ public class CountToVisibilityConverter : IValueConverter
 /// </summary>
 public class BatchStatusToForegroundBrushConverter : IValueConverter
 {
-    private static readonly SolidColorBrush PassBrush = new(Color.FromRgb(0x10, 0x7C, 0x41));      // #107C41
-    private static readonly SolidColorBrush FailBrush = new(Color.FromRgb(0xC4, 0x2B, 0x1C));      // #C42B1C
-    private static readonly SolidColorBrush ErrorBrush = new(Color.FromRgb(0xD8, 0x3B, 0x01));     // #D83B01
-    private static readonly SolidColorBrush ProcessingBrush = new(Color.FromRgb(0x00, 0x78, 0xD4)); // #0078D4
-    private static readonly SolidColorBrush PendingBrush = new(Color.FromRgb(0x73, 0x73, 0x73));    // #737373
+    private static readonly SolidColorBrush WhiteTextBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
+    private static readonly SolidColorBrush PendingBrush = new(Color.FromRgb(0x8A, 0x8A, 0x8A));
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
@@ -103,10 +100,10 @@ public class BatchStatusToForegroundBrushConverter : IValueConverter
         {
             return status switch
             {
-                BatchItemStatus.Pass => PassBrush,
-                BatchItemStatus.Fail => FailBrush,
-                BatchItemStatus.Error => ErrorBrush,
-                BatchItemStatus.Processing => ProcessingBrush,
+                BatchItemStatus.Pass => WhiteTextBrush,
+                BatchItemStatus.Fail => WhiteTextBrush,
+                BatchItemStatus.Error => WhiteTextBrush,
+                BatchItemStatus.Processing => WhiteTextBrush,
                 _ => PendingBrush
             };
         }
@@ -125,11 +122,11 @@ public class BatchStatusToForegroundBrushConverter : IValueConverter
 /// </summary>
 public class BatchStatusToBackgroundBrushConverter : IValueConverter
 {
-    private static readonly SolidColorBrush PassBgBrush = new(Color.FromArgb(0x2A, 0x10, 0x7C, 0x41));      // Green tint
-    private static readonly SolidColorBrush FailBgBrush = new(Color.FromArgb(0x2A, 0xC4, 0x2B, 0x1C));      // Red tint
-    private static readonly SolidColorBrush ErrorBgBrush = new(Color.FromArgb(0x2A, 0xD8, 0x3B, 0x01));     // Orange tint
-    private static readonly SolidColorBrush ProcessingBgBrush = new(Color.FromArgb(0x2A, 0x00, 0x78, 0xD4)); // Blue tint
-    private static readonly SolidColorBrush PendingBgBrush = new(Color.FromArgb(0x1A, 0x73, 0x73, 0x73));    // Neutral tint
+    private static readonly SolidColorBrush PassBgBrush = new(Color.FromRgb(0x10, 0x7C, 0x41));      // Solid Forest Green
+    private static readonly SolidColorBrush FailBgBrush = new(Color.FromRgb(0xC4, 0x2B, 0x1C));      // Solid Crimson Red (High Contrast, WCAG AA compliant)
+    private static readonly SolidColorBrush ErrorBgBrush = new(Color.FromRgb(0xD8, 0x3B, 0x01));     // Solid Orange-Red
+    private static readonly SolidColorBrush ProcessingBgBrush = new(Color.FromRgb(0x00, 0x78, 0xD4)); // Solid Fluent Blue
+    private static readonly SolidColorBrush PendingBgBrush = new(Color.FromArgb(0x2E, 0x73, 0x73, 0x73));    // Subtle Neutral Tint
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {

@@ -25,6 +25,7 @@ public class FileDetectionViewModelTests
     private readonly Mock<IBatchInspectionEngine> _mockEngine;
     private readonly Mock<INotificationService> _mockNotification;
     private readonly Mock<IUserSettingsService> _mockSettings;
+    private readonly Mock<IImageAnnotationService> _mockAnnotation;
 
     public FileDetectionViewModelTests()
     {
@@ -33,6 +34,7 @@ public class FileDetectionViewModelTests
         _mockEngine = new Mock<IBatchInspectionEngine>();
         _mockNotification = new Mock<INotificationService>();
         _mockSettings = new Mock<IUserSettingsService>();
+        _mockAnnotation = new Mock<IImageAnnotationService>();
 
         _mockSettings
             .Setup(s => s.LoadSettingsAsync(It.IsAny<CancellationToken>()))
@@ -47,6 +49,7 @@ public class FileDetectionViewModelTests
             _mockEngine.Object,
             _mockNotification.Object,
             _mockSettings.Object,
+            _mockAnnotation.Object,
             NullLogger<FileDetectionViewModel>.Instance);
     }
 
@@ -373,5 +376,65 @@ public class FileDetectionViewModelTests
         item.DefectSummary.Should().Contain("Hole breakout");
         item.DefectSummary.Should().Contain("92%");
         item.StatusBadgeTooltip.Should().Contain("Inspection Failed");
+    }
+
+    [Fact]
+    public void OpenPreviewCommand_And_ClosePreviewCommand_ManageModalState()
+    {
+        // Arrange
+        var sut = CreateSut();
+        var item = new FileDetectionQueueItemViewModel(@"C:\pcb\board1.jpg");
+
+        sut.IsPreviewModalOpen.Should().BeFalse();
+        sut.PreviewItem.Should().BeNull();
+
+        // Act: Open preview
+        sut.OpenPreviewCommand.Execute(item);
+
+        // Assert
+        sut.IsPreviewModalOpen.Should().BeTrue();
+        sut.PreviewItem.Should().BeSameAs(item);
+
+        // Act: Close preview
+        sut.ClosePreviewCommand.Execute(null);
+
+        // Assert
+        sut.IsPreviewModalOpen.Should().BeFalse();
+        sut.PreviewItem.Should().BeNull();
+        sut.LargePreviewImage.Should().BeNull();
+    }
+
+    [Fact]
+    public void FileDetectionQueueItemViewModel_MultipleDefects_TogglesExpansion()
+    {
+        // Arrange
+        var item = new FileDetectionQueueItemViewModel(@"C:\pcb\board1.jpg");
+        var defects = new[]
+        {
+            new DetectedDefect(Guid.NewGuid(), Guid.NewGuid(), "hole_breakout", 0.95f, new BoundingBox(0.1f, 0.1f, 0.2f, 0.2f)),
+            new DetectedDefect(Guid.NewGuid(), Guid.NewGuid(), "spur", 0.85f, new BoundingBox(0.3f, 0.3f, 0.2f, 0.2f))
+        };
+        var result = new InferenceResult(
+            Guid.NewGuid(),
+            defects,
+            new LetterboxTransform(640, 640, 640, 640, 1.0f, 0, 0),
+            ExecutionDevice.Cpu,
+            new InferenceTiming(5, 20, 2, 27));
+
+        item.UpdateFrom(new BatchInspectionItem(@"C:\pcb\board1.jpg", "board1.jpg", BatchItemStatus.Fail, 2, TimeSpan.FromMilliseconds(200), null, Guid.NewGuid(), result));
+
+        // Assert initial collapsed state
+        item.HasMultipleDefects.Should().BeTrue();
+        item.IsDefectsExpanded.Should().BeFalse();
+        item.CollapsedSummaryText.Should().Be("2 defects");
+        item.DefectList.Should().HaveCount(2);
+
+        // Act: Expand
+        item.ToggleDefectsExpandedCommand.Execute(null);
+        item.IsDefectsExpanded.Should().BeTrue();
+
+        // Act: Collapse
+        item.ToggleDefectsExpandedCommand.Execute(null);
+        item.IsDefectsExpanded.Should().BeFalse();
     }
 }

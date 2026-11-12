@@ -50,4 +50,16 @@ public class VisibilityConvertersTests
         fg.Should().NotBeNull();
         bg.Should().NotBeNull();
     }
+
+    [Theory]
+    [InlineData("Some text", Visibility.Visible)]
+    [InlineData("", Visibility.Collapsed)]
+    [InlineData("   ", Visibility.Collapsed)]
+    [InlineData(null, Visibility.Collapsed)]
+    public void NullOrEmptyToVisibilityConverter_ConvertsExpectedly(string? input, Visibility expected)
+    {
+        var converter = new NullOrEmptyToVisibilityConverter();
+        var result = converter.Convert(input, typeof(Visibility), null, CultureInfo.InvariantCulture);
+        result.Should().Be(expected);
+    }
 }
