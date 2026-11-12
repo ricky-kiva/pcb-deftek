@@ -139,10 +139,9 @@
   - *Scope:* M (3 files)
 
 #### Checkpoint 4: Settings Management & User Preferences Validation
-- [ ] Settings modal opens from sidebar and allows adjusting inference thresholds, device preference, and export directories.
-- [ ] "Export Database" button triggers asynchronous SQLite backup to the configured folder and raises a toast notification.
-- [ ] Settings changes persist across application restarts.
-
+- [x] Settings modal opens from sidebar and allows adjusting inference thresholds, device preference, and export directories.
+- [x] "Export Database" button triggers asynchronous SQLite backup to the configured folder and raises a toast notification.
+- [x] Settings changes persist across application restarts.
 ---
 
 ### Task Group 5: Dependency Injection Wiring, Unit Tests & Reqnroll BDD Scenarios

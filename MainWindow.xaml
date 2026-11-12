@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:pcb_deftek.Presentation.ViewModels"
+        xmlns:views="clr-namespace:pcb_deftek.Presentation.Views"
         mc:Ignorable="d"
         Title="pcb-deftek — Automated PCB Defect Detection &amp; Analysis"
         Width="1280" Height="820"
@@ -303,5 +304,23 @@
                 </Button>
             </StackPanel>
         </Border>
+
+        <!-- Settings Modal Overlay (Layered on top of Row 0 and Row 1) -->
+        <Grid Grid.Row="0" Grid.RowSpan="2"
+              Visibility="{Binding IsSettingsOpen, Converter={StaticResource BooleanToVisibilityConverter}}"
+              d:Visibility="Collapsed">
+            <!-- Scrim / Dimmer Backdrop with Dismiss on Click -->
+            <Border Background="#99000000" Cursor="Arrow">
+                <Border.InputBindings>
+                    <MouseBinding MouseAction="LeftClick" Command="{Binding CloseSettingsCommand}" />
+                </Border.InputBindings>
+            </Border>
+
+            <!-- Centered Modal Card Hosting SettingsView -->
+            <views:SettingsView DataContext="{Binding SettingsViewModel}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Margin="24" />
+        </Grid>
     </Grid>
 </Window>

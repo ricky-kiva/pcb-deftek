@@ -114,9 +114,9 @@ public partial class App : Application
         services.AddSingleton<IInspectionRepository, SqliteInspectionRepository>();
         services.AddSingleton<IDefectRepository, SqliteDefectRepository>();
         services.AddSingleton<ISettingsRepository, SqliteSettingsRepository>();
+        services.AddSingleton<IUserSettingsService, UserSettingsService>();
         services.AddSingleton<IDatabaseBackupService, SqliteDatabaseBackupService>();
         services.AddSingleton<IDatabaseExportService, SqliteDatabaseExportService>();
-
         // Notification Services
         services.AddSingleton<INotificationService, WindowsNotificationService>();
 
@@ -129,6 +129,7 @@ public partial class App : Application
         // Navigation & Presentation Services
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IStartupRoutingService, StartupRoutingService>();
+        services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<MainViewModel>();
 
         // Page ViewModels
@@ -136,7 +137,6 @@ public partial class App : Application
         services.AddTransient<LiveDetectionViewModel>();
         services.AddTransient<FileDetectionViewModel>();
         services.AddTransient<HistoryViewModel>();
-
         services.AddSingleton<MainWindow>();
     }
 
