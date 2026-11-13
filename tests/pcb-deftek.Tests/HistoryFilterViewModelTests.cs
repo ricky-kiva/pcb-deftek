@@ -167,6 +167,27 @@ public class HistoryFilterViewModelTests
     }
 
     [Fact]
+    public void FilterChips_ReportFriendlyLabels()
+    {
+        var sut = new HistoryFilterViewModel();
+
+        sut.StatusFilterLabel.Should().Be("All statuses");
+        sut.ClassFilterLabel.Should().Be("All classes");
+
+        sut.StatusOptions.Single(option => option.Value == InspectionStatus.Pass).IsSelected = true;
+        sut.StatusFilterLabel.Should().Be("PASS");
+
+        sut.StatusOptions.Single(option => option.Value == InspectionStatus.Fail).IsSelected = true;
+        sut.StatusFilterLabel.Should().Be("PASS & FAIL");
+
+        sut.ClassOptions.Single(option => option.Value == DefectClass.Short).IsSelected = true;
+        sut.ClassFilterLabel.Should().Be("SH");
+
+        sut.ClassOptions.Single(option => option.Value == DefectClass.Open).IsSelected = true;
+        sut.ClassFilterLabel.Should().Be("2 classes");
+    }
+
+    [Fact]
     public void FilterChanges_RaiseFiltersChanged()
     {
         var sut = new HistoryFilterViewModel();

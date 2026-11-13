@@ -1,31 +1,661 @@
 <UserControl x:Class="pcb_deftek.Presentation.Views.HistoryView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="800">
-    <Grid Margin="24">
-        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-            <Path Data="{StaticResource IconHistory}"
-                  Fill="{DynamicResource AccentFillColorDefaultBrush}"
-                  Width="48" Height="48"
-                  Stretch="Uniform"
-                  HorizontalAlignment="Center"
-                  Margin="0,0,0,16" />
-            <TextBlock Text="Detection History"
-                       FontSize="20"
-                       FontWeight="SemiBold"
-                       HorizontalAlignment="Center"
-                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-            <TextBlock Text="Phase 7 delivery: Date-grouped inspection thumbnail gallery with inline renaming, pan/smooth zoom viewer, bounding box auto-focus, viewport cropping, and diagnostic defect sidebar."
-                       FontSize="13"
-                       TextWrapping="Wrap"
-                       MaxWidth="560"
-                       TextAlignment="Center"
-                       Margin="0,8,0,0"
-                       HorizontalAlignment="Center"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-        </StackPanel>
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:pcb_deftek.Presentation.ViewModels"
+             xmlns:converters="clr-namespace:pcb_deftek.Presentation.Converters"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:HistoryViewModel}"
+             d:DesignHeight="720" d:DesignWidth="1100">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibilityConverter" />
+        <converters:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
+
+        <!-- Filter bar surface -->
+        <Style x:Key="HistoryFilterBarStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+
+        <!-- Segmented date/preset chip -->
+        <Style x:Key="FilterChipStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Padding" Value="12,5" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="ChipBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ChipBorder" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ChipBorder" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="ChipBorder" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="ChipBorder" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="ChipBorder" Property="BorderThickness" Value="2" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Quiet toolbar button -->
+        <Style x:Key="QuietButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="QuietBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="QuietBorder" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="QuietBorder" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Destructive action button -->
+        <Style x:Key="DangerButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource StatusFailBrush}" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="12,5" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="DangerBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="DangerBorder" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="DangerBorder" Property="Opacity" Value="0.78" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="DangerBorder" Property="Background" Value="{DynamicResource ControlFillColorDisabledBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AccentButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="AccentBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="AccentBorder" Property="Opacity" Value="0.92" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="AccentBorder" Property="Opacity" Value="0.82" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Popup surface -->
+        <Style x:Key="FilterPopupStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="MinWidth" Value="220" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+
+        <!-- Gallery card -->
+        <Style x:Key="HistoryCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Margin" Value="0,0,12,12" />
+            <Setter Property="Width" Value="184" />
+            <Setter Property="Focusable" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                </Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                    <Setter Property="BorderThickness" Value="2" />
+                </Trigger>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                    <Setter Property="BorderThickness" Value="2" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- PASS / FAIL badge -->
+        <Style x:Key="HistoryStatusBadgeStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="Background" Value="{DynamicResource StatusPassBrush}" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsPass}" Value="False">
+                    <Setter Property="Background" Value="{DynamicResource StatusFailBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="HistoryStatusTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Typography.Capitals" Value="AllSmallCaps" />
+        </Style>
+
+        <Style x:Key="DateHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Margin" Value="2,0,0,8" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="24,18,24,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+            <Button DockPanel.Dock="Right"
+                    VerticalAlignment="Top"
+                    Style="{StaticResource QuietButtonStyle}"
+                    Command="{Binding RefreshCommand}"
+                    Content="Refresh"
+                    ToolTip="Reload inspection history"
+                    AutomationProperties.Name="Refresh inspection history" />
+            <StackPanel>
+                <TextBlock Text="Detection History"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                <TextBlock FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Margin="0,2,0,0">
+                    <Run Text="Review stored inspections, filter by outcome, and manage capture records." />
+                </TextBlock>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Filter and action bar -->
+        <Border Grid.Row="1" Style="{StaticResource HistoryFilterBarStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <WrapPanel Grid.Column="0" Orientation="Horizontal">
+                    <ToggleButton Style="{StaticResource FilterChipStyle}"
+                                  Content="Day"
+                                  Tag="Day"
+                                  IsChecked="{Binding Filters.SelectedPreset, Mode=OneWay, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Day}"
+                                  Click="OnDatePresetClick"
+                                  AutomationProperties.Name="Filter by today" />
+                    <ToggleButton Style="{StaticResource FilterChipStyle}"
+                                  Content="Week"
+                                  Tag="Week"
+                                  IsChecked="{Binding Filters.SelectedPreset, Mode=OneWay, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Week}"
+                                  Click="OnDatePresetClick"
+                                  AutomationProperties.Name="Filter by this week" />
+                    <ToggleButton Style="{StaticResource FilterChipStyle}"
+                                  Content="Month"
+                                  Tag="Month"
+                                  IsChecked="{Binding Filters.SelectedPreset, Mode=OneWay, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Month}"
+                                  Click="OnDatePresetClick"
+                                  AutomationProperties.Name="Filter by this month" />
+                    <ToggleButton x:Name="CustomDateToggle"
+                                  Style="{StaticResource FilterChipStyle}"
+                                  Content="Custom"
+                                  Tag="Custom"
+                                  IsChecked="{Binding Filters.SelectedPreset, Mode=OneWay, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Custom}"
+                                  Click="OnCustomDateClick"
+                                  AutomationProperties.Name="Choose a custom date range" />
+
+                    <Border Width="1"
+                            Height="18"
+                            Background="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                            Margin="4,0,10,0"
+                            VerticalAlignment="Center" />
+
+                    <ToggleButton x:Name="StatusFilterToggle"
+                                  Style="{StaticResource FilterChipStyle}"
+                                  Content="{Binding Filters.StatusFilterLabel}"
+                                  Click="OnFilterChipClick"
+                                  AutomationProperties.Name="Filter by PASS or FAIL status" />
+                    <Popup IsOpen="{Binding IsChecked, ElementName=StatusFilterToggle, Mode=TwoWay}"
+                           PlacementTarget="{Binding ElementName=StatusFilterToggle}"
+                           Placement="Bottom"
+                           StaysOpen="False"
+                           AllowsTransparency="True"
+                           PopupAnimation="Fade">
+                        <Border Style="{StaticResource FilterPopupStyle}" Margin="0,4,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Status"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Margin="0,0,0,6" />
+                                <ItemsControl ItemsSource="{Binding Filters.StatusOptions}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding Label}"
+                                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                      Margin="0,4"
+                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+
+                    <ToggleButton x:Name="ClassFilterToggle"
+                                  Style="{StaticResource FilterChipStyle}"
+                                  Content="{Binding Filters.ClassFilterLabel}"
+                                  Click="OnFilterChipClick"
+                                  AutomationProperties.Name="Filter by defect class" />
+                    <Popup IsOpen="{Binding IsChecked, ElementName=ClassFilterToggle, Mode=TwoWay}"
+                           PlacementTarget="{Binding ElementName=ClassFilterToggle}"
+                           Placement="Bottom"
+                           StaysOpen="False"
+                           AllowsTransparency="True"
+                           PopupAnimation="Fade">
+                        <Border Style="{StaticResource FilterPopupStyle}" Margin="0,4,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Defect class"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Margin="0,0,0,6" />
+                                <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding Filters.ClassOptions}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox Content="{Binding Label}"
+                                                          IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                          Margin="0,4"
+                                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+
+                    <Popup x:Name="CustomDatePopup"
+                           PlacementTarget="{Binding ElementName=CustomDateToggle}"
+                           Placement="Bottom"
+                           StaysOpen="False"
+                           AllowsTransparency="True"
+                           PopupAnimation="Fade">
+                        <Border Style="{StaticResource FilterPopupStyle}" Width="280" Margin="0,4,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Custom date range"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Margin="0,0,0,8" />
+                                <TextBlock Text="From" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <DatePicker SelectedDate="{Binding Filters.CustomStartDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            AutomationProperties.Name="Custom range start date"
+                                            Margin="0,2,0,8" />
+                                <TextBlock Text="To" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <DatePicker SelectedDate="{Binding Filters.CustomEndDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            AutomationProperties.Name="Custom range end date"
+                                            Margin="0,2,0,8" />
+                                <TextBlock Text="{Binding Filters.CustomRangeError}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource StatusFailBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,8"
+                                           Visibility="{Binding Filters.CustomRangeError, Converter={StaticResource NullOrEmptyToVisibilityConverter}}" />
+                                <Button Content="Apply range"
+                                        HorizontalAlignment="Right"
+                                        Style="{StaticResource AccentButtonStyle}"
+                                        Click="OnCustomRangeDoneClick" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+
+                    <Button Command="{Binding ClearFiltersCommand}"
+                            Content="Clear filters"
+                            Style="{StaticResource QuietButtonStyle}"
+                            Visibility="{Binding Filters.HasActiveFilters, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                </WrapPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="12,0,0,0">
+                    <TextBlock Text="{Binding ResultsSummary}"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,4,0" />
+                    <Button Content="Select loaded"
+                            Style="{StaticResource QuietButtonStyle}"
+                            Command="{Binding SelectLoadedCommand}"
+                            ToolTip="Select every loaded card for deletion" />
+                    <Button Content="Clear"
+                            Style="{StaticResource QuietButtonStyle}"
+                            Command="{Binding ClearSelectionCommand}"
+                            ToolTip="Clear the current selection" />
+                    <Button Style="{StaticResource DangerButtonStyle}"
+                            Command="{Binding DeleteSelectedCommand}"
+                            ToolTip="Delete selected inspections">
+                        <TextBlock Text="{Binding SelectedCount, StringFormat=Delete selected ({0})}" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Gallery -->
+        <Grid Grid.Row="2" Margin="0,12,0,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="0,0,4,0">
+                <ItemsControl ItemsSource="{Binding Groups}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,0,0,4">
+                                <TextBlock Text="{Binding Label}" Style="{StaticResource DateHeaderStyle}" />
+                                <ItemsControl ItemsSource="{Binding Items}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource HistoryCardStyle}"
+                                                    AutomationProperties.Name="{Binding Name}"
+                                                    AutomationProperties.HelpText="Press Enter or Space to open this inspection. Press F2 to rename."
+                                                    PreviewMouseLeftButtonUp="OnCardMouseLeftButtonUp"
+                                                    PreviewKeyDown="OnCardKeyDown">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <!-- 1:1 preview -->
+                                                    <Grid Grid.Row="0" Width="166" Height="166">
+                                                        <Border CornerRadius="6"
+                                                                Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                                                ClipToBounds="True">
+                                                            <Grid>
+                                                                <Image Source="{Binding Thumbnail}"
+                                                                       Stretch="UniformToFill"
+                                                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                                                <Path Data="{StaticResource IconImage}"
+                                                                      Fill="{DynamicResource TextFillColorTertiaryBrush}"
+                                                                      Width="34"
+                                                                      Height="34"
+                                                                      Stretch="Uniform"
+                                                                      HorizontalAlignment="Center"
+                                                                      VerticalAlignment="Center"
+                                                                      Visibility="{Binding HasThumbnail, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                                                <TextBlock Text="Image unavailable"
+                                                                           FontSize="10"
+                                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Bottom"
+                                                                           Margin="6"
+                                                                           Visibility="{Binding IsImageUnavailable, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                            </Grid>
+                                                        </Border>
+
+                                                        <Border Style="{StaticResource HistoryStatusBadgeStyle}"
+                                                                HorizontalAlignment="Left"
+                                                                VerticalAlignment="Top"
+                                                                Margin="6">
+                                                            <TextBlock Text="{Binding StatusText}"
+                                                                       Style="{StaticResource HistoryStatusTextStyle}" />
+                                                        </Border>
+
+                                                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                                                CornerRadius="4"
+                                                                Padding="2"
+                                                                HorizontalAlignment="Right"
+                                                                VerticalAlignment="Top"
+                                                                Margin="6">
+                                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                                      ToolTip="Select inspection for deletion"
+                                                                      AutomationProperties.Name="Select inspection for deletion" />
+                                                        </Border>
+                                                    </Grid>
+
+                                                    <!-- Name / inline rename -->
+                                                    <Grid Grid.Row="1" Margin="2,8,2,0">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   FontSize="13"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   TextWrapping="NoWrap"
+                                                                   MouseLeftButtonDown="OnNameDoubleClick"
+                                                                   Visibility="{Binding IsEditingName, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                                        <TextBox Text="{Binding EditedName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                 FontSize="13"
+                                                                 Padding="4,2"
+                                                                 IsVisibleChanged="OnRenameTextBoxVisibleChanged"
+                                                                 PreviewKeyDown="OnRenameKeyDown"
+                                                                 LostFocus="OnRenameTextBoxLostFocus"
+                                                                 Visibility="{Binding IsEditingName, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                    </Grid>
+
+                                                    <!-- Timestamp · mode · defects -->
+                                                    <TextBlock Grid.Row="2"
+                                                               FontSize="11"
+                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                               Margin="2,4,2,0"
+                                                               TextTrimming="CharacterEllipsis">
+                                                        <Run Text="{Binding DisplayTime, Mode=OneWay}" />
+                                                        <Run Text=" · " />
+                                                        <Run Text="{Binding ModeText, Mode=OneWay}" />
+                                                        <Run Text=" · " />
+                                                        <Run Text="{Binding DefectCountText, Mode=OneWay}" />
+                                                    </TextBlock>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Error banner -->
+            <Border VerticalAlignment="Top"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource StatusFailBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="12,8"
+                    Margin="0,0,0,8"
+                    Visibility="{Binding ErrorMessage, Converter={StaticResource NullOrEmptyToVisibilityConverter}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right"
+                            Content="Retry"
+                            Style="{StaticResource QuietButtonStyle}"
+                            Command="{Binding RefreshCommand}" />
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <!-- Initial loading -->
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding IsInitialLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <ProgressBar IsIndeterminate="True" Width="180" Height="4" />
+                <TextBlock Text="Loading inspection history..."
+                           FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,10,0,0" />
+            </StackPanel>
+
+            <!-- Empty history -->
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        MaxWidth="420"
+                        Visibility="{Binding IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Path Data="{StaticResource IconHistory}"
+                      Fill="{DynamicResource TextFillColorTertiaryBrush}"
+                      Width="42"
+                      Height="42"
+                      Stretch="Uniform"
+                      HorizontalAlignment="Center" />
+                <TextBlock Text="No inspections yet"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,12,0,0" />
+                <TextBlock Text="Inspect a PCB from the live camera or a file to build your history."
+                           FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           HorizontalAlignment="Center"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+
+            <!-- No matches -->
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        MaxWidth="420"
+                        Visibility="{Binding HasNoMatches, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Path Data="{StaticResource IconHistory}"
+                      Fill="{DynamicResource TextFillColorTertiaryBrush}"
+                      Width="42"
+                      Height="42"
+                      Stretch="Uniform"
+                      HorizontalAlignment="Center" />
+                <TextBlock Text="No inspections match these filters"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,12,0,0" />
+                <TextBlock Text="Adjust the date range, status, or defect class selection."
+                           FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           HorizontalAlignment="Center"
+                           Margin="0,4,0,10" />
+                <Button Content="Clear filters"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Command="{Binding ClearFiltersCommand}"
+                        HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Footer -->
+        <Grid Grid.Row="3" Margin="0,12,0,0">
+            <TextBlock Text="{Binding ShowingSummary}"
+                       FontSize="11"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       VerticalAlignment="Center" />
+            <Button HorizontalAlignment="Right"
+                    Content="Load more"
+                    Style="{StaticResource QuietButtonStyle}"
+                    Command="{Binding LoadMoreCommand}"
+                    Visibility="{Binding HasMore, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </Grid>
     </Grid>
 </UserControl>
