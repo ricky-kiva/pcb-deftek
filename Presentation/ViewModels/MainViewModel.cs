@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using pcb_deftek.Domain.Models.Messages;
 using pcb_deftek.Presentation.Navigation;
 using Serilog;
 
@@ -58,6 +60,10 @@ public partial class MainViewModel : ViewModelBase
             SettingsViewModel.RequestClose += (_, _) => IsSettingsOpen = false;
         }
         _urlLauncher = urlLauncher ?? DefaultUrlLauncher;
+
+        WeakReferenceMessenger.Default.Register<MainViewModel, SidebarCollapseMessage>(
+            this,
+            static (recipient, message) => recipient.IsSidebarExpanded = !message.Value);
     }
 
     /// <summary>

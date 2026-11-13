@@ -124,6 +124,9 @@ public partial class App : Application
         services.AddSingleton<IFileDiscoveryService, FileDiscoveryService>();
         services.AddSingleton<IFilePickerService, WpfFilePickerService>();
         services.AddSingleton<IBatchInspectionEngine, BatchInspectionEngine>();
+        services.AddSingleton<ICameraService, OpenCvCameraService>();
+        services.AddSingleton<ILiveInspectionEngine, LiveInspectionEngine>();
+        services.AddSingleton<ILiveSnapshotService, LiveSnapshotService>();
 
         // Core Inference & Vision Services
         services.AddSingleton<IOnnxModelRunner, OnnxModelRunner>();

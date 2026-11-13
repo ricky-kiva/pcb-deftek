@@ -25,6 +25,9 @@ public class NavigationServiceTests
         services.AddTransient<TestPageBViewModel>();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<LiveDetectionViewModel>();
+        services.AddSingleton(new Mock<ICameraService>().Object);
+        services.AddSingleton(new Mock<ILiveInspectionEngine>().Object);
+        services.AddSingleton(new Mock<ILiveSnapshotService>().Object);
         services.AddSingleton(new Mock<IFileDiscoveryService>().Object);
         services.AddSingleton(new Mock<IFilePickerService>().Object);
         services.AddSingleton(new Mock<IBatchInspectionEngine>().Object);
@@ -114,7 +117,7 @@ public class NavigationServiceTests
     public void PageViewModels_HaveExpectedTitles()
     {
         var dashboard = new DashboardViewModel();
-        var live = new LiveDetectionViewModel();
+        var live = _serviceProvider.GetRequiredService<LiveDetectionViewModel>();
         var file = _serviceProvider.GetRequiredService<FileDetectionViewModel>();
         var history = new HistoryViewModel();
 
