@@ -369,7 +369,7 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
   - [ ] Build succeeds with 0 warnings
 - **Dependencies:** None
 - **Files:**
-  - `Presentation/ViewModels/ViewportTransform.cs`
+  - `Presentation/Models/ViewportTransform.cs`
   - `tests/pcb-deftek.Tests/ViewportTransformTests.cs`
 - **Estimated scope:** M (2 files)
 
