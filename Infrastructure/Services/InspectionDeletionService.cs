@@ -112,7 +112,7 @@ public sealed class InspectionDeletionService : IInspectionDeletionService
             deletedFiles,
             failedFiles.Count);
 
-        return new InspectionDeletionResult(deletedRecords, deletedFiles, failedFiles);
+        return new InspectionDeletionResult(deletedRecords, deletedFiles, failedFiles.ToArray());
     }
 
     private bool TryDeleteFile(string path, List<string> failedFiles)

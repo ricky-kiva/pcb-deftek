@@ -108,7 +108,7 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 - **Acceptance criteria:**
   - [x] `InspectionQueryFilter` gains `IReadOnlyCollection<InspectionStatus>? Statuses` and `IReadOnlyCollection<DefectClass>? DefectClasses`; existing `Status`, `Mode`, and date properties keep their behavior.
   - [x] Shared SQL predicate builder is used by `GetPagedAsync` and `GetSummariesPagedAsync`; totals and pages respect the same filters.
-  - [x] Status set matches any selected status (empty/null = no status filter) and takes precedence over the legacy single `Status` when both are supplied; class set matches records having **any** selected class via `EXISTS` against `Defects`.
+  - [x] Status set matches any selected status; empty/null adds no multi-status clause and falls back to the legacy single `Status`. When populated, `Statuses` takes precedence; class set matches records having **any** selected class via `EXISTS` against `Defects`.
   - [x] Date bounds remain inclusive and applied to `CreatedAtUtc`; all values are parameterized (class codes from `DefectClassInfo.Code`).
   - [x] Ordering stays `CreatedAtUtc DESC, Id DESC`.
 - **Verification:**

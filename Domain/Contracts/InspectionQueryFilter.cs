@@ -20,7 +20,8 @@ public class InspectionQueryFilter
     public InspectionStatus? Status { get; init; }
 
     /// <summary>
-    /// Gets the optional multi-select status filter. Empty or null applies no status filter.
+    /// Gets the optional multi-select status filter. Empty or null does not add a multi-status
+    /// clause and falls back to <see cref="Status"/>.
     /// When populated, it takes precedence over <see cref="Status"/>.
     /// </summary>
     public IReadOnlyCollection<InspectionStatus>? Statuses { get; init; }
