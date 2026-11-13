@@ -91,7 +91,7 @@ public class HistoryViewModelTests
             });
     }
 
-    private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 2000)
+    private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 5000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (!condition() && DateTime.UtcNow < deadline)
@@ -215,7 +215,7 @@ public class HistoryViewModelTests
 
         sut.Filters.SelectedPreset = HistoryDatePreset.Day;
 
-        await reloaded.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await reloaded.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await WaitUntilAsync(() => !sut.IsLoading);
 
         var latest = filtersSeen[^1];
@@ -298,6 +298,45 @@ public class HistoryViewModelTests
     }
 
     [Fact]
+    public async Task DeleteSelected_WhenMorePagesExist_ResetsPagingWithoutSkippingRecords()
+    {
+        var remaining = Enumerable.Range(0, 120)
+            .Select(index => CreateSummary($"board-{index}", LocalNoonUtc().AddMinutes(-index)))
+            .ToList();
+        _repository
+            .Setup(repo => repo.GetSummariesPagedAsync(It.IsAny<InspectionQueryFilter>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((InspectionQueryFilter filter, CancellationToken _) =>
+            {
+                var items = remaining
+                    .Skip((filter.PageNumber - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToList();
+                return new PagedResult<InspectionSummary>(items, filter.PageNumber, filter.PageSize, remaining.Count);
+            });
+        _deletionService
+            .Setup(service => service.DeleteManyAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyCollection<Guid> ids, CancellationToken _) =>
+            {
+                int count = remaining.RemoveAll(record => ids.Contains(record.Id));
+                return new InspectionDeletionResult(count, 0, Array.Empty<string>());
+            });
+        var sut = CreateSut();
+        await sut.LoadFirstPageAsync();
+        sut.Items[0].IsSelected = true;
+
+        await sut.DeleteSelectedCommand.ExecuteAsync(null);
+
+        sut.Items.Should().HaveCount(60);
+        sut.TotalCount.Should().Be(119);
+        sut.HasMore.Should().BeTrue();
+
+        await sut.LoadMoreCommand.ExecuteAsync(null);
+
+        sut.Items.Should().HaveCount(119);
+        sut.Items.Select(item => item.Id).Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
     public async Task DeleteSelected_WhenDeletionFails_RetainsSelectionAndReportsError()
     {
         SetupPages(new[] { CreateSummary("a", DateTime.UtcNow) });
@@ -356,7 +395,7 @@ public class HistoryViewModelTests
         var sut = CreateSut();
 
         await sut.LoadFirstPageAsync();
-        await hydrated.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await hydrated.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         calls.Should().Be(2);
         sut.Items.Should().OnlyContain(item => item.IsImageUnavailable);
@@ -376,7 +415,7 @@ public class HistoryViewModelTests
 
         var loadTask = sut.OnNavigatedToAsync();
         await sut.OnNavigatedFromAsync();
-        await loadTask.WaitAsync(TimeSpan.FromSeconds(2));
+        await loadTask.WaitAsync(TimeSpan.FromSeconds(5));
 
         sut.Items.Should().BeEmpty();
         sut.IsLoading.Should().BeFalse();

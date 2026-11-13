@@ -299,14 +299,24 @@ public sealed partial class HistoryViewModel : ViewModelBase
             var result = await _deletionService
                 .DeleteManyAsync(ids, CancellationToken.None);
 
+            bool requiresPageReset = Items.Count < TotalCount;
+
             foreach (var item in selected)
             {
                 RemoveItem(item);
             }
 
             TotalCount = Math.Max(0, TotalCount - selected.Count);
-            RebuildGroups();
-            NotifyGalleryState();
+
+            if (requiresPageReset)
+            {
+                await LoadFirstPageAsync();
+            }
+            else
+            {
+                RebuildGroups();
+                NotifyGalleryState();
+            }
 
             string message = $"Deleted {result.DeletedRecordCount} inspection(s); cleaned {result.DeletedFileCount} capture file(s).";
             if (result.HasFileFailures)

@@ -212,6 +212,9 @@ public sealed partial class HistoryFilterViewModel : ObservableObject
             return;
         }
 
+        OnPropertyChanged(nameof(HasActiveFilters));
+        OnPropertyChanged(nameof(SelectedStatuses));
+        OnPropertyChanged(nameof(SelectedClasses));
         FiltersChanged?.Invoke(this, EventArgs.Empty);
     }
 
