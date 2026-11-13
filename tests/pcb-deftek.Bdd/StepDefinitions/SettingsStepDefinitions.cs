@@ -12,6 +12,7 @@ using pcb_deftek.Infrastructure.Persistence.DatabaseExport;
 using pcb_deftek.Infrastructure.Persistence.Migrations;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Presentation.ViewModels;
+using pcb_deftek.Bdd.Support;
 using Reqnroll;
 
 namespace pcb_deftek.Bdd.StepDefinitions;
@@ -43,7 +44,7 @@ public class SettingsStepDefinitions : IDisposable
         App.ConfigureServices(services);
 
         // Override factory to point to test SQLite database
-        services.AddSingleton<ISqliteConnectionFactory>(_ => new TestConnectionFactory(_dbPath));
+        services.AddSingleton<ISqliteConnectionFactory>(_ => new TestSqliteConnectionFactory(_dbPath));
 
         // Intercept notification toasts for BDD assertions
         services.AddSingleton<INotificationService>(_ => new WindowsNotificationService((title, msg) =>
@@ -145,16 +146,4 @@ public class SettingsStepDefinitions : IDisposable
         }
     }
 
-    private class TestConnectionFactory : ISqliteConnectionFactory
-    {
-        public string DatabasePath { get; }
-        public TestConnectionFactory(string path) => DatabasePath = path;
-        public SqliteConnection CreateConnection() => new($"Data Source={DatabasePath}");
-        public async ValueTask<SqliteConnection> CreateOpenConnectionAsync(System.Threading.CancellationToken cancellationToken = default)
-        {
-            var conn = CreateConnection();
-            await conn.OpenAsync(cancellationToken);
-            return conn;
-        }
-    }
 }
