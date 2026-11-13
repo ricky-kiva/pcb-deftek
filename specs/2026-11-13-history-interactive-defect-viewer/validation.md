@@ -202,7 +202,7 @@ Scenarios must run against an isolated SQLite database (reusing `TestSqliteConne
 | Full-size image open | ≤ 500 ms for the test asset; loading state visible beyond that | Timed manual check |
 | Crop | ≤ 300 ms for test asset; no UI freeze | Timed manual check |
 | Memory | 200 thumbnails + one open full-size image stays within a reasonable bound; no unbounded growth after open/close cycles | Task Manager observation over 10 open/close cycles |
-| Paging | 1,000 seeded records: no duplicate IDs, group order stable, scroll remains virtualized | Seeded integration/manual check |
+| Paging | 1,000 seeded records: no duplicate IDs, group order stable, loaded pages remain responsive without virtualization (60-record page bound) | Seeded integration/manual check |
 | Filtered query | 1,000 seeded records with class + status + date filters: p95 ≤ 150 ms, correct totals | Seeded integration timing test |
 | Batch delete | 100 records: DB transaction + capture cleanup ≤ 500 ms on the dev machine; UI remains responsive | Seeded integration/manual timing |
 | Confirmation | No DB/file work occurs before confirmation; dialog does not freeze the app | Manual check |
