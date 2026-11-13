@@ -260,15 +260,15 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 5.1: Video Viewport & Top-Right 3-Card Floating HUD Layout
 - **Description:** Build `LiveDetectionView.xaml` with full-screen video viewport and top-right 3-card vertical stack HUD adhering to Fluent design tokens.
 - **Acceptance criteria:**
-  - [ ] Viewport displays `CurrentFrameImage` with `Stretch="Uniform"` against dark background.
-  - [ ] Top-right 3-card vertical stack:
+  - [x] Viewport displays `CurrentFrameImage` with `Stretch="Uniform"` against dark background.
+  - [x] Top-right 3-card vertical stack:
     - **Card 1:** Live PASS/FAIL badge (green/red) and defect counter (`0 defects` / `N defects`).
     - **Card 2:** Telemetry toggle switch, live inference latency (`XX ms`), and live FPS (`XX FPS`).
     - **Card 3:** Camera source selector `ComboBox` bound to `AvailableCameras`.
-  - [ ] Uses semantic Fluent theme brush tokens and high-contrast status colors.
+  - [x] Uses semantic Fluent theme brush tokens and high-contrast status colors.
 - **Verification:**
-  - [ ] View compiles and renders with 0 errors.
-  - [ ] Build succeeds: `dotnet build pcb-deftek.csproj`
+  - [x] View compiles and renders with 0 errors.
+  - [x] Build succeeds: `dotnet build pcb-deftek.csproj`
 - **Dependencies:** Task Group 4
 - **Files:**
   - `Presentation/Views/LiveDetectionView.xaml`
@@ -277,12 +277,12 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 5.2: Bottom Floating Controls (Confidence Slider & Capture Button)
 - **Description:** Implement bottom-left and bottom-right floating controls overlaying the video viewport.
 - **Acceptance criteria:**
-  - [ ] **Bottom-left:** Horizontal confidence threshold slider (`0.10` to `0.95`) with live numerical percentage badge (`25%`).
-  - [ ] **Bottom-right:** High-contrast Capture button with `Space` keyboard shortcut hint badge (`[Space] Capture Frame`).
-  - [ ] Input bindings wire `KeyBinding Key="Space"` to `CaptureSnapshotCommand`.
+  - [x] **Bottom-left:** Horizontal confidence threshold slider (`0.10` to `0.95`) with live numerical percentage badge (`25%`).
+  - [x] **Bottom-right:** High-contrast Capture button with `Space` keyboard shortcut hint badge (`[Space] Capture Frame`).
+  - [x] Input bindings wire `KeyBinding Key="Space"` to `CaptureSnapshotCommand`.
 - **Verification:**
-  - [ ] Visual inspection and keyboard shortcut verified.
-  - [ ] Build succeeds: `dotnet build pcb-deftek.csproj`
+  - [x] Visual inspection and keyboard shortcut verified.
+  - [x] Build succeeds: `dotnet build pcb-deftek.csproj`
 - **Dependencies:** Task 5.1
 - **Files:**
   - `Presentation/Views/LiveDetectionView.xaml`
@@ -291,13 +291,13 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 5.3: Stationary Cursor Auto-Hide Behavior
 - **Description:** Implement cursor idle detection in `LiveDetectionView.xaml.cs` to gradually fade out configuration controls when stationary, keeping PASS/FAIL, defect count, and toggled telemetry visible.
 - **Acceptance criteria:**
-  - [ ] A dispatcher timer detects when the mouse has been stationary for 3 seconds over the viewport.
-  - [ ] Gradually animates opacity of configuration controls (camera selector, confidence slider, capture button, and card 2 telemetry if toggle is off) to `0.0`.
-  - [ ] Any mouse movement, click, or key press immediately restores opacity to `1.0`.
-  - [ ] **Persistent Elements Rule:** Card 1 (PASS/FAIL badge + defect count) and Card 2 (telemetry if toggle is on) **never fade out**.
+  - [x] A dispatcher timer detects when the mouse has been stationary for 3 seconds over the viewport.
+  - [x] Gradually animates opacity of configuration controls (camera selector, confidence slider, capture button, and card 2 telemetry if toggle is off) to `0.0`.
+  - [x] Any mouse movement, click, or key press immediately restores opacity to `1.0`.
+  - [x] **Persistent Elements Rule:** Card 1 (PASS/FAIL badge + defect count) and Card 2 (telemetry if toggle is on) **never fade out**.
 - **Verification:**
-  - [ ] Unit tests for auto-hide state logic.
-  - [ ] Build succeeds: `dotnet build pcb-deftek.csproj`
+  - [x] Unit tests for auto-hide state logic.
+  - [x] Build succeeds: `dotnet build pcb-deftek.csproj`
 - **Dependencies:** Task 5.2
 - **Files:**
   - `Presentation/Views/LiveDetectionView.xaml.cs`
@@ -307,10 +307,10 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 ---
 
 ### Checkpoint 5: View Layout, Floating HUD & Auto-Hide Interaction
-- [ ] Viewport renders live video with correct aspect ratio.
-- [ ] Top-right 3-card HUD and bottom controls display properly in both Light and Dark Fluent themes.
-- [ ] Stationary cursor auto-hide verified: configuration controls fade out while status and active telemetry persist.
-- [ ] Clean build with 0 warnings (`dotnet build`).
+- [x] Viewport renders live video with correct aspect ratio.
+- [x] Top-right 3-card HUD and bottom controls display properly in both Light and Dark Fluent themes.
+- [x] Stationary cursor auto-hide verified: configuration controls fade out while status and active telemetry persist.
+- [x] Clean build with 0 warnings (`dotnet build`).
 
 ---
 

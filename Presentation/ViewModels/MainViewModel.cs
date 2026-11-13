@@ -51,7 +51,8 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel(
         INavigationService navigationService,
         SettingsViewModel? settingsViewModel = null,
-        Action<string>? urlLauncher = null)
+        Action<string>? urlLauncher = null,
+        IMessenger? messenger = null)
     {
         NavigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         SettingsViewModel = settingsViewModel;
@@ -61,7 +62,8 @@ public partial class MainViewModel : ViewModelBase
         }
         _urlLauncher = urlLauncher ?? DefaultUrlLauncher;
 
-        WeakReferenceMessenger.Default.Register<MainViewModel, SidebarCollapseMessage>(
+        var activeMessenger = messenger ?? WeakReferenceMessenger.Default;
+        activeMessenger.Register<MainViewModel, SidebarCollapseMessage>(
             this,
             static (recipient, message) => recipient.IsSidebarExpanded = !message.Value);
     }

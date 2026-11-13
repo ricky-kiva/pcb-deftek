@@ -28,6 +28,7 @@ public partial class LiveDetectionViewModel : ViewModelBase
     private readonly ILiveSnapshotService _snapshotService;
     private readonly IUserSettingsService _userSettingsService;
     private readonly INotificationService _notificationService;
+    private readonly IMessenger _messenger;
     private readonly ILogger<LiveDetectionViewModel> _logger;
     private readonly object _camerasLock = new();
 
@@ -78,8 +79,13 @@ public partial class LiveDetectionViewModel : ViewModelBase
     private string _deviceName = "CPU";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TelemetryCardOpacity))]
     private bool _isTelemetryEnabled = true;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConfigurationControlsOpacity))]
+    [NotifyPropertyChangedFor(nameof(TelemetryCardOpacity))]
+    private bool _isControlsAutoHidden;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ConfidencePercentageText))]
     private double _confidenceThreshold = 0.25;
@@ -107,6 +113,21 @@ public partial class LiveDetectionViewModel : ViewModelBase
     /// </summary>
     public bool CanCaptureSnapshot => IsStreaming && !IsCapturingSnapshot;
 
+
+    /// <summary>
+    /// Gets the opacity of the persistent status card (PASS/FAIL badge + defect counter). Always 1.0.
+    /// </summary>
+    public double StatusCardOpacity => 1.0;
+
+    /// <summary>
+    /// Gets the opacity of the telemetry card (remains 1.0 during auto-hide if telemetry is enabled, otherwise 0.0).
+    /// </summary>
+    public double TelemetryCardOpacity => (IsControlsAutoHidden && !IsTelemetryEnabled) ? 0.0 : 1.0;
+
+    /// <summary>
+    /// Gets the opacity of the configuration controls (camera selector, confidence slider, capture button).
+    /// </summary>
+    public double ConfigurationControlsOpacity => IsControlsAutoHidden ? 0.0 : 1.0;
     /// <summary>
     /// Initializes a new instance of the <see cref="LiveDetectionViewModel"/> class.
     /// </summary>
@@ -116,18 +137,20 @@ public partial class LiveDetectionViewModel : ViewModelBase
         ILiveSnapshotService snapshotService,
         IUserSettingsService userSettingsService,
         INotificationService notificationService,
-        ILogger<LiveDetectionViewModel>? logger = null)
+        ILogger<LiveDetectionViewModel>? logger = null,
+        IMessenger? messenger = null)
     {
         _cameraService = cameraService ?? throw new ArgumentNullException(nameof(cameraService));
         _liveInspectionEngine = liveInspectionEngine ?? throw new ArgumentNullException(nameof(liveInspectionEngine));
         _snapshotService = snapshotService ?? throw new ArgumentNullException(nameof(snapshotService));
         _userSettingsService = userSettingsService ?? throw new ArgumentNullException(nameof(userSettingsService));
         _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+        _messenger = messenger ?? WeakReferenceMessenger.Default;
         _logger = logger ?? NullLogger<LiveDetectionViewModel>.Instance;
 
         System.Windows.Data.BindingOperations.EnableCollectionSynchronization(AvailableCameras, _camerasLock);
 
-        WeakReferenceMessenger.Default.Register<LiveDetectionViewModel, ConfidenceThresholdChangedMessage>(
+        _messenger.Register<LiveDetectionViewModel, ConfidenceThresholdChangedMessage>(
             this,
             static (recipient, message) => recipient.ConfidenceThreshold = message.Value);
     }
@@ -157,7 +180,7 @@ public partial class LiveDetectionViewModel : ViewModelBase
     public override async Task OnNavigatedToAsync()
     {
         // 1. Signal shell window to collapse sidebar by default on Live Camera page
-        WeakReferenceMessenger.Default.Send(new SidebarCollapseMessage(true));
+        _messenger.Send(new SidebarCollapseMessage(true));
 
         // 2. Load persisted confidence threshold
         try
@@ -237,7 +260,7 @@ public partial class LiveDetectionViewModel : ViewModelBase
     public override async Task OnNavigatedFromAsync()
     {
         // Restore sidebar to expanded when leaving Live Detection page
-        WeakReferenceMessenger.Default.Send(new SidebarCollapseMessage(false));
+        _messenger.Send(new SidebarCollapseMessage(false));
 
         _liveInspectionEngine.FrameProcessed -= OnFrameProcessed;
 
@@ -267,6 +290,22 @@ public partial class LiveDetectionViewModel : ViewModelBase
     public void ToggleTelemetry()
     {
         IsTelemetryEnabled = !IsTelemetryEnabled;
+    }
+
+    /// <summary>
+    /// Marks the cursor as idle and auto-hides configuration controls while preserving status and enabled telemetry.
+    /// </summary>
+    public void TriggerIdleAutoHide()
+    {
+        IsControlsAutoHidden = true;
+    }
+
+    /// <summary>
+    /// Restores full visibility of all floating controls upon user mouse or keyboard activity.
+    /// </summary>
+    public void NotifyUserActivity()
+    {
+        IsControlsAutoHidden = false;
     }
 
     /// <summary>

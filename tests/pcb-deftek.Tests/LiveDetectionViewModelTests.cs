@@ -29,7 +29,7 @@ public class LiveDetectionViewModelTests
     private readonly Mock<ILiveSnapshotService> _mockSnapshot = new();
     private readonly Mock<IUserSettingsService> _mockSettings = new();
     private readonly Mock<INotificationService> _mockNotification = new();
-
+    private readonly WeakReferenceMessenger _messenger = new();
     public LiveDetectionViewModelTests()
     {
         _mockSettings
@@ -55,7 +55,8 @@ public class LiveDetectionViewModelTests
             _mockSnapshot.Object,
             _mockSettings.Object,
             _mockNotification.Object,
-            NullLogger<LiveDetectionViewModel>.Instance);
+            NullLogger<LiveDetectionViewModel>.Instance,
+            _messenger);
     }
 
     private static LiveFrameResult CreateFrameResult(int defectCount)
@@ -117,7 +118,7 @@ public class LiveDetectionViewModelTests
     public async Task OnNavigatedToAsync_LoadsSettingsEnumeratesCamerasStartsStreamAndCollapsesSidebar()
     {
         var mockNav = new Mock<INavigationService>();
-        var mainVm = new MainViewModel(mockNav.Object);
+        var mainVm = new MainViewModel(mockNav.Object, messenger: _messenger);
         mainVm.IsSidebarExpanded.Should().BeTrue();
 
         var sut = CreateSut();
@@ -145,7 +146,7 @@ public class LiveDetectionViewModelTests
     public async Task OnNavigatedFromAsync_StopsStreamStopsEngineAndRestoresSidebar()
     {
         var mockNav = new Mock<INavigationService>();
-        var mainVm = new MainViewModel(mockNav.Object);
+        var mainVm = new MainViewModel(mockNav.Object, messenger: _messenger);
         var sut = CreateSut();
 
         await sut.OnNavigatedToAsync();
@@ -216,7 +217,7 @@ public class LiveDetectionViewModelTests
         _mockEngine.Object.ConfidenceThreshold.Should().Be(0.65);
 
         // Broadcast from Settings modal
-        WeakReferenceMessenger.Default.Send(new ConfidenceThresholdChangedMessage(0.45));
+        _messenger.Send(new ConfidenceThresholdChangedMessage(0.45));
         sut.ConfidenceThreshold.Should().Be(0.45);
         _mockEngine.Object.ConfidenceThreshold.Should().Be(0.45);
     }
