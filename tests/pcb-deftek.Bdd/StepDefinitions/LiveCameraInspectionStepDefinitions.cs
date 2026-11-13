@@ -178,7 +178,7 @@ public class LiveCameraInspectionStepDefinitions : IDisposable
     [Then(@"the telemetry card should remain visible")]
     public void ThenTheTelemetryCardShouldRemainVisible()
     {
-        _viewModel!.TelemetryCardOpacity.Should().Be(1.0);
+        ThenTheTelemetryCardShouldBeVisible();
     }
 
     [When(@"the operator moves the mouse")]
@@ -284,10 +284,7 @@ public class LiveCameraInspectionStepDefinitions : IDisposable
             using var frame = new Mat(120, 160, MatType.CV_8UC3, new Scalar(30, 60, 90));
             _camera.EmitFrame(frame);
 
-            var completed = await Task.WhenAny(processed.Task, Task.Delay(TimeSpan.FromSeconds(5)));
-            completed.Should().BeSameAs(processed.Task, "the live inspection engine should process the delivered camera frame");
-
-            await processed.Task;
+            await processed.Task.WaitAsync(TimeSpan.FromSeconds(5));
         }
         finally
         {
