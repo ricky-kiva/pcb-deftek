@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -147,38 +148,7 @@ public class SqliteInspectionRepository : IInspectionRepository
 
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
-        var whereClause = new StringBuilder(" WHERE 1=1");
-        var parameters = new List<SqliteParameter>();
-
-        if (filter.StartDateUtc.HasValue)
-        {
-            whereClause.Append(" AND CreatedAtUtc >= @StartDate");
-            parameters.Add(new SqliteParameter("@StartDate", filter.StartDateUtc.Value.ToString("o")));
-        }
-
-        if (filter.EndDateUtc.HasValue)
-        {
-            whereClause.Append(" AND CreatedAtUtc <= @EndDate");
-            parameters.Add(new SqliteParameter("@EndDate", filter.EndDateUtc.Value.ToString("o")));
-        }
-
-        if (filter.Mode.HasValue)
-        {
-            whereClause.Append(" AND DetectionMode = @DetectionMode");
-            parameters.Add(new SqliteParameter("@DetectionMode", (int)filter.Mode.Value));
-        }
-
-        if (filter.Status.HasValue)
-        {
-            if (filter.Status.Value == InspectionStatus.Pass)
-            {
-                whereClause.Append(" AND DefectCount = 0");
-            }
-            else
-            {
-                whereClause.Append(" AND DefectCount > 0");
-            }
-        }
+        var (whereClause, parameters) = BuildFilterClause(filter);
 
         // Count total matching items
         int totalItems;
@@ -197,13 +167,7 @@ public class SqliteInspectionRepository : IInspectionRepository
         }
 
         // Determine safe sort column
-        string sortColumn = filter.SortBy?.ToLowerInvariant() switch
-        {
-            "name" => "Name",
-            "defectcount" => "DefectCount",
-            _ => "CreatedAtUtc"
-        };
-        string sortDirection = filter.SortDescending ? "DESC" : "ASC";
+        var (sortColumn, sortDirection) = ResolveSort(filter);
 
         int offset = (filter.PageNumber - 1) * filter.PageSize;
 
@@ -211,7 +175,7 @@ public class SqliteInspectionRepository : IInspectionRepository
             SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, ImagePath
             FROM Inspections
             {whereClause}
-            ORDER BY {sortColumn} {sortDirection}
+            ORDER BY {sortColumn} {sortDirection}, Id DESC
             LIMIT @Limit OFFSET @Offset;
         ";
 
@@ -239,6 +203,129 @@ public class SqliteInspectionRepository : IInspectionRepository
         }
 
         return new PagedResult<InspectionRecord>(items, filter.PageNumber, filter.PageSize, totalItems);
+    }
+
+    /// <inheritdoc />
+    public async Task<PagedResult<InspectionSummary>> GetSummariesPagedAsync(
+        InspectionQueryFilter filter,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+        var (whereClause, parameters) = BuildFilterClause(filter);
+
+        int totalItems;
+        await using (var countCmd = connection.CreateCommand())
+        {
+            countCmd.CommandText = "SELECT COUNT(1) FROM Inspections" + whereClause + ";";
+            foreach (var parameter in parameters)
+            {
+                countCmd.Parameters.Add(new SqliteParameter(parameter.ParameterName, parameter.Value));
+            }
+
+            var countResult = await countCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            totalItems = Convert.ToInt32(countResult);
+        }
+
+        if (totalItems == 0)
+        {
+            return PagedResult<InspectionSummary>.Empty(filter.PageSize);
+        }
+
+        var (sortColumn, sortDirection) = ResolveSort(filter);
+        int offset = (filter.PageNumber - 1) * filter.PageSize;
+
+        string querySql = $@"
+            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, DefectCount, ImagePath
+            FROM Inspections
+            {whereClause}
+            ORDER BY {sortColumn} {sortDirection}, Id DESC
+            LIMIT @Limit OFFSET @Offset;
+        ";
+
+        var items = new List<InspectionSummary>();
+
+        await using (var queryCmd = connection.CreateCommand())
+        {
+            queryCmd.CommandText = querySql;
+            foreach (var parameter in parameters)
+            {
+                queryCmd.Parameters.Add(new SqliteParameter(parameter.ParameterName, parameter.Value));
+            }
+
+            queryCmd.Parameters.AddWithValue("@Limit", filter.PageSize);
+            queryCmd.Parameters.AddWithValue("@Offset", offset);
+
+            await using var reader = await queryCmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                items.Add(new InspectionSummary(
+                    Id: Guid.Parse(reader.GetString(0)),
+                    Name: reader.GetString(1),
+                    CreatedAtUtc: DateTime.Parse(reader.GetString(2), null, DateTimeStyles.RoundtripKind),
+                    UpdatedAtUtc: DateTime.Parse(reader.GetString(3), null, DateTimeStyles.RoundtripKind),
+                    Mode: (DetectionMode)reader.GetInt32(4),
+                    DefectCount: reader.GetInt32(5),
+                    ImagePath: reader.GetString(6)));
+            }
+        }
+
+        return new PagedResult<InspectionSummary>(items, filter.PageNumber, filter.PageSize, totalItems);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<InspectionSummary>> GetSummariesByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+
+        var distinctIds = ids.Distinct().ToList();
+        if (distinctIds.Count == 0)
+        {
+            return Array.Empty<InspectionSummary>();
+        }
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+        var idParameters = new List<string>(distinctIds.Count);
+        for (int i = 0; i < distinctIds.Count; i++)
+        {
+            idParameters.Add($"@Id{i}");
+        }
+
+        string querySql = $@"
+            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, DefectCount, ImagePath
+            FROM Inspections
+            WHERE Id IN ({string.Join(", ", idParameters)})
+            ORDER BY CreatedAtUtc DESC, Id DESC;
+        ";
+
+        var items = new List<InspectionSummary>();
+
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = querySql;
+        for (int i = 0; i < distinctIds.Count; i++)
+        {
+            cmd.Parameters.AddWithValue(idParameters[i], distinctIds[i].ToString("D"));
+        }
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            items.Add(new InspectionSummary(
+                Id: Guid.Parse(reader.GetString(0)),
+                Name: reader.GetString(1),
+                CreatedAtUtc: DateTime.Parse(reader.GetString(2), null, DateTimeStyles.RoundtripKind),
+                UpdatedAtUtc: DateTime.Parse(reader.GetString(3), null, DateTimeStyles.RoundtripKind),
+                Mode: (DetectionMode)reader.GetInt32(4),
+                DefectCount: reader.GetInt32(5),
+                ImagePath: reader.GetString(6)));
+        }
+
+        return items;
     }
 
     /// <inheritdoc />
@@ -315,6 +402,52 @@ public class SqliteInspectionRepository : IInspectionRepository
     }
 
     /// <inheritdoc />
+    public async Task<int> DeleteManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+
+        var distinctIds = ids.Distinct().ToList();
+        if (distinctIds.Count == 0)
+        {
+            return 0;
+        }
+
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            var idParameters = new List<string>(distinctIds.Count);
+            for (int i = 0; i < distinctIds.Count; i++)
+            {
+                idParameters.Add($"@Id{i}");
+            }
+
+            string deleteSql = $"DELETE FROM Inspections WHERE Id IN ({string.Join(", ", idParameters)});";
+
+            await using var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = deleteSql;
+            for (int i = 0; i < distinctIds.Count; i++)
+            {
+                cmd.Parameters.AddWithValue(idParameters[i], distinctIds[i].ToString("D"));
+            }
+
+            int deletedRows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return deletedRows;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            throw new PersistenceException(
+                $"Failed deleting {distinctIds.Count} inspection record(s).",
+                _connectionFactory.DatabasePath,
+                ex);
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default)
     {
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -324,6 +457,93 @@ public class SqliteInspectionRepository : IInspectionRepository
 
         var result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return Convert.ToInt32(result);
+    }
+
+    private static (StringBuilder WhereClause, List<SqliteParameter> Parameters) BuildFilterClause(
+        InspectionQueryFilter filter)
+    {
+        var whereClause = new StringBuilder(" WHERE 1=1");
+        var parameters = new List<SqliteParameter>();
+
+        if (filter.StartDateUtc.HasValue)
+        {
+            whereClause.Append(" AND CreatedAtUtc >= @StartDate");
+            parameters.Add(new SqliteParameter("@StartDate", filter.StartDateUtc.Value.ToString("o")));
+        }
+
+        if (filter.EndDateUtc.HasValue)
+        {
+            whereClause.Append(" AND CreatedAtUtc <= @EndDate");
+            parameters.Add(new SqliteParameter("@EndDate", filter.EndDateUtc.Value.ToString("o")));
+        }
+
+        if (filter.Mode.HasValue)
+        {
+            whereClause.Append(" AND DetectionMode = @DetectionMode");
+            parameters.Add(new SqliteParameter("@DetectionMode", (int)filter.Mode.Value));
+        }
+
+        if (filter.Statuses is { Count: > 0 })
+        {
+            bool includesPass = filter.Statuses.Contains(InspectionStatus.Pass);
+            bool includesFail = filter.Statuses.Contains(InspectionStatus.Fail);
+
+            if (includesPass && !includesFail)
+            {
+                whereClause.Append(" AND DefectCount = 0");
+            }
+            else if (includesFail && !includesPass)
+            {
+                whereClause.Append(" AND DefectCount > 0");
+            }
+        }
+        else if (filter.Status.HasValue)
+        {
+            whereClause.Append(filter.Status.Value == InspectionStatus.Pass
+                ? " AND DefectCount = 0"
+                : " AND DefectCount > 0");
+        }
+
+        if (filter.DefectClasses is { Count: > 0 })
+        {
+            var classCodes = filter.DefectClasses
+                .Distinct()
+                .Select(defectClass => DefectKnowledgeBase.GetInfo(defectClass).Code)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            if (classCodes.Count > 0)
+            {
+                var classParameters = new List<string>(classCodes.Count);
+                for (int i = 0; i < classCodes.Count; i++)
+                {
+                    classParameters.Add($"@DefectClass{i}");
+                }
+
+                whereClause.Append(
+                    " AND EXISTS (SELECT 1 FROM Defects WHERE Defects.InspectionId = Inspections.Id" +
+                    $" AND Defects.ClassCode IN ({string.Join(", ", classParameters)}))");
+
+                for (int i = 0; i < classCodes.Count; i++)
+                {
+                    parameters.Add(new SqliteParameter(classParameters[i], classCodes[i]));
+                }
+            }
+        }
+
+        return (whereClause, parameters);
+    }
+
+    private static (string Column, string Direction) ResolveSort(InspectionQueryFilter filter)
+    {
+        string column = filter.SortBy?.ToLowerInvariant() switch
+        {
+            "name" => "Name",
+            "defectcount" => "DefectCount",
+            _ => "CreatedAtUtc"
+        };
+
+        return (column, filter.SortDescending ? "DESC" : "ASC");
     }
 
     private static async Task<IReadOnlyList<DetectedDefect>> LoadDefectsInternalAsync(SqliteConnection connection, Guid inspectionId, CancellationToken cancellationToken)
