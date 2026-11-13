@@ -14,6 +14,7 @@ using pcb_deftek.Infrastructure.Persistence;
 using pcb_deftek.Infrastructure.Persistence.Migrations;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Presentation.ViewModels;
+using pcb_deftek.Bdd.Support;
 using Reqnroll;
 
 namespace pcb_deftek.Bdd.StepDefinitions;
@@ -44,7 +45,7 @@ public class FileBatchDetectionStepDefinitions : IDisposable
         App.ConfigureServices(services);
 
         // Override connection factory with isolated test SQLite database
-        services.AddSingleton<ISqliteConnectionFactory>(_ => new TestConnectionFactory(_dbPath));
+        services.AddSingleton<ISqliteConnectionFactory>(_ => new TestSqliteConnectionFactory(_dbPath));
 
         // Intercept desktop toasts
         services.AddSingleton<INotificationService>(_ => new WindowsNotificationService((title, msg) =>
@@ -288,16 +289,4 @@ public class FileBatchDetectionStepDefinitions : IDisposable
         }
     }
 
-    private class TestConnectionFactory : ISqliteConnectionFactory
-    {
-        public string DatabasePath { get; }
-        public TestConnectionFactory(string path) => DatabasePath = path;
-        public SqliteConnection CreateConnection() => new($"Data Source={DatabasePath}");
-        public async ValueTask<SqliteConnection> CreateOpenConnectionAsync(CancellationToken cancellationToken = default)
-        {
-            var conn = CreateConnection();
-            await conn.OpenAsync(cancellationToken);
-            return conn;
-        }
-    }
 }

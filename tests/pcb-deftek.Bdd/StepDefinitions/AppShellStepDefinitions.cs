@@ -8,6 +8,7 @@ using pcb_deftek.Infrastructure.Persistence.Migrations;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Presentation.Navigation;
 using pcb_deftek.Presentation.ViewModels;
+using pcb_deftek.Bdd.Support;
 using Reqnroll;
 
 namespace pcb_deftek.Bdd.StepDefinitions;
@@ -37,7 +38,7 @@ public class AppShellStepDefinitions : IDisposable
         App.ConfigureServices(services);
 
         // Override connection factory with isolated temp database
-        services.AddSingleton<ISqliteConnectionFactory>(_ => new TestConnectionFactory(_dbPath));
+        services.AddSingleton<ISqliteConnectionFactory>(_ => new TestSqliteConnectionFactory(_dbPath));
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -145,16 +146,4 @@ public class AppShellStepDefinitions : IDisposable
         }
     }
 
-    private class TestConnectionFactory : ISqliteConnectionFactory
-    {
-        public string DatabasePath { get; }
-        public TestConnectionFactory(string path) => DatabasePath = path;
-        public Microsoft.Data.Sqlite.SqliteConnection CreateConnection() => new($"Data Source={DatabasePath}");
-        public async ValueTask<Microsoft.Data.Sqlite.SqliteConnection> CreateOpenConnectionAsync(System.Threading.CancellationToken cancellationToken = default)
-        {
-            var conn = CreateConnection();
-            await conn.OpenAsync(cancellationToken);
-            return conn;
-        }
-    }
 }

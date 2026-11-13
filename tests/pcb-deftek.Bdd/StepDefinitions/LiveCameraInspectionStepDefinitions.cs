@@ -18,6 +18,7 @@ using pcb_deftek.Infrastructure.Persistence.Migrations;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
 using pcb_deftek.Infrastructure.Vision;
+using pcb_deftek.Bdd.Support;
 using pcb_deftek.Presentation.ViewModels;
 using Reqnroll;
 
@@ -53,7 +54,7 @@ public class LiveCameraInspectionStepDefinitions : IDisposable
         var services = new ServiceCollection();
         App.ConfigureServices(services);
 
-        services.AddSingleton<ISqliteConnectionFactory>(_ => new TestConnectionFactory(_dbPath));
+        services.AddSingleton<ISqliteConnectionFactory>(_ => new TestSqliteConnectionFactory(_dbPath));
         services.AddSingleton<ICameraService>(_camera);
         services.AddSingleton<IPcbDefectDetector>(_detector);
         services.AddSingleton<IImageAnnotationService>(_annotation);
@@ -318,22 +319,6 @@ public class LiveCameraInspectionStepDefinitions : IDisposable
         catch
         {
             // Best effort cleanup
-        }
-    }
-
-    private sealed class TestConnectionFactory : ISqliteConnectionFactory
-    {
-        public string DatabasePath { get; }
-
-        public TestConnectionFactory(string path) => DatabasePath = path;
-
-        public SqliteConnection CreateConnection() => new($"Data Source={DatabasePath}");
-
-        public async ValueTask<SqliteConnection> CreateOpenConnectionAsync(CancellationToken cancellationToken = default)
-        {
-            var connection = CreateConnection();
-            await connection.OpenAsync(cancellationToken);
-            return connection;
         }
     }
 
