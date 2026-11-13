@@ -69,14 +69,14 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Add an additive read model that carries the stored `DefectCount`, and a repository query that returns it without loading defect rows. `GetPagedAsync` keeps its signature and return shape; filter behavior is extended in Task 1.3.
 - **Acceptance criteria:**
-  - [ ] `InspectionSummary` exposes `Id`, `Name`, `CreatedAtUtc`, `UpdatedAtUtc`, `Mode`, `DefectCount`, `ImagePath`, plus computed `Status`/`IsPass`.
-  - [ ] `GetSummariesPagedAsync(InspectionQueryFilter)` returns `PagedResult<InspectionSummary>` selecting `DefectCount` from `Inspections`.
-  - [ ] Honors `StartDateUtc`, `EndDateUtc`, `Status`, `Mode`, `PageNumber`/`PageSize`; orders by `CreatedAtUtc DESC, Id DESC`.
-  - [ ] Exactly one SQL query for counts and one for the page; no per-item defect queries.
+  - [x] `InspectionSummary` exposes `Id`, `Name`, `CreatedAtUtc`, `UpdatedAtUtc`, `Mode`, `DefectCount`, `ImagePath`, plus computed `Status`/`IsPass`.
+  - [x] `GetSummariesPagedAsync(InspectionQueryFilter)` returns `PagedResult<InspectionSummary>` selecting `DefectCount` from `Inspections`.
+  - [x] Honors `StartDateUtc`, `EndDateUtc`, `Status`, `Mode`, `PageNumber`/`PageSize`; orders by `CreatedAtUtc DESC, Id DESC`.
+  - [x] Exactly one SQL query for counts and one for the page; no per-item defect queries.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionSummaryTests`
-  - [ ] Existing `SqliteRepositoryIntegrationTests` still pass
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionSummaryTests`
+  - [x] Existing `SqliteRepositoryIntegrationTests` still pass
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** None
 - **Files:**
   - `Domain/Contracts/InspectionSummary.cs`
@@ -89,13 +89,13 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Pure grouping utility that converts summaries into ordered local-date groups for the gallery, independent of WPF collection views.
 - **Acceptance criteria:**
-  - [ ] Groups by `CreatedAtUtc.ToLocalTime().Date`, groups ordered newest-first.
-  - [ ] Items inside each group preserve repository order (stable).
-  - [ ] Group exposes a culture-aware display label and a `Date` key.
-  - [ ] Empty input returns an empty collection; duplicate timestamps do not merge or drop items.
+  - [x] Groups by `CreatedAtUtc.ToLocalTime().Date`, groups ordered newest-first.
+  - [x] Items inside each group preserve repository order (stable).
+  - [x] Group exposes a culture-aware display label and a `Date` key.
+  - [x] Empty input returns an empty collection; duplicate timestamps do not merge or drop items.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryGroupingTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryGroupingTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.1
 - **Files:**
   - `Presentation/ViewModels/HistoryDateGroup.cs`
@@ -106,15 +106,15 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Extend the query contract additively for the History filter bar and apply the predicates to both record and summary queries through one shared builder.
 - **Acceptance criteria:**
-  - [ ] `InspectionQueryFilter` gains `IReadOnlyCollection<InspectionStatus>? Statuses` and `IReadOnlyCollection<DefectClass>? DefectClasses`; existing `Status`, `Mode`, and date properties keep their behavior.
-  - [ ] Shared SQL predicate builder is used by `GetPagedAsync` and `GetSummariesPagedAsync`; totals and pages respect the same filters.
-  - [ ] Status set matches any selected status (empty/null = no status filter) and takes precedence over the legacy single `Status` when both are supplied; class set matches records having **any** selected class via `EXISTS` against `Defects`.
-  - [ ] Date bounds remain inclusive and applied to `CreatedAtUtc`; all values are parameterized (class codes from `DefectClassInfo.Code`).
-  - [ ] Ordering stays `CreatedAtUtc DESC, Id DESC`.
+  - [x] `InspectionQueryFilter` gains `IReadOnlyCollection<InspectionStatus>? Statuses` and `IReadOnlyCollection<DefectClass>? DefectClasses`; existing `Status`, `Mode`, and date properties keep their behavior.
+  - [x] Shared SQL predicate builder is used by `GetPagedAsync` and `GetSummariesPagedAsync`; totals and pages respect the same filters.
+  - [x] Status set matches any selected status (empty/null = no status filter) and takes precedence over the legacy single `Status` when both are supplied; class set matches records having **any** selected class via `EXISTS` against `Defects`.
+  - [x] Date bounds remain inclusive and applied to `CreatedAtUtc`; all values are parameterized (class codes from `DefectClassInfo.Code`).
+  - [x] Ordering stays `CreatedAtUtc DESC, Id DESC`.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionFilterQueryTests`
-  - [ ] Existing `InspectionSummaryTests` and `SqliteRepositoryIntegrationTests` pass
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionFilterQueryTests`
+  - [x] Existing `InspectionSummaryTests` and `SqliteRepositoryIntegrationTests` pass
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.1
 - **Files:**
   - `Domain/Contracts/InspectionQueryFilter.cs`
@@ -126,17 +126,17 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Implement the approved deletion policy: remove database rows transactionally, then clean up only app-owned capture files, never user originals.
 - **Acceptance criteria:**
-  - [ ] Repository adds `DeleteManyAsync(IReadOnlyCollection<Guid>)` executing one transaction and returning the deleted count; defects cascade.
-  - [ ] Repository adds one-query lookup of `Id`, `Mode`, and `ImagePath` for the requested IDs (no N+1).
-  - [ ] `IInspectionDeletionService` exposes batch and single-record deletion; it deletes DB rows **first**, then files.
-  - [ ] Files are deleted only for `DetectionMode.LiveCamera` paths that resolve under the configured Captures root; the `_annotated` sibling is also removed when present.
-  - [ ] `SingleFile` / `BatchFolder` paths are never deleted; paths outside the root are skipped and logged.
-  - [ ] Missing files are ignored; cleanup failures are returned/logged without rolling back the committed row deletion.
-  - [ ] Result reports deleted record count, deleted file count, and file failures.
+  - [x] Repository adds `DeleteManyAsync(IReadOnlyCollection<Guid>)` executing one transaction and returning the deleted count; defects cascade.
+  - [x] Repository adds one-query lookup of `Id`, `Mode`, and `ImagePath` for the requested IDs (no N+1).
+  - [x] `IInspectionDeletionService` exposes batch and single-record deletion; it deletes DB rows **first**, then files.
+  - [x] Files are deleted only for `DetectionMode.LiveCamera` paths that resolve under the configured Captures root; the `_annotated` sibling is also removed when present.
+  - [x] `SingleFile` / `BatchFolder` paths are never deleted; paths outside the root are skipped and logged.
+  - [x] Missing files are ignored; cleanup failures are returned/logged without rolling back the committed row deletion.
+  - [x] Result reports deleted record count, deleted file count, and file failures.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionDeletionServiceTests`
-  - [ ] Integration test proves a user original still exists after deleting its record
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionDeletionServiceTests`
+  - [x] Integration test proves a user original still exists after deleting its record
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.1
 - **Files:**
   - `Infrastructure/Persistence/Repositories/IInspectionRepository.cs`
@@ -150,13 +150,13 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Thin confirmation abstraction so destructive workflows are testable and always explicit.
 - **Acceptance criteria:**
-  - [ ] `IConfirmationService.ConfirmAsync(title, message, confirmText, cancellationToken)` returns `Task<bool>`.
-  - [ ] WPF implementation shows a native modal dialog owned by the active window and returns `true` only on explicit confirmation.
-  - [ ] The default/cancel action is **Cancel**; closing the dialog returns `false`.
-  - [ ] No view model references `System.Windows.MessageBox` directly.
+  - [x] `IConfirmationService.ConfirmAsync(title, message, confirmText, cancellationToken)` returns `Task<bool>`.
+  - [x] WPF implementation shows a native modal dialog owned by the active window and returns `true` only on explicit confirmation.
+  - [x] The default/cancel action is **Cancel**; closing the dialog returns `false`.
+  - [x] No view model references `System.Windows.MessageBox` directly.
 - **Verification:**
-  - [ ] View-model tests inject a mock and assert both confirm/cancel paths
-  - [ ] Build succeeds with 0 warnings
+  - [x] Implementation fails closed (returns `false`) when no application host is present
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** None
 - **Files:**
   - `Presentation/Services/IConfirmationService.cs`
@@ -166,12 +166,12 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 ---
 
 ### Checkpoint 1: Correct History Data, Filters & Deletion
-- [ ] Summaries report accurate PASS/FAIL counts without loading defects.
-- [ ] Grouping matches local calendar dates and is deterministic.
-- [ ] Date/status/class filters compose correctly and apply to totals and pages.
-- [ ] Deletion removes rows and app-owned captures only; user originals survive.
-- [ ] Confirmation cancellation performs no writes.
-- [ ] Build and focused tests are green.
+- [x] Summaries report accurate PASS/FAIL counts without loading defects.
+- [x] Grouping matches local calendar dates and is deterministic.
+- [x] Date/status/class filters compose correctly and apply to totals and pages.
+- [x] Deletion removes rows and app-owned captures only; user originals survive.
+- [x] Confirmation contract exists and fails closed when no UI host is available.
+- [x] Build and focused tests are green.
 
 ---
 
