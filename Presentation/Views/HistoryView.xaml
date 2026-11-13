@@ -168,7 +168,7 @@
 
         <!-- Popup surface -->
         <Style x:Key="FilterPopupStyle" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
@@ -418,18 +418,30 @@
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                VerticalAlignment="Center"
                                Margin="0,0,4,0" />
-                    <Button Content="Select loaded"
+                    <Button Content="Select All"
                             Style="{StaticResource QuietButtonStyle}"
                             Command="{Binding SelectLoadedCommand}"
-                            ToolTip="Select every loaded card for deletion" />
+                            ToolTip="Select all loaded inspections for deletion"
+                            AutomationProperties.Name="Select all loaded inspections" />
                     <Button Content="Clear"
                             Style="{StaticResource QuietButtonStyle}"
                             Command="{Binding ClearSelectionCommand}"
                             ToolTip="Clear the current selection" />
                     <Button Style="{StaticResource DangerButtonStyle}"
                             Command="{Binding DeleteSelectedCommand}"
-                            ToolTip="Delete selected inspections">
-                        <TextBlock Text="{Binding SelectedCount, StringFormat=Delete selected ({0})}" />
+                            ToolTip="Delete selected inspections"
+                            AutomationProperties.Name="Delete selected inspections">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconDelete}"
+                                  Fill="#FFFFFF"
+                                  Width="13"
+                                  Height="13"
+                                  Stretch="Uniform"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="Delete"
+                                       Margin="6,0,0,0"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
