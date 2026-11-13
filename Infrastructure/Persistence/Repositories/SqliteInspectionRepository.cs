@@ -261,14 +261,7 @@ public class SqliteInspectionRepository : IInspectionRepository
             await using var reader = await queryCmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
-                items.Add(new InspectionSummary(
-                    Id: Guid.Parse(reader.GetString(0)),
-                    Name: reader.GetString(1),
-                    CreatedAtUtc: DateTime.Parse(reader.GetString(2), null, DateTimeStyles.RoundtripKind),
-                    UpdatedAtUtc: DateTime.Parse(reader.GetString(3), null, DateTimeStyles.RoundtripKind),
-                    Mode: (DetectionMode)reader.GetInt32(4),
-                    DefectCount: reader.GetInt32(5),
-                    ImagePath: reader.GetString(6)));
+                items.Add(ReadSummary(reader));
             }
         }
 
@@ -315,14 +308,7 @@ public class SqliteInspectionRepository : IInspectionRepository
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            items.Add(new InspectionSummary(
-                Id: Guid.Parse(reader.GetString(0)),
-                Name: reader.GetString(1),
-                CreatedAtUtc: DateTime.Parse(reader.GetString(2), null, DateTimeStyles.RoundtripKind),
-                UpdatedAtUtc: DateTime.Parse(reader.GetString(3), null, DateTimeStyles.RoundtripKind),
-                Mode: (DetectionMode)reader.GetInt32(4),
-                DefectCount: reader.GetInt32(5),
-                ImagePath: reader.GetString(6)));
+            items.Add(ReadSummary(reader));
         }
 
         return items;
@@ -457,6 +443,18 @@ public class SqliteInspectionRepository : IInspectionRepository
 
         var result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return Convert.ToInt32(result);
+    }
+
+    private static InspectionSummary ReadSummary(SqliteDataReader reader)
+    {
+        return new InspectionSummary(
+            Id: Guid.Parse(reader.GetString(0)),
+            Name: reader.GetString(1),
+            CreatedAtUtc: DateTime.Parse(reader.GetString(2), null, DateTimeStyles.RoundtripKind),
+            UpdatedAtUtc: DateTime.Parse(reader.GetString(3), null, DateTimeStyles.RoundtripKind),
+            Mode: (DetectionMode)reader.GetInt32(4),
+            DefectCount: reader.GetInt32(5),
+            ImagePath: reader.GetString(6));
     }
 
     private static (StringBuilder WhereClause, List<SqliteParameter> Parameters) BuildFilterClause(

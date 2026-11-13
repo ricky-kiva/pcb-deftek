@@ -147,6 +147,23 @@ public class InspectionDeletionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteManyAsync_PathTraversalOutsideCapturesRoot_DoesNotDeleteFile()
+    {
+        string outsidePath = Path.Combine(_testRoot, "traversal-outside.png");
+        File.WriteAllBytes(outsidePath, new byte[] { 12, 13 });
+        string traversalPath = Path.Combine(_capturesRoot, "..", "traversal-outside.png");
+        var record = CreateRecord("traversal-board", DetectionMode.LiveCamera, traversalPath);
+        await _repository.InsertAsync(record);
+
+        var result = await _service.DeleteManyAsync(new[] { record.Id });
+
+        result.DeletedRecordCount.Should().Be(1);
+        result.DeletedFileCount.Should().Be(0);
+        (await _repository.GetByIdAsync(record.Id)).Should().BeNull();
+        File.Exists(outsidePath).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task DeleteManyAsync_MissingCaptureFile_IsIgnoredWithoutFailure()
     {
         string missingPath = Path.Combine(_capturesRoot, $"{Guid.NewGuid():N}_raw.png");

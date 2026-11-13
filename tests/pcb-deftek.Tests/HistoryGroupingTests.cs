@@ -86,7 +86,7 @@ public class HistoryGroupingTests
         var groups = HistoryGrouping.Group(new[] { CreateSummary("board", DateTime.UtcNow) });
 
         groups[0].Label.Should().NotBeNullOrWhiteSpace();
-        groups[0].Label.Should().Contain(groups[0].Date.Year.ToString());
+        groups[0].Label.Should().Be(groups[0].Date.ToString("D", System.Globalization.CultureInfo.CurrentCulture));
     }
 
     [Fact]
