@@ -15,6 +15,7 @@ using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
 using pcb_deftek.Infrastructure.Vision;
 using pcb_deftek.Presentation.Navigation;
+using pcb_deftek.Presentation.Services;
 using pcb_deftek.Presentation.ViewModels;
 using Serilog;
 namespace pcb_deftek;
@@ -127,6 +128,9 @@ public partial class App : Application
         services.AddSingleton<ICameraService, OpenCvCameraService>();
         services.AddSingleton<ILiveInspectionEngine, LiveInspectionEngine>();
         services.AddSingleton<ILiveSnapshotService, LiveSnapshotService>();
+        services.AddSingleton<IHistoryThumbnailService, HistoryThumbnailService>();
+        services.AddSingleton<IInspectionDeletionService, InspectionDeletionService>();
+        services.AddSingleton<IConfirmationService, WpfConfirmationService>();
 
         // Core Inference & Vision Services
         services.AddSingleton<IOnnxModelRunner, OnnxModelRunner>();

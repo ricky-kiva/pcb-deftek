@@ -7,6 +7,7 @@ using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
 using pcb_deftek.Presentation.Navigation;
+using pcb_deftek.Presentation.Services;
 using pcb_deftek.Presentation.ViewModels;
 using Xunit;
 
@@ -30,6 +31,10 @@ public class MainViewModelTests
         services.AddSingleton(new Mock<IBatchInspectionEngine>().Object);
         services.AddSingleton(new Mock<INotificationService>().Object);
         services.AddSingleton(new Mock<IUserSettingsService>().Object);
+        services.AddSingleton(new Mock<IInspectionRepository>().Object);
+        services.AddSingleton(new Mock<IHistoryThumbnailService>().Object);
+        services.AddSingleton(new Mock<IInspectionDeletionService>().Object);
+        services.AddSingleton(new Mock<IConfirmationService>().Object);
         services.AddTransient<FileDetectionViewModel>();
         services.AddTransient<HistoryViewModel>();
 
