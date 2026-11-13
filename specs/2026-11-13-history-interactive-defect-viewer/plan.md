@@ -181,15 +181,15 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Per-card view model wrapping an `InspectionSummary`, its lazy thumbnail, and inline rename — built on a small reusable `InspectionNameEditor` state object so the viewer does not duplicate the edit/validate/revert logic.
 - **Acceptance criteria:**
-  - [ ] `InspectionNameEditor` implements `BeginRename`, `CancelRename`, `CommitRenameAsync(IInspectionRepository)`, trim/empty rejection, and revert-on-failure; it owns no UI types.
-  - [ ] `HistoryItemViewModel` exposes `Name`, local `DisplayDate`/`DisplayTime`, `StatusText` (`PASS`/`FAIL`), `IsPass`, `ModeText`, `DefectCount`, `Thumbnail`, `HasThumbnail`, `IsImageUnavailable`, and `IsSelected`.
-  - [ ] `IsSelected` is observable and toggled only by the selection checkbox/commands; opening the viewer does not change selection.
-  - [ ] `BeginRename()` seeds `EditedName` and enters edit mode; `CancelRename()` restores the persisted name.
-  - [ ] Committing an empty/whitespace name reverts without a write; a successful commit persists via `UpdateNameAsync` and updates `Name`; `false`/exception reverts and surfaces failure.
-  - [ ] Rename does not touch `ImagePath` or any file on disk.
+  - [x] `InspectionNameEditor` implements `BeginRename`, `CancelRename`, `CommitRenameAsync()` with repository injected in the constructor, trim/empty rejection, and revert-on-failure; it owns no UI types.
+  - [x] `HistoryItemViewModel` exposes `Name`, local `DisplayDate`/`DisplayTime`, `StatusText` (`PASS`/`FAIL`), `IsPass`, `ModeText`, `DefectCount`, `Thumbnail`, `HasThumbnail`, `IsImageUnavailable`, and `IsSelected`.
+  - [x] `IsSelected` is observable and toggled only by the selection checkbox/commands; opening the viewer does not change selection.
+  - [x] `BeginRename()` seeds `EditedName` and enters edit mode; `CancelRename()` restores the persisted name.
+  - [x] Committing an empty/whitespace name reverts without a write; a successful commit persists via `UpdateNameAsync` and updates `Name`; `false`/exception reverts and surfaces failure.
+  - [x] Rename does not touch `ImagePath` or any file on disk.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryItemViewModelTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryItemViewModelTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.1
 - **Files:**
   - `Presentation/ViewModels/InspectionNameEditor.cs`
@@ -201,13 +201,13 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Background thumbnail decoder producing frozen square-ready previews from `ImagePath`, with bounded concurrency and cancellation.
 - **Acceptance criteria:**
-  - [ ] Decodes with `DecodePixelWidth = 240`, `BitmapCacheOption.OnLoad`, then `Freeze()`; no UI-thread file I/O.
-  - [ ] Returns `null` for missing, corrupt, or unreadable files without throwing.
-  - [ ] Concurrency capped (e.g., 4 concurrent decodes) and honors `CancellationToken`.
-  - [ ] Rejects empty paths via argument validation.
+  - [x] Decodes with `DecodePixelWidth = 240`, `BitmapCacheOption.OnLoad`, then `Freeze()`; no UI-thread file I/O.
+  - [x] Returns `null` for missing, corrupt, or unreadable files without throwing.
+  - [x] Concurrency capped (e.g., 4 concurrent decodes) and honors `CancellationToken`.
+  - [x] Rejects empty paths via argument validation.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryThumbnailServiceTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryThumbnailServiceTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** None
 - **Files:**
   - `Infrastructure/Services/IHistoryThumbnailService.cs`
@@ -219,20 +219,20 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Replace the placeholder with the gallery orchestration: filter state, initial page, load-more, grouping, refresh on navigation, thumbnail hydration, rename delegation, and cancellation.
 - **Acceptance criteria:**
-  - [ ] Constructor depends only on interfaces (`IInspectionRepository`, `IHistoryThumbnailService`, `INotificationService`, `ILogger<HistoryViewModel>`, plus deletion/confirmation dependencies added in Task 2.4).
-  - [ ] `HistoryFilterViewModel` (or equivalent state object) exposes date preset (`None`/`Day`/`Week`/`Month`/`Custom`), custom start/end, `SelectedStatuses`, `SelectedClasses`, and `ClearFilters`.
-  - [ ] Presets compute inclusive local bounds (culture first day of week) and are converted to UTC before querying; custom range validates start ≤ end.
-  - [ ] Any filter change cancels the in-flight load, clears selection, and reloads page 1; results and `TotalCount` reflect the active filter.
-  - [ ] `OnNavigatedToAsync` loads page 1 (size 60) with the current filters, clears previous state, and hydrates thumbnails asynchronously.
-  - [ ] `LoadMoreCommand` appends the next page without duplicate IDs and stops at `TotalItems`; commands are disabled while loading.
-  - [ ] Exposes `Groups`, `Items`, `IsLoading`, `HasMore`, `IsEmpty`, `HasNoMatches`, `ErrorMessage`, and `TotalCount`.
-  - [ ] `RefreshCommand` and `ClearFiltersCommand` reload from page 1.
-  - [ ] `OnNavigatedFromAsync` cancels in-flight loads/cancels thumbnails; late completions do not mutate state.
-  - [ ] Empty result produces the empty state; filters yielding no matches produce the clear-filters state, not an error.
+  - [x] Constructor depends only on interfaces (`IInspectionRepository`, `IHistoryThumbnailService`, `INotificationService`, `ILogger<HistoryViewModel>`, plus deletion/confirmation dependencies added in Task 2.4).
+  - [x] `HistoryFilterViewModel` (or equivalent state object) exposes date preset (`None`/`Day`/`Week`/`Month`/`Custom`), custom start/end, `SelectedStatuses`, `SelectedClasses`, and `ClearFilters`.
+  - [x] Presets compute inclusive local bounds (culture first day of week) and are converted to UTC before querying; custom range validates start ≤ end.
+  - [x] Any filter change cancels the in-flight load, clears selection, and reloads page 1; results and `TotalCount` reflect the active filter.
+  - [x] `OnNavigatedToAsync` loads page 1 (size 60) with the current filters, clears previous state, and hydrates thumbnails asynchronously.
+  - [x] `LoadMoreCommand` appends the next page without duplicate IDs and stops at `TotalItems`; commands are disabled while loading.
+  - [x] Exposes `Groups`, `Items`, `IsLoading`, `HasMore`, `IsEmpty`, `HasNoMatches`, `ErrorMessage`, and `TotalCount`.
+  - [x] `RefreshCommand` and `ClearFiltersCommand` reload from page 1.
+  - [x] `OnNavigatedFromAsync` cancels in-flight loads/cancels thumbnails; late completions do not mutate state.
+  - [x] Empty result produces the empty state; filters yielding no matches produce the clear-filters state, not an error.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryViewModelTests`
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryFilterViewModelTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryViewModelTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryFilterViewModelTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Tasks 1.1, 1.2, 1.3, 2.1, 2.2
 - **Files:**
   - `Presentation/ViewModels/HistoryViewModel.cs`
@@ -245,16 +245,16 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Gallery-level selection state and the confirmed batch-deletion workflow.
 - **Acceptance criteria:**
-  - [ ] Exposes `SelectedCount`, `SelectLoadedCommand`, `ClearSelectionCommand`, and `DeleteSelectedCommand`; delete is disabled at zero selection or while busy.
-  - [ ] `SelectLoadedCommand` selects only loaded cards; filter changes/reloads clear selection; selection survives `LoadMore`.
-  - [ ] `DeleteSelectedCommand` calls `IConfirmationService` with the count and retention-policy message; cancellation performs no writes.
-  - [ ] On confirmation it calls `IInspectionDeletionService`, removes deleted items from `Items`/`Groups`, updates `TotalCount`, reports a toast with deleted records and cleaned files, and raises a deletion result/event for the host to close the viewer if it showed a deleted record (wired in Task 5.3).
-  - [ ] Deletion failure keeps selection intact, surfaces an error, and logs.
-  - [ ] No direct `File.Delete` or repository delete calls from the view model.
+  - [x] Exposes `SelectedCount`, `SelectLoadedCommand`, `ClearSelectionCommand`, and `DeleteSelectedCommand`; delete is disabled at zero selection or while busy.
+  - [x] `SelectLoadedCommand` selects only loaded cards; filter changes/reloads clear selection; selection survives `LoadMore`.
+  - [x] `DeleteSelectedCommand` calls `IConfirmationService` with the count and retention-policy message; cancellation performs no writes.
+  - [x] On confirmation it calls `IInspectionDeletionService`, removes deleted items from `Items`/`Groups`, updates `TotalCount`, reports a toast with deleted records and cleaned files, and raises a deletion result/event for the host to close the viewer if it showed a deleted record (wired in Task 5.3).
+  - [x] Deletion failure keeps selection intact, surfaces an error, and logs.
+  - [x] No direct `File.Delete` or repository delete calls from the view model.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryViewModelTests`
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionDeletionServiceTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryViewModelTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionDeletionServiceTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Tasks 1.4, 1.5, 2.3
 - **Files:**
   - `Presentation/ViewModels/HistoryViewModel.cs`
@@ -265,12 +265,12 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 ---
 
 ### Checkpoint 2: Gallery Behaviour
-- [ ] Paging is duplicate-free and bounded by `TotalItems`.
-- [ ] Filters compose, reload from page 1, and clear selection.
-- [ ] Selection is limited to loaded cards and batch delete requires confirmation.
-- [ ] Renames persist and revert correctly on failure.
-- [ ] Thumbnails load off-thread and degrade to placeholders.
-- [ ] Navigation away cancels all work.
+- [x] Paging is duplicate-free and bounded by `TotalItems`.
+- [x] Filters compose, reload from page 1, and clear selection.
+- [x] Selection is limited to loaded cards and batch delete requires confirmation.
+- [x] Renames persist and revert correctly on failure.
+- [x] Thumbnails load off-thread and degrade to placeholders.
+- [x] Navigation away cancels all work.
 
 ---
 
