@@ -319,14 +319,14 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 6.1: Dependency Injection Wiring & App Integration
 - **Description:** Register `ICameraService`, `ILiveInspectionEngine`, `ILiveSnapshotService`, and update `LiveDetectionViewModel` registrations in `App.xaml.cs`.
 - **Acceptance criteria:**
-  - [ ] Register `ICameraService` as Singleton (`OpenCvCameraService`).
-  - [ ] Register `ILiveInspectionEngine` as Singleton (`LiveInspectionEngine`).
-  - [ ] Register `ILiveSnapshotService` as Singleton (`LiveSnapshotService`).
-  - [ ] Register `LiveDetectionViewModel` as Transient with all dependencies.
-  - [ ] Update `DependencyInjectionTests.cs` to verify all new service registrations.
+  - [x] Register `ICameraService` as Singleton (`OpenCvCameraService`).
+  - [x] Register `ILiveInspectionEngine` as Singleton (`LiveInspectionEngine`).
+  - [x] Register `ILiveSnapshotService` as Singleton (`LiveSnapshotService`).
+  - [x] Register `LiveDetectionViewModel` as Transient with all dependencies.
+  - [x] Update `DependencyInjectionTests.cs` to verify all new service registrations.
 - **Verification:**
-  - [ ] Unit tests pass: `dotnet test tests/pcb-deftek.Tests/ --filter DependencyInjectionTests`
-  - [ ] Build succeeds: `dotnet build pcb-deftek.csproj`
+  - [x] Unit tests pass: `dotnet test tests/pcb-deftek.Tests/ --filter DependencyInjectionTests`
+  - [x] Build succeeds: `dotnet build pcb-deftek.csproj`
 - **Dependencies:** Task Groups 1-5
 - **Files:**
   - `App.xaml.cs`
@@ -336,16 +336,16 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 6.2: Reqnroll BDD Acceptance Scenarios
 - **Description:** Implement end-to-end BDD acceptance scenarios for Live Camera inspection, telemetry monitoring, auto-hide, and snapshot capture.
 - **Acceptance criteria:**
-  - [ ] Feature file `LiveCameraInspection.feature` with Gherkin scenarios:
+  - [x] Feature file `LiveCameraInspection.feature` with Gherkin scenarios:
     - *Scenario 1: Live camera stream displays real-time defect bounding boxes and PASS/FAIL classification.*
     - *Scenario 2: Telemetry toggle displays inference latency and FPS meters.*
     - *Scenario 3: Stationary cursor auto-hides configuration controls while preserving inspection status.*
     - *Scenario 4: Pressing Space or clicking Capture saves snapshot and persists inspection record to SQLite.*
     - *Scenario 5: Switching camera source updates active video capture device cleanly.*
-  - [ ] Step definitions implemented in `LiveCameraInspectionStepDefinitions.cs`.
+  - [x] Step definitions implemented in `LiveCameraInspectionStepDefinitions.cs`.
 - **Verification:**
-  - [ ] Full test suite passes: `dotnet test pcb-deftek.slnx`
-  - [ ] Build succeeds: `dotnet build pcb-deftek.csproj`
+  - [x] Full test suite passes: `dotnet test pcb-deftek.slnx`
+  - [x] Build succeeds: `dotnet build pcb-deftek.csproj`
 - **Dependencies:** Task 6.1
 - **Files:**
   - `tests/pcb-deftek.Bdd/Features/LiveCameraInspection.feature`
@@ -355,9 +355,9 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 ---
 
 ### Checkpoint 6: Full Verification & Merge Readiness
-- [ ] All 6 task groups complete.
-- [ ] Solution compiles cleanly with zero warnings (`dotnet build`).
-- [ ] All unit, integration, and BDD tests pass (`dotnet test pcb-deftek.slnx`).
+- [x] All 6 task groups complete.
+- [x] Solution compiles cleanly with zero warnings (`dotnet build`).
+- [x] All unit, integration, and BDD tests pass (`dotnet test pcb-deftek.slnx`).
 - [ ] PR created and passes automated 4-step Feature Review and Quality Improvement pipeline.
 
 ---

@@ -210,6 +210,42 @@ public class DependencyInjectionTests
     }
 
     [Theory]
+    [InlineData(typeof(ICameraService), typeof(OpenCvCameraService))]
+    [InlineData(typeof(ILiveInspectionEngine), typeof(LiveInspectionEngine))]
+    [InlineData(typeof(ILiveSnapshotService), typeof(LiveSnapshotService))]
+    public void ConfigureServices_WhenCalled_RegistersLiveCameraServicesAsSingletons(
+        Type serviceType,
+        Type implementationType)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        App.ConfigureServices(services);
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == serviceType);
+
+        // Assert
+        descriptor.Should().NotBeNull($"Service {serviceType.Name} must be registered");
+        descriptor!.Lifetime.Should().Be(ServiceLifetime.Singleton);
+        descriptor.ImplementationType.Should().Be(implementationType);
+    }
+
+    [Fact]
+    public void ConfigureServices_WhenProviderBuilt_ResolvesAllLiveCameraServicesSuccessfully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        App.ConfigureServices(services);
+        using var provider = services.BuildServiceProvider();
+
+        // Act & Assert
+        provider.GetRequiredService<ICameraService>().Should().NotBeNull();
+        provider.GetRequiredService<ILiveInspectionEngine>().Should().NotBeNull();
+        provider.GetRequiredService<ILiveSnapshotService>().Should().NotBeNull();
+        provider.GetRequiredService<LiveDetectionViewModel>().Should().NotBeNull();
+    }
+
+    [Theory]
     [InlineData(typeof(IFileDiscoveryService))]
     [InlineData(typeof(IFilePickerService))]
     public void ConfigureServices_WhenCalled_RegistersFileIngestionServicesAsSingletons(Type serviceType)
