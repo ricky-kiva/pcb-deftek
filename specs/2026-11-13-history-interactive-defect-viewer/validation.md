@@ -5,7 +5,8 @@
 - **Build command:** `dotnet build pcb-deftek.slnx`
 - **Pass condition:** exit code 0, 0 errors, 0 warnings.
 - **Nullable:** nullable reference types enabled across all new code; no `#nullable disable`, no suppression attributes added.
-- **Architecture:** no `System.Windows.Controls` references in ViewModels; no SQL outside `Infrastructure/Persistence`; no direct file-system writes outside Infrastructure services.
+- **Architecture:** no `System.Windows.Controls` references in ViewModels; no SQL outside `Infrastructure/Persistence`; no direct file-system writes or deletes outside Infrastructure services.
+- **Destructive operations:** record/file deletion only through `IInspectionDeletionService` after `IConfirmationService` approval; deletion targets must resolve under the app-owned Captures root.
 - **Dependencies:** no new NuGet packages; `pcb-deftek.csproj` package list unchanged.
 - **Database:** no schema migration added. Migration count remains 1.
 - **Files:** no hardcoded absolute user paths; Downloads resolved through `KnownFolderPaths`; app data rooted under `%LOCALAPPDATA%\PcbDeftek\pcb-deftek`.
@@ -23,9 +24,12 @@
 
 ```powershell
 dotnet test tests/pcb-deftek.Tests/ --filter InspectionSummaryTests
+dotnet test tests/pcb-deftek.Tests/ --filter InspectionFilterQueryTests
+dotnet test tests/pcb-deftek.Tests/ --filter InspectionDeletionServiceTests
 dotnet test tests/pcb-deftek.Tests/ --filter HistoryGroupingTests
 dotnet test tests/pcb-deftek.Tests/ --filter HistoryItemViewModelTests
 dotnet test tests/pcb-deftek.Tests/ --filter HistoryThumbnailServiceTests
+dotnet test tests/pcb-deftek.Tests/ --filter HistoryFilterViewModelTests
 dotnet test tests/pcb-deftek.Tests/ --filter HistoryViewModelTests
 dotnet test tests/pcb-deftek.Tests/ --filter DefectPaletteTests
 dotnet test tests/pcb-deftek.Tests/ --filter ViewportTransformTests
@@ -38,13 +42,17 @@ dotnet test tests/pcb-deftek.Bdd/ --filter HistoryAndDefectViewer
 ### 2.1 Required Unit Coverage
 
 - **Summary projection:** counts, PASS/FAIL derivation, paging, date/status/mode filters, stable ordering, no defect-row loading.
+- **Filter query:** each filter alone and combined; empty selections = no filter; both statuses = no status clause; class filter matches any selected class via `EXISTS`; defectless records excluded by class filters; filtered totals/pages consistent.
+- **Deletion service:** transactional row delete; capture-root containment; `_annotated` sibling cleanup; user originals untouched; missing files ignored; cleanup failure reported without rolling back rows; single and batch paths.
 - **Grouping:** local-date buckets, newest-first groups, stable in-group order, empty input, duplicate timestamps.
-- **Item rename:** begin/cancel/commit, trim, empty rejection, persistence failure rollback.
+- **Item rename:** begin/cancel/commit, trim, empty rejection, persistence failure rollback; selection flag independent of rename.
 - **Thumbnail service:** frozen bitmap, 240 px decode cap, concurrency cap, cancellation, null on missing/corrupt file.
 - **Gallery view model:** initial load, load-more append without duplicates, stop at total, error state, cancellation on navigation away, refresh.
+- **Filter view model:** preset date bounds (local→UTC), custom-range validation, status/class sets, clear filters, reload-on-change.
+- **Selection/deletion view model:** select loaded, clear selection, count, confirmation cancel (no writes), confirmation accept (removal + totals + toast), failure retaining selection, open-viewer closure.
 - **Palette:** nine distinct valid colors; annotation output unchanged; converter produces matching brush.
 - **Viewport math:** fit, zoom-at-cursor anchoring, clamp `0.5×–10×`, pan clamps, focus centering, visible normalized rect, reset exactness.
-- **Viewer view model:** record load with defects, class summary grouping, focus fields, missing image state, crop command invocation, close cleanup.
+- **Viewer view model:** record load with defects, class summary grouping, focus fields, missing image state, crop command invocation, sidebar delete confirm/accept/failure, close cleanup.
 - **Crop service:** normalized clamping, native-resolution dimensions, sanitized/collision-safe names, directory override, failure exception.
 
 ### 2.2 Required BDD Coverage
@@ -57,6 +65,10 @@ dotnet test tests/pcb-deftek.Bdd/ --filter HistoryAndDefectViewer
 4. Selecting a defect marker exposes focused diagnostics.
 5. Crop writes a PNG matching the requested normalized region.
 6. Missing source image yields the unavailable state without exceptions.
+7. Date preset, status, and defect-class filters compose and return expected records/totals.
+8. Confirmed multi-select deletion removes rows and app-owned captures while a user original remains on disk.
+9. Cancelling the confirmation changes nothing (rows, captures, selection).
+10. Sidebar `Delete Image` deletes the record, closes the viewer, and refreshes the gallery.
 
 Scenarios must run against an isolated SQLite database (reusing `TestSqliteConnectionFactory`) and temporary image files; no dependency on the developer's real `%LOCALAPPDATA%` history.
 
@@ -75,7 +87,33 @@ Scenarios must run against an isolated SQLite database (reusing `TestSqliteConne
 - **Empty state:** no records shows guidance to run File-Based or Live detection, not an error.
 - **Error state:** repository failure shows a retry action and logs the exception.
 
-### 3.2 Inline Rename
+### 3.2 History Filters
+
+- Filter bar uses the Dashboard Row 1 structure: date preset buttons (Day/Week/Month) + Custom range on the left; status and defect-class multi-selects; result count and selection/delete actions on the right.
+- Default state is **all time**, no status selection, no class selection, showing all records.
+- Day/Week/Month presets filter to the current local day/week/month; clicking the active preset clears it; Clear Filters resets all three categories.
+- **Week boundary** follows the current culture's first day of week; bounds are inclusive and converted from local time to UTC for the query.
+- **Custom range** applies inclusive start/end dates; start after end is rejected with visible validation and does not query.
+- **Status filter** supports PASS and/or FAIL; empty selection means both.
+- **Class filter** matches records containing at least one selected class; defectless records never match a class filter; selecting all nine classes matches every record with at least one defect (still excluding defectless records).
+- Filters compose with AND across categories and OR within a category; totals and Load More respect the active filter.
+- Changing any filter reloads from page 1, cancels the in-flight load, and clears selection; stale responses never overwrite newer results.
+- Filtered zero-results show "No inspections match these filters" with a Clear Filters action, distinct from the empty-history state.
+
+### 3.3 Multi-Select Selection & Deletion
+
+- Each card exposes a selection checkbox; clicking it toggles selection without opening the viewer; selected cards have a visible highlight.
+- "Select Loaded" selects all currently loaded cards; "Clear Selection" deselects all; selection survives Load More and is cleared by filter changes, refresh, and navigation.
+- "Delete Selected (N)" is disabled at `N = 0` and while deletion runs; the count matches selected cards.
+- Invoking delete shows a confirmation dialog naming the record count and the policy: app-owned captures are deleted, user originals are kept. Default action is Cancel.
+- **Cancel** closes the dialog and changes nothing (no database writes, no file deletions, selection intact).
+- **Confirm** deletes the selected database rows and their defects in one transaction, then deletes only app-owned capture files (`LiveCamera`) under the captures root, including the `_annotated` sibling; `SingleFile`/`BatchFolder` originals remain on disk.
+- After success: deleted cards disappear, date groups are recomputed, `TotalCount` updates, selection clears, and a toast reports records deleted and files cleaned.
+- If the deleted set includes the record open in the viewer, the viewer closes and its state clears.
+- A database failure leaves all rows/files intact, keeps selection, and shows an error; file-cleanup failures after a committed row delete are reported as warnings without resurrecting rows.
+- Repeated clicks while running do not start a second deletion.
+
+### 3.4 Inline Rename
 
 - Double-clicking a name enters edit mode with text selected.
 - Enter commits; Escape cancels; focus loss commits once.
@@ -84,7 +122,7 @@ Scenarios must run against an isolated SQLite database (reusing `TestSqliteConne
 - Repository failure reverts the name, shows an error notification, and logs.
 - Source image files on disk are never renamed or moved.
 
-### 3.3 Viewer Launch & Layout
+### 3.5 Viewer Launch & Layout
 
 - Clicking a card (or Enter/Space on a focused card) opens the viewer for that record.
 - The viewer is an in-page modal overlay with a dim backdrop; `Esc` and the close button dismiss it.
@@ -92,20 +130,30 @@ Scenarios must run against an isolated SQLite database (reusing `TestSqliteConne
 - Reset and Crop controls float bottom-right; Crop is disabled until the image loads.
 - Sidebar occupies the right side in both default and focused states.
 
-### 3.4 Viewer Default Sidebar
+### 3.6 Viewer Default Sidebar
 
 - Shows an editable record name, the detection timestamp in local time, and a class summary list.
 - Summary groups by defect class, showing abbreviation/name, count, and highest confidence.
 - Zero defects shows a clear "No defects detected" summary rather than an empty list.
 
-### 3.5 Viewer Focused Sidebar
+### 3.7 Viewer Focused Sidebar
 
 - Clicking a bounding box selects it, visually highlights it, zooms/centers it, and swaps the sidebar.
 - Focused state shows: class name, confidence, severity, root cause, impact, recommended action.
 - Clicking empty image space returns to the default sidebar and deselects the box.
 - Overlapping boxes: the topmost rendered box receives the click.
 
-### 3.6 Pan, Zoom & Reset
+### 3.8 Sidebar Delete Image
+
+- `Delete Image` appears below the sidebar content in both default and focused states, with destructive styling and an accessible name.
+- The button is disabled while the record is loading or a deletion is running.
+- Invoking it shows the confirmation dialog with the single-record policy (app-owned captures deleted, user originals kept).
+- **Cancel** leaves the record, captures, viewer state, and gallery untouched.
+- **Confirm** deletes the record and its app-owned captures, closes the viewer, removes the card from the gallery, updates `TotalCount`/groups, and emits a completion toast.
+- Deleting a `SingleFile` / `BatchFolder` record removes the database row but leaves the user's original image on disk.
+- On failure the viewer stays open with its state intact, the error is reported, and the gallery is unchanged.
+
+### 3.9 Pan, Zoom & Reset
 
 - Mouse wheel zooms anchored at the cursor; touchpad scrolling zooms the same way.
 - Zoom range is 0.5×–10× of fit; the image cannot be panned outside the viewport.
@@ -113,7 +161,7 @@ Scenarios must run against an isolated SQLite database (reusing `TestSqliteConne
 - Reset returns exactly to the fit transform.
 - Bounding boxes remain pixel-aligned with the image at every zoom level.
 
-### 3.7 Crop
+### 3.10 Crop
 
 - Crop exports exactly the visible viewport region, at native source resolution.
 - Output is a valid PNG in the Windows Downloads folder by default.
@@ -121,20 +169,21 @@ Scenarios must run against an isolated SQLite database (reusing `TestSqliteConne
 - A completion toast reports the full path; failure produces a failure notification and does not crash.
 - Cropping does not create an inspection record or modify the source file.
 
-### 3.8 Missing / Corrupt Image
+### 3.11 Missing / Corrupt Image
 
-- Viewer shows an explicit unavailable state (icon + message) with Reset/Crop disabled.
+- Viewer shows an explicit unavailable state (icon + message) with Reset/Crop/Delete disabled.
 - Gallery card shows the placeholder thumbnail.
 - No unhandled exceptions in either surface.
 
-### 3.9 Keyboard & Accessibility
+### 3.12 Keyboard & Accessibility
 
-- `Tab` reaches cards, Load More, sidebar fields, and floating buttons.
-- Enter/Space opens a card; `F2` renames; `Esc` cancels editing, then closes the viewer.
+- `Tab` reaches filter controls, cards, checkboxes, selection/delete actions, Load More, sidebar fields, and floating buttons.
+- Enter/Space opens a card; `Space` on a focused checkbox toggles selection; `F2` renames; `Esc` cancels editing/dialogs, then closes the viewer.
+- Delete actions require an explicit confirmation; keyboard focus starts on Cancel.
 - Visible focus indicators exist in Light and Dark themes.
 - Sidebar labels are associated with their controls; images expose accessible names.
 
-### 3.10 Theming & DPI
+### 3.13 Theming & DPI
 
 - Light and Dark themes render correctly using existing Fluent tokens and status/severity brushes.
 - 100%, 125%, and 150% DPI: previews stay square, badges stay top-left, overlays stay aligned, no clipped text.
@@ -154,8 +203,11 @@ Scenarios must run against an isolated SQLite database (reusing `TestSqliteConne
 | Crop | ≤ 300 ms for test asset; no UI freeze | Timed manual check |
 | Memory | 200 thumbnails + one open full-size image stays within a reasonable bound; no unbounded growth after open/close cycles | Task Manager observation over 10 open/close cycles |
 | Paging | 1,000 seeded records: no duplicate IDs, group order stable, scroll remains virtualized | Seeded integration/manual check |
+| Filtered query | 1,000 seeded records with class + status + date filters: p95 ≤ 150 ms, correct totals | Seeded integration timing test |
+| Batch delete | 100 records: DB transaction + capture cleanup ≤ 500 ms on the dev machine; UI remains responsive | Seeded integration/manual timing |
+| Confirmation | No DB/file work occurs before confirmation; dialog does not freeze the app | Manual check |
 
-Stability: navigate to History, open/close 20 records, rename 10, crop 5, navigate away mid-load — no crash, no stale UI mutation, no leaked file handles.
+Stability: navigate to History, filter repeatedly, open/close 20 records, rename 10, select/delete 10 batches, crop 5, navigate away mid-load — no crash, no stale UI mutation, no leaked file handles, no orphaned rows.
 
 ---
 
@@ -172,6 +224,19 @@ Stability: navigate to History, open/close 20 records, rename 10, crop 5, naviga
 - [ ] Crop at maximum zoom and minimum zoom produces a valid, non-empty PNG.
 - [ ] Navigation away during thumbnail/image load produces no exceptions or stale updates.
 - [ ] Viewer opened for a LiveCamera record uses the raw capture, not the annotated sibling.
+- [ ] Each date preset (Day/Week/Month) returns the expected local range; toggling the active preset restores all time.
+- [ ] Custom range with start after end is rejected and issues no query.
+- [ ] Status = PASS combined with any class filter returns no matches with the clear-filters state.
+- [ ] Selecting all nine classes matches every record that has at least one defect, while PASS records remain excluded.
+- [ ] Filter change during an in-flight load cancels the old request; no stale rows or totals appear.
+- [ ] Delete with zero selection is disabled; "Select Loaded" then Load More selects only pre-existing loaded cards.
+- [ ] Cancel on the delete confirmation leaves rows, capture files, and selection unchanged.
+- [ ] Confirmed delete of a `SingleFile` record removes the row and leaves the original file on disk.
+- [ ] Confirmed delete of a `LiveCamera` record removes the raw and `_annotated` captures.
+- [ ] A capture path outside the captures root is skipped (row deleted, file untouched, warning logged).
+- [ ] Cleanup failure after a committed row delete reports a warning and does not crash.
+- [ ] Deleting the record open in the viewer closes the viewer and removes the card.
+- [ ] Sidebar `Delete Image` cancel keeps the viewer open with state intact.
 
 ---
 
@@ -179,13 +244,19 @@ Stability: navigate to History, open/close 20 records, rename 10, crop 5, naviga
 
 1. Seed history by running one File-Based batch and one Live capture (or use BDD-created data).
 2. Open History; confirm date order, grouping, square previews, PASS/FAIL badges, counts.
-3. Rename a record inline; restart the app; confirm the new name persists.
-4. Open a FAIL record; confirm boxes align; click each box and verify diagnostics change.
-5. Zoom to maximum and minimum; pan to each corner; confirm clamps.
-6. Reset view; confirm exact fit.
-7. Crop at a zoomed position; open the PNG from the toast path; confirm it matches the viewport.
-8. Delete/move a source image, reopen its record; confirm the unavailable state.
-9. Switch theme to Light and repeat steps 2–7; repeat at 150% DPI.
+3. Apply Day, Week, and Month presets; toggle each off; apply a custom range; confirm result counts and group headers change accordingly.
+4. Select a status and one or more defect classes; combine with a date preset; confirm AND/OR behavior and the no-matches state; use Clear Filters.
+5. Change filters while a page is loading; confirm no stale rows or duplicate cards appear.
+6. Rename a record inline; restart the app; confirm the new name persists.
+7. Select two records; open Delete Selected; cancel; confirm rows still present. Repeat and confirm; verify rows disappear, totals update, and the toast reports cleanup.
+8. For a deleted `SingleFile` record, confirm the original file still exists at its path. For a deleted LiveCamera record, confirm its captures are gone.
+9. Open a FAIL record; confirm boxes align; click each box and verify diagnostics change.
+10. Use sidebar `Delete Image`; cancel first, then confirm; verify the viewer closes, the card is removed, and a `SingleFile` original remains on disk.
+11. Zoom to maximum and minimum; pan to each corner; confirm clamps.
+12. Reset view; confirm exact fit.
+13. Crop at a zoomed position; open the PNG from the toast path; confirm it matches the viewport.
+14. Delete/move a source image, reopen its record; confirm the unavailable state and disabled actions.
+15. Switch theme to Light and repeat steps 2–13; repeat at 150% DPI.
 
 ---
 
@@ -197,10 +268,11 @@ Phase 7 may merge into `main` only when:
 2. `dotnet build pcb-deftek.slnx` succeeds with 0 errors and 0 warnings.
 3. `dotnet test pcb-deftek.slnx` passes 100% (no skipped tests), with no regression against the 452-test Phase 6 baseline.
 4. All functional acceptance criteria in §3 are verified; performance gates in §4 are met.
-5. No new dependencies, no schema migration, no hardcoded user paths.
-6. Clean Git history following the 6-step lifecycle in `AGENTS.md`.
-7. Pull Request is linked to its issue and passes the 4-step Feature Review and Quality Improvement pipeline (`code-review-and-quality`, `code-simplification`, `performance-optimization`, `security-and-hardening`).
-8. Human review approval is recorded before merge; the PR is not self-merged.
+5. Deletion policy is proven by tests: database rows and app-owned captures are deleted, user originals survive, and out-of-root paths are never deleted.
+6. No new dependencies, no schema migration, no hardcoded user paths.
+7. Clean Git history following the 6-step lifecycle in `AGENTS.md`.
+8. Pull Request is linked to its issue and passes the 4-step Feature Review and Quality Improvement pipeline (`code-review-and-quality`, `code-simplification`, `performance-optimization`, `security-and-hardening`).
+9. Human review approval is recorded before merge; the PR is not self-merged.
 
 ---
 
@@ -209,8 +281,16 @@ Phase 7 may merge into `main` only when:
 | Symptom | First check |
 |---|---|
 | All gallery badges show PASS | `InspectionSummary.DefectCount` projection / SQL column selection |
+| Filters ignored or totals wrong | Shared predicate builder; query parameters; status/class set wiring |
+| Class filter shows PASS records | `EXISTS` predicate missing or applied outside the `Defects` join |
+| Stale results after changing filters | Cancellation/generation guard before mutating `Items` |
 | Gallery stalls while scrolling | Thumbnails generated on UI thread or missing concurrency cap |
 | Duplicate cards after Load More | Off-by-one `PageNumber` or missing loaded-ID guard |
+| Delete button enabled at zero selection | `SelectedCount` notification/`CanExecute` wiring |
+| Confirmation cancel still deletes | Service call placed before/independent of the confirm result |
+| User original deleted | Deletion service path/ownership check; `DetectionMode` gate |
+| Orphaned capture files after delete | Cleanup skipped for `LiveCamera` or `_annotated` sibling |
+| Viewer stays open after deleting its record | `Deleted` event not wired to gallery/viewer close |
 | Boxes offset from image | Overlay not inside the same transformed layer, or normalized/pixel mix-up |
 | Crop captures wrong region | `GetVisibleNormalizedRect` clamp or DPI scaling error |
 | Rename disappears after reload | `UpdateNameAsync` not called or name updated only in memory |

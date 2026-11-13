@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phase 7 turns persisted inspections into a **date-grouped history gallery** with inline renaming and a **high-performance interactive defect viewer** featuring pan/zoom, click-to-focus bounding boxes, split default/focused informational sidebar states, viewport cropping to PNG, and graceful handling of missing source images.
+Phase 7 turns persisted inspections into a **filterable, date-grouped history gallery** with inline renaming and **confirmed multi-select deletion**, plus a **high-performance interactive defect viewer** featuring pan/zoom, click-to-focus bounding boxes, split default/focused informational sidebar states, viewport cropping to PNG, and a sidebar **Delete Image** action. Deletion follows the approved policy: remove database rows and app-owned capture files; never touch user-owned originals.
 
 > **Task list target:** tasks are tracked directly in this `plan.md`, per the repository convention in `AGENTS.md` §1 (feature specs use `plan.md`, `requirements.md`, `validation.md`). No separate `tasks/todo.md` is used.
 
@@ -15,13 +15,16 @@ Phase 7 turns persisted inspections into a **date-grouped history gallery** with
 │ Domain / Contracts                                          │
 │  • InspectionSummary (Id, Name, timestamps, Mode,           │
 │    DefectCount, ImagePath, Status)                          │
+│  • InspectionQueryFilter (+ Statuses, DefectClasses)        │
 │  • DefectClassInfo.ColorHex (single palette source)         │
 └─────────────────────────────────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ Infrastructure                                              │
-│  • IInspectionRepository.GetSummariesPagedAsync             │
+│  • IInspectionRepository.GetSummariesPagedAsync + filters   │
+│  • IInspectionRepository.DeleteManyAsync / lookup by IDs    │
+│  • IInspectionDeletionService (DB-first + capture cleanup)  │
 │  • IHistoryThumbnailService / WPF thumbnail decoder         │
 │  • IViewportCropService / OpenCvSharp crop exporter         │
 │  • KnownFolderPaths (shared Downloads resolution)           │
@@ -30,10 +33,11 @@ Phase 7 turns persisted inspections into a **date-grouped history gallery** with
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ Presentation — ViewModels                                   │
-│  • HistoryViewModel (paging, grouping, refresh, viewer)     │
-│  • HistoryItemViewModel (thumbnail, rename state)           │
-│  • InspectionViewerViewModel (record, markers, sidebar)     │
+│  • HistoryViewModel (paging, grouping, filters, selection)  │
+│  • HistoryItemViewModel (thumbnail, rename, IsSelected)     │
+│  • InspectionViewerViewModel (record, markers, delete)      │
 │  • ViewportTransform (pure zoom/pan/crop math)              │
+│  • IConfirmationService (WPF modal confirmation)            │
 └─────────────────────────────────────────────────────────────┘
                            │
                            ▼
@@ -59,11 +63,11 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 ## Task Breakdown
 
-### Task Group 1: History Data Projection & Grouping
+### Task Group 1: History Data, Filters & Deletion Foundations
 
 #### Task 1.1: `InspectionSummary` Projection & Repository Query
 
-- **Description:** Add an additive read model that carries the stored `DefectCount`, and a repository query that returns it without loading defect rows. `GetPagedAsync` remains unchanged for existing callers.
+- **Description:** Add an additive read model that carries the stored `DefectCount`, and a repository query that returns it without loading defect rows. `GetPagedAsync` keeps its signature and return shape; filter behavior is extended in Task 1.3.
 - **Acceptance criteria:**
   - [ ] `InspectionSummary` exposes `Id`, `Name`, `CreatedAtUtc`, `UpdatedAtUtc`, `Mode`, `DefectCount`, `ImagePath`, plus computed `Status`/`IsPass`.
   - [ ] `GetSummariesPagedAsync(InspectionQueryFilter)` returns `PagedResult<InspectionSummary>` selecting `DefectCount` from `Inspections`.
@@ -98,23 +102,88 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
   - `tests/pcb-deftek.Tests/HistoryGroupingTests.cs`
 - **Estimated scope:** XS (2 files)
 
+#### Task 1.3: Composable History Filter Query Support
+
+- **Description:** Extend the query contract additively for the History filter bar and apply the predicates to both record and summary queries through one shared builder.
+- **Acceptance criteria:**
+  - [ ] `InspectionQueryFilter` gains `IReadOnlyCollection<InspectionStatus>? Statuses` and `IReadOnlyCollection<DefectClass>? DefectClasses`; existing `Status`, `Mode`, and date properties keep their behavior.
+  - [ ] Shared SQL predicate builder is used by `GetPagedAsync` and `GetSummariesPagedAsync`; totals and pages respect the same filters.
+  - [ ] Status set matches any selected status (empty/null = no status filter) and takes precedence over the legacy single `Status` when both are supplied; class set matches records having **any** selected class via `EXISTS` against `Defects`.
+  - [ ] Date bounds remain inclusive and applied to `CreatedAtUtc`; all values are parameterized (class codes from `DefectClassInfo.Code`).
+  - [ ] Ordering stays `CreatedAtUtc DESC, Id DESC`.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionFilterQueryTests`
+  - [ ] Existing `InspectionSummaryTests` and `SqliteRepositoryIntegrationTests` pass
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 1.1
+- **Files:**
+  - `Domain/Contracts/InspectionQueryFilter.cs`
+  - `Infrastructure/Persistence/Repositories/SqliteInspectionRepository.cs`
+  - `tests/pcb-deftek.Tests/InspectionFilterQueryTests.cs`
+- **Estimated scope:** S (3 files)
+
+#### Task 1.4: `IInspectionDeletionService` & Batch Deletion
+
+- **Description:** Implement the approved deletion policy: remove database rows transactionally, then clean up only app-owned capture files, never user originals.
+- **Acceptance criteria:**
+  - [ ] Repository adds `DeleteManyAsync(IReadOnlyCollection<Guid>)` executing one transaction and returning the deleted count; defects cascade.
+  - [ ] Repository adds one-query lookup of `Id`, `Mode`, and `ImagePath` for the requested IDs (no N+1).
+  - [ ] `IInspectionDeletionService` exposes batch and single-record deletion; it deletes DB rows **first**, then files.
+  - [ ] Files are deleted only for `DetectionMode.LiveCamera` paths that resolve under the configured Captures root; the `_annotated` sibling is also removed when present.
+  - [ ] `SingleFile` / `BatchFolder` paths are never deleted; paths outside the root are skipped and logged.
+  - [ ] Missing files are ignored; cleanup failures are returned/logged without rolling back the committed row deletion.
+  - [ ] Result reports deleted record count, deleted file count, and file failures.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionDeletionServiceTests`
+  - [ ] Integration test proves a user original still exists after deleting its record
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 1.1
+- **Files:**
+  - `Infrastructure/Persistence/Repositories/IInspectionRepository.cs`
+  - `Infrastructure/Persistence/Repositories/SqliteInspectionRepository.cs`
+  - `Infrastructure/Services/IInspectionDeletionService.cs`
+  - `Infrastructure/Services/InspectionDeletionService.cs`
+  - `tests/pcb-deftek.Tests/InspectionDeletionServiceTests.cs`
+- **Estimated scope:** M (5 files)
+
+#### Task 1.5: `IConfirmationService`
+
+- **Description:** Thin confirmation abstraction so destructive workflows are testable and always explicit.
+- **Acceptance criteria:**
+  - [ ] `IConfirmationService.ConfirmAsync(title, message, confirmText, cancellationToken)` returns `Task<bool>`.
+  - [ ] WPF implementation shows a native modal dialog owned by the active window and returns `true` only on explicit confirmation.
+  - [ ] The default/cancel action is **Cancel**; closing the dialog returns `false`.
+  - [ ] No view model references `System.Windows.MessageBox` directly.
+- **Verification:**
+  - [ ] View-model tests inject a mock and assert both confirm/cancel paths
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** None
+- **Files:**
+  - `Presentation/Services/IConfirmationService.cs`
+  - `Presentation/Services/WpfConfirmationService.cs`
+- **Estimated scope:** XS (2 files)
+
 ---
 
-### Checkpoint 1: Correct History Data
+### Checkpoint 1: Correct History Data, Filters & Deletion
 - [ ] Summaries report accurate PASS/FAIL counts without loading defects.
 - [ ] Grouping matches local calendar dates and is deterministic.
+- [ ] Date/status/class filters compose correctly and apply to totals and pages.
+- [ ] Deletion removes rows and app-owned captures only; user originals survive.
+- [ ] Confirmation cancellation performs no writes.
 - [ ] Build and focused tests are green.
 
 ---
 
-### Task Group 2: Gallery ViewModel & Thumbnails
+### Task Group 2: Gallery ViewModel, Filters & Thumbnails
 
 #### Task 2.1: Reusable Name Editor & `HistoryItemViewModel`
 
 - **Description:** Per-card view model wrapping an `InspectionSummary`, its lazy thumbnail, and inline rename — built on a small reusable `InspectionNameEditor` state object so the viewer does not duplicate the edit/validate/revert logic.
 - **Acceptance criteria:**
   - [ ] `InspectionNameEditor` implements `BeginRename`, `CancelRename`, `CommitRenameAsync(IInspectionRepository)`, trim/empty rejection, and revert-on-failure; it owns no UI types.
-  - [ ] `HistoryItemViewModel` exposes `Name`, local `DisplayDate`/`DisplayTime`, `StatusText` (`PASS`/`FAIL`), `IsPass`, `ModeText`, `DefectCount`, `Thumbnail`, `HasThumbnail`, `IsImageUnavailable`.
+  - [ ] `HistoryItemViewModel` exposes `Name`, local `DisplayDate`/`DisplayTime`, `StatusText` (`PASS`/`FAIL`), `IsPass`, `ModeText`, `DefectCount`, `Thumbnail`, `HasThumbnail`, `IsImageUnavailable`, and `IsSelected`.
+  - [ ] `IsSelected` is observable and toggled only by the selection checkbox/commands; opening the viewer does not change selection.
   - [ ] `BeginRename()` seeds `EditedName` and enters edit mode; `CancelRename()` restores the persisted name.
   - [ ] Committing an empty/whitespace name reverts without a write; a successful commit persists via `UpdateNameAsync` and updates `Name`; `false`/exception reverts and surfaces failure.
   - [ ] Rename does not touch `ImagePath` or any file on disk.
@@ -146,30 +215,59 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
   - `tests/pcb-deftek.Tests/HistoryThumbnailServiceTests.cs`
 - **Estimated scope:** S (3 files)
 
-#### Task 2.3: `HistoryViewModel` Gallery State
+#### Task 2.3: `HistoryViewModel` Gallery State & Filters
 
-- **Description:** Replace the placeholder with the gallery orchestration: initial page, load-more, grouping, refresh on navigation, thumbnail hydration, rename delegation, and cancellation.
+- **Description:** Replace the placeholder with the gallery orchestration: filter state, initial page, load-more, grouping, refresh on navigation, thumbnail hydration, rename delegation, and cancellation.
 - **Acceptance criteria:**
-  - [ ] Constructor depends only on interfaces (`IInspectionRepository`, `IHistoryThumbnailService`, `INotificationService`, `ILogger<HistoryViewModel>`).
-  - [ ] `OnNavigatedToAsync` loads page 1 (size 60), clears previous state, and hydrates thumbnails asynchronously.
+  - [ ] Constructor depends only on interfaces (`IInspectionRepository`, `IHistoryThumbnailService`, `INotificationService`, `ILogger<HistoryViewModel>`, plus deletion/confirmation dependencies added in Task 2.4).
+  - [ ] `HistoryFilterViewModel` (or equivalent state object) exposes date preset (`None`/`Day`/`Week`/`Month`/`Custom`), custom start/end, `SelectedStatuses`, `SelectedClasses`, and `ClearFilters`.
+  - [ ] Presets compute inclusive local bounds (culture first day of week) and are converted to UTC before querying; custom range validates start ≤ end.
+  - [ ] Any filter change cancels the in-flight load, clears selection, and reloads page 1; results and `TotalCount` reflect the active filter.
+  - [ ] `OnNavigatedToAsync` loads page 1 (size 60) with the current filters, clears previous state, and hydrates thumbnails asynchronously.
   - [ ] `LoadMoreCommand` appends the next page without duplicate IDs and stops at `TotalItems`; commands are disabled while loading.
-  - [ ] Exposes `Groups`, `Items`, `IsLoading`, `HasMore`, `IsEmpty`, `ErrorMessage`, and `TotalCount`.
-  - [ ] `RefreshCommand` reloads from page 1.
+  - [ ] Exposes `Groups`, `Items`, `IsLoading`, `HasMore`, `IsEmpty`, `HasNoMatches`, `ErrorMessage`, and `TotalCount`.
+  - [ ] `RefreshCommand` and `ClearFiltersCommand` reload from page 1.
   - [ ] `OnNavigatedFromAsync` cancels in-flight loads/cancels thumbnails; late completions do not mutate state.
-  - [ ] Empty result produces the empty state, not an error.
+  - [ ] Empty result produces the empty state; filters yielding no matches produce the clear-filters state, not an error.
 - **Verification:**
   - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryViewModelTests`
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryFilterViewModelTests`
   - [ ] Build succeeds with 0 warnings
-- **Dependencies:** Tasks 1.1, 1.2, 2.1, 2.2
+- **Dependencies:** Tasks 1.1, 1.2, 1.3, 2.1, 2.2
 - **Files:**
   - `Presentation/ViewModels/HistoryViewModel.cs`
+  - `Presentation/ViewModels/HistoryFilterViewModel.cs`
   - `tests/pcb-deftek.Tests/HistoryViewModelTests.cs`
-- **Estimated scope:** M (2 files)
+  - `tests/pcb-deftek.Tests/HistoryFilterViewModelTests.cs`
+- **Estimated scope:** M (4 files)
+
+#### Task 2.4: Selection & Batch Delete Commands
+
+- **Description:** Gallery-level selection state and the confirmed batch-deletion workflow.
+- **Acceptance criteria:**
+  - [ ] Exposes `SelectedCount`, `SelectLoadedCommand`, `ClearSelectionCommand`, and `DeleteSelectedCommand`; delete is disabled at zero selection or while busy.
+  - [ ] `SelectLoadedCommand` selects only loaded cards; filter changes/reloads clear selection; selection survives `LoadMore`.
+  - [ ] `DeleteSelectedCommand` calls `IConfirmationService` with the count and retention-policy message; cancellation performs no writes.
+  - [ ] On confirmation it calls `IInspectionDeletionService`, removes deleted items from `Items`/`Groups`, updates `TotalCount`, reports a toast with deleted records and cleaned files, and raises a deletion result/event for the host to close the viewer if it showed a deleted record (wired in Task 5.3).
+  - [ ] Deletion failure keeps selection intact, surfaces an error, and logs.
+  - [ ] No direct `File.Delete` or repository delete calls from the view model.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryViewModelTests`
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionDeletionServiceTests`
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Tasks 1.4, 1.5, 2.3
+- **Files:**
+  - `Presentation/ViewModels/HistoryViewModel.cs`
+  - `Presentation/ViewModels/HistoryItemViewModel.cs`
+  - `tests/pcb-deftek.Tests/HistoryViewModelTests.cs`
+- **Estimated scope:** M (3 files)
 
 ---
 
 ### Checkpoint 2: Gallery Behaviour
 - [ ] Paging is duplicate-free and bounded by `TotalItems`.
+- [ ] Filters compose, reload from page 1, and clear selection.
+- [ ] Selection is limited to loaded cards and batch delete requires confirmation.
 - [ ] Renames persist and revert correctly on failure.
 - [ ] Thumbnails load off-thread and degrade to placeholders.
 - [ ] Navigation away cancels all work.
@@ -178,16 +276,19 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 ### Task Group 3: History Gallery View
 
-#### Task 3.1: Grouped Gallery Layout & Card Template
+#### Task 3.1: Filter Bar, Grouped Gallery Layout & Card Template
 
-- **Description:** Build the History page: header/count, loading/empty/error states, date-grouped cards, load-more footer.
+- **Description:** Build the History page: filter/action bar, header/count, loading/empty/error states, date-grouped cards, selection checkboxes, load-more footer.
 - **Acceptance criteria:**
+  - [ ] Filter bar mirrors the Dashboard Row 1 structure: left side date preset buttons (Day/Week/Month) + Custom date range, Status multi-select, Defect Class multi-select with all nine abbreviations; right side result count and selection/delete actions.
+  - [ ] Active presets are visually distinct; clicking the active preset clears it; a Clear Filters action resets everything.
+  - [ ] Custom range exposes start/end pickers and an Apply action; invalid ranges show validation and do not query.
   - [ ] Uses a `ListBox` + `CollectionViewSource` grouping with `VirtualizingPanel.IsVirtualizingWhenGrouping="True"` and item recycling.
   - [ ] Date header renders the group label; cards render in a wrapping gallery layout.
-  - [ ] Card has a clipped 1:1 preview (`Stretch="UniformToFill"`), PASS/FAIL badge in the top-left using `StatusPass*`/`StatusFail*` brushes, name, local timestamp, mode, and defect count.
-  - [ ] Missing thumbnail shows `IconImage` placeholder; no layout jump.
+  - [ ] Card has a clipped 1:1 preview (`Stretch="UniformToFill"`), PASS/FAIL badge in the top-left using `StatusPass*`/`StatusFail*` brushes, a selection checkbox top-right, name, local timestamp, mode, and defect count.
+  - [ ] Selected cards use a visible highlight/border; missing thumbnail shows `IconImage` placeholder with no layout jump.
   - [ ] Load-more button visible only when `HasMore`; disabled while loading.
-  - [ ] Empty state includes guidance to run File or Live detection.
+  - [ ] Empty history shows guidance to run File or Live detection; filtered zero-results show "No inspections match these filters" with Clear Filters.
   - [ ] Reuses existing Fluent theme tokens only; no new hardcoded colors.
 - **Verification:**
   - [ ] View compiles and renders with sample data
@@ -199,30 +300,33 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
   - `Presentation/Views/HistoryView.xaml.cs`
 - **Estimated scope:** M (2 files)
 
-#### Task 3.2: Inline Rename & Card Interaction
+#### Task 3.2: Inline Rename, Selection & Delete Interaction
 
-- **Description:** Wire double-click-to-rename, Enter/Escape/lost-focus semantics, keyboard open, and viewer launch from a card.
+- **Description:** Wire double-click-to-rename, Enter/Escape/lost-focus semantics, keyboard open, selection checkboxes, delete confirmation, and viewer launch from a card.
 - **Acceptance criteria:**
   - [ ] Double-clicking the name enters edit mode with the text selected and focused.
   - [ ] Enter commits; Escape cancels; losing focus commits (no duplicate commits).
   - [ ] Empty/whitespace input reverts without a DB write.
   - [ ] Enter/Space on a focused card opens the viewer; `F2` starts rename.
-  - [ ] Clicking a card (outside edit mode) opens the viewer for that record.
-  - [ ] Focus visuals remain visible in both themes.
+  - [ ] Clicking a card (outside edit mode and outside the checkbox) opens the viewer; clicking the checkbox toggles selection only.
+  - [ ] Select Loaded / Clear Selection / Delete Selected (N) buttons bind to their commands with correct enabled states.
+  - [ ] Delete Selected shows the confirmation dialog; Cancel leaves data and selection untouched.
+  - [ ] Focus visuals remain visible in both themes; selection and edit states are visually distinct.
 - **Verification:**
-  - [ ] Manual interaction check (mouse + keyboard)
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryViewModelTests` (rename/edit state)
+  - [ ] Manual interaction check (mouse + keyboard, confirm + cancel)
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryViewModelTests`
   - [ ] Build succeeds with 0 warnings
 - **Dependencies:** Task 3.1
 - **Files:**
   - `Presentation/Views/HistoryView.xaml`
   - `Presentation/Views/HistoryView.xaml.cs`
-- **Estimated scope:** S (2 files)
+- **Estimated scope:** M (2 files)
 
 ---
 
 ### Checkpoint 3: History Page Usable
-- [ ] A user can browse, group, rename, and launch the viewer from the gallery.
+- [ ] A user can filter, browse, group, rename, select, delete, and launch the viewer from the gallery.
+- [ ] Delete confirmation and cancellation behave correctly.
 - [ ] No UI stalls while scrolling or loading thumbnails.
 - [ ] Theme and DPI checks pass.
 
@@ -271,19 +375,21 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 #### Task 4.3: `InspectionViewerViewModel`
 
-- **Description:** Viewer state: record loading, markers, sidebar states, rename, crop command, and close.
+- **Description:** Viewer state: record loading, markers, sidebar states, rename, crop command, sidebar deletion, and close.
 - **Acceptance criteria:**
   - [ ] Loads the full record with defects via `IInspectionRepository.GetByIdAsync` and raises an unavailable state when the image cannot be decoded.
-  - [ ] Exposes `ImageSource`, `DefectMarkers` (normalized + pixel rects), `SelectedMarker`, `IsDefectFocused`, `ClassSummaries`, `FormattedTimestamp`, `CurrentName`, and `IsLoading`.
+  - [ ] Exposes `ImageSource`, `DefectMarkers` (normalized + pixel rects), `SelectedMarker`, `IsDefectFocused`, `ClassSummaries`, `FormattedTimestamp`, `CurrentName`, `IsLoading`, and `IsDeleting`.
   - [ ] Focus state exposes class name, confidence, severity, root cause, impact, and recommended action from `DetectedDefect`.
   - [ ] Default state summary groups defects by class with count and highest confidence, ordered deterministically.
   - [ ] `CropViewportCommand(NormalizedRect)` calls `IViewportCropService`, emits a completion toast with the full path, and reports failures without crashing.
+  - [ ] `DeleteImageCommand` asks `IConfirmationService` (count = 1, policy message), then calls `IInspectionDeletionService.DeleteAsync(Id)`; on success it raises a `Deleted` event with the record ID, closes/clears state, and emits a toast; on failure it keeps state and reports the error.
+  - [ ] Delete is disabled while loading, while already deleting, or when no record is loaded.
   - [ ] `CloseCommand` clears selection and record state.
   - [ ] Rename reuses `InspectionNameEditor` from Task 2.1 (no duplicated edit/validate/revert logic).
 - **Verification:**
   - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionViewerViewModelTests`
   - [ ] Build succeeds with 0 warnings
-- **Dependencies:** Tasks 4.1, 4.2, plus rename logic from Task 2.1
+- **Dependencies:** Tasks 1.4, 1.5, 4.1, 4.2, plus rename logic from Task 2.1
 - **Files:**
   - `Presentation/ViewModels/InspectionViewerViewModel.cs`
   - `tests/pcb-deftek.Tests/InspectionViewerViewModelTests.cs`
@@ -344,17 +450,18 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 #### Task 5.2: Viewer Overlay & Sidebar
 
-- **Description:** Compose the viewer modal: main area, floating Reset/Crop buttons, close affordance, and the two sidebar states.
+- **Description:** Compose the viewer modal: main area, floating Reset/Crop buttons, close affordance, the two sidebar states, and the sidebar `Delete Image` action.
 - **Acceptance criteria:**
   - [ ] Overlay covers the History content area with a dim backdrop; `Esc` closes, as does the close button.
   - [ ] Reset and Crop float bottom-right with `IconZoomReset`/`IconCrop`; Crop is disabled until the image is loaded.
   - [ ] Default sidebar shows editable name, local timestamp, and class summary with confidence.
   - [ ] Focused sidebar swaps to class name, confidence, severity, root cause, impact, and recommended action.
+  - [ ] `Delete Image` button appears below the sidebar content in **both** states, uses destructive styling, and is disabled while loading or deleting.
   - [ ] Clicking a marker focuses it and updates the sidebar; clicking empty image space returns to the default state.
-  - [ ] Image-unavailable state is explicit (icon + message), with crop/reset disabled.
+  - [ ] Image-unavailable state is explicit (icon + message), with crop/reset/delete disabled.
   - [ ] Sidebar is keyboard reachable; theme tokens only.
 - **Verification:**
-  - [ ] Manual visual check in Light/Dark at 100% and 150% DPI
+  - [ ] Manual visual check in Light/Dark at 100% and 150% DPI, both sidebar states
   - [ ] Build succeeds with 0 warnings
 - **Dependencies:** Tasks 4.3, 4.4, 5.1
 - **Files:**
@@ -364,15 +471,17 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 #### Task 5.3: Host Integration & Lifecycle
 
-- **Description:** Host the viewer inside `HistoryView`, coordinate open/close with `HistoryViewModel`, and feed viewport changes into the crop command.
+- **Description:** Host the viewer inside `HistoryView`, coordinate open/close and deletion with `HistoryViewModel`, and feed viewport changes into the crop command.
 - **Acceptance criteria:**
   - [ ] Selecting a card loads the record and opens the viewer; closing clears the active record.
   - [ ] `ViewportChanged` supplies the normalized visible rect used by Crop.
   - [ ] `Esc` closes the viewer but cancels an in-progress rename first.
+  - [ ] Viewer `Deleted` event removes the card from the gallery, updates `TotalCount`/groups, and closes the viewer.
+  - [ ] Batch deletion of the record open in the viewer also closes the viewer and clears its state.
   - [ ] Navigation away closes the viewer and cancels loads.
-  - [ ] Focus returns to the originating card after close.
+  - [ ] Focus returns to the originating card after close (or the gallery/empty state after deletion).
 - **Verification:**
-  - [ ] Manual end-to-end check: gallery → viewer → focus → crop → close
+  - [ ] Manual end-to-end check: gallery → viewer → focus → crop → delete → close
   - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryViewModelTests`
   - [ ] Build succeeds with 0 warnings
 - **Dependencies:** Task 5.2
@@ -385,9 +494,10 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 ---
 
 ### Checkpoint 5: Viewer Interaction
-- [ ] Gallery → viewer → defect focus → crop → close works in one flow.
+- [ ] Gallery → viewer → defect focus → crop → sidebar delete → close works in one flow.
 - [ ] Zoom/pan stay clamped; overlays remain aligned.
 - [ ] Missing-image and empty-history states are graceful.
+- [ ] Delete confirmation, cancellation, and post-delete gallery refresh behave correctly.
 
 ---
 
@@ -397,7 +507,7 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Register the new services and viewer view model; assert registrations.
 - **Acceptance criteria:**
-  - [ ] `IHistoryThumbnailService` and `IViewportCropService` registered as singletons; `InspectionViewerViewModel` transient.
+  - [ ] `IHistoryThumbnailService`, `IViewportCropService`, `IInspectionDeletionService`, and `IConfirmationService` registered as singletons; `InspectionViewerViewModel` transient.
   - [ ] `HistoryViewModel` resolves with all new dependencies.
   - [ ] `DependencyInjectionTests` asserts lifetimes, implementations, and successful resolution.
 - **Verification:**
@@ -420,7 +530,11 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
     4. Selecting a defect marker exposes focused diagnostics (severity/root cause/impact/action).
     5. Crop writes a PNG whose dimensions match the requested normalized region.
     6. A missing source image yields the unavailable state without exceptions.
-  - [ ] Step definitions implemented in `HistoryAndViewerStepDefinitions.cs`, reusing `TestSqliteConnectionFactory` and the real repository/services.
+    7. Date preset, status, and defect-class filters compose and return the expected records with accurate totals.
+    8. Confirmed multi-select deletion removes rows and app-owned captures while keeping a user original on disk.
+    9. Cancelling the confirmation leaves rows, captures, and selection untouched.
+    10. Viewer sidebar `Delete Image` removes the record, closes the viewer, and refreshes the gallery.
+  - [ ] Step definitions implemented in `HistoryAndViewerStepDefinitions.cs`, reusing `TestSqliteConnectionFactory`, the real repository/services, and mocked `IConfirmationService` outcomes.
 - **Verification:**
   - [ ] `dotnet test tests/pcb-deftek.Bdd/ --filter HistoryAndDefectViewer`
   - [ ] Full suite passes: `dotnet test pcb-deftek.slnx`
@@ -460,6 +574,12 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Paged records expose no defect count (current repository gap) | High | Dedicated `InspectionSummary` projection (Task 1.1); test counts explicitly |
+| Destructive delete targets a non-owned file | High | `IInspectionDeletionService` only deletes `LiveCamera` paths resolved under the Captures root; containment tests; user originals covered by integration test |
+| Filter query performance degrades on large histories | Medium | Shared predicate builder with parameterized `EXISTS` on indexed `Defects.ClassCode`; 1,000-record query test |
+| Filter/paging race shows stale results | Medium | Cancel previous load on every filter change; generation/token guard before mutating state |
+| Confirmation bypass or accidental confirm | Medium | All destructive paths go through `IConfirmationService`; default button is Cancel; view-model tests for both outcomes |
+| Partial delete (rows removed, file cleanup failed) confuses users | Medium | Result object + explicit toast: records deleted, files cleaned/failed; log details |
+| Selection vs. open click ambiguity | Medium | Explicit checkbox hit area (D26); card click opens only outside the checkbox |
 | Thumbnail decoding stalls the UI or exhausts memory | High | Background decode + `Freeze()`, 240 px cap, bounded concurrency, cancellation on navigation |
 | Grouped `ListBox` disables virtualization | Medium | `IsVirtualizingWhenGrouping="True"` + recycling; validate with 1,000+ seeded records |
 | Missing/moved source files (file mode references originals) | Medium | Placeholder thumbnail and explicit unavailable viewer state; no exceptions |
@@ -477,4 +597,4 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 1. Crop destination defaults to Windows Downloads (D7/D8); confirm if users expect the source folder instead.
 2. Gallery previews intentionally omit bounding boxes (D2); confirm QA does not require annotated thumbnails.
-3. No delete action in this phase; confirm retention requirements stay out of scope until a later phase.
+3. Confirmation UI defaults to a native modal dialog (D24); confirm if a fully themed in-app dialog is required.
