@@ -184,17 +184,55 @@ When processing finishes, send a Windows notification.
 
 Display a date-grouped, phone-gallery-style collection of detection history thumbnail cards.
 
+### Row 1 – Filters & Actions
+
+Mirror the Dashboard Page Row 1 structure: arrange filters on the left and action controls on the right.
+
+**Left section – Filters:**
+
+- **Date Range Selector:**
+  - Button group: Day, Week, Month.
+  - Custom button: Opens a custom date-range selector.
+  - No preset selected means all time; clicking the active preset again clears it.
+- **Status Filter:**
+  - Multi-select Dropdown.
+  - Options: PASS, FAIL.
+  - Empty selection means both statuses.
+- **Defect Class Filter:**
+  - Multi-select Combobox.
+  - Options: Short, Spur, Spurious Copper, Open, Mouse Bite, Hole Breakout, Conductor Scratch, CFO (Conductor Foreign Object), BMFO (Base Material Foreign Object).
+  - Empty selection means all classes; a record matches when it contains any selected class.
+
+**Right section – Actions:**
+
+- Result count (`N results`).
+- **Select Loaded** and **Clear Selection** actions.
+- **Delete Selected (N)** button with destructive styling; disabled when nothing is selected or deletion is running.
+
 ### History Container
 
 - Group images by date.
 - Arrange thumbnail cards in a gallery-style layout.
 - Each card must have a square (1:1 aspect ratio) image preview.
 - Overlay a PASS/FAIL status badge in the top-left corner of the thumbnail.
+- Overlay a selection checkbox in the top-right corner of the thumbnail.
+  - Toggling the checkbox selects the card without opening the Interactive Image Viewer.
+  - Selected cards must have a visible highlight.
 - Display the image filename below the thumbnail.
   - Default filename format: Date-Number.
   - Allow inline filename editing by double-clicking the filename.
+- Filters compose; changing any filter reloads the gallery from the first page and clears the current selection.
+- Show a distinct "No inspections match these filters" state with a Clear Filters action when filters return no records.
 
-Clicking a thumbnail opens the Interactive Image Viewer.
+Clicking a thumbnail (outside the checkbox) opens the Interactive Image Viewer.
+
+### Deleting Inspections
+
+- Multi-select deletion requires a confirmation dialog stating the number of inspections and the retention policy:
+  - App-owned capture images are deleted.
+  - User-owned original source images are kept.
+- Cancel performs no changes.
+- After a confirmed deletion, the gallery, date groups, and result count refresh.
 
 ## 6. Interactive Image Viewer
 
@@ -238,6 +276,14 @@ Replace the default information with the selected defect's details:
 - Root cause.
 - Impact.
 - Recommended action.
+
+**Sidebar Action (available in both states):**
+
+- **Delete Image** button, rendered below the state content with destructive styling.
+  - Requires confirmation.
+  - Deletes the current inspection and its app-owned capture images; user-owned original source images are kept.
+  - On success, closes the viewer and refreshes the Detection History page.
+  - Disabled while the record is loading or a deletion is running.
 
 ## 7. Settings Modal / Panel
 

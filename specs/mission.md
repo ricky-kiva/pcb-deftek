@@ -37,6 +37,7 @@ These features comprise the primary deliverables for initial development and val
 - **Interactive Defect Viewer:**
   - Main viewing area: Interactive pan and smooth zoom (scroll and touchpad gestures), click-to-focus on defect bounding boxes, floating Reset View button, and floating Crop button (exports currently visible viewport).
   - Image Information Sidebar: Two distinct states: *Default* (editable filename, detection timestamp, summary list of detected classes with confidence scores) and *Focused* (selected defect's class name, confidence, severity, root cause, impact, and recommended action).
+  - Sidebar actions: A `Delete Image` button removes the selected inspection and its app-owned capture files after confirmation; user-owned source images are never deleted.
 - **Statistics Dashboard:**
   - Filter bar: Date Range Selector (Day, Week, Month button group + Custom date-range button), Defect Type multi-select Combobox (9 classes), Defect Severity multi-select Dropdown (Critical, High, Medium-High, Medium, Low-Medium).
   - Action bar: PDF Export Data button, Notification button (modal displaying inference and data-export progress bars), and 1-column vs 2-column Metric Card Layout Toggle.

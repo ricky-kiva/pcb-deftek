@@ -57,13 +57,15 @@
   - Status filter: PASS/FAIL.
   - Defect Class filter: multi-select across all 9 classes; a record matches when it contains any selected class.
   - Filters compose and drive paged history queries.
-- Multi-select gallery selection with confirmed batch deletion of inspection records, including repository support for transactional multi-record deletion and safe handling of associated files.
+- Multi-select gallery selection with confirmed batch deletion of inspection records, backed by transactional multi-record repository deletion.
+  - Deletion policy: remove the inspection record and its defects; delete the associated app-owned capture files (`DetectionMode.LiveCamera`, under `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\Captures`); never delete or modify user-owned source images referenced by `SingleFile` / `BatchFolder` records.
 - History view with date-based grouping and gallery thumbnail cards (1:1 square preview, top-left PASS/FAIL badge, default `Date-Number` filename with double-click inline editing).
 - High-performance Interactive Image Viewer:
   - Main viewing area: Pan and smooth zoom (scroll and touchpad gestures), interactive defect bounding boxes with click-to-focus/zoom, floating Reset View button, and floating Crop button (exports currently visible viewport as new image).
   - Image Information Sidebar on the right with two distinct states:
     - *Default State*: Editable filename field, detection timestamp, and summary list of detected defect classes with confidence scores.
     - *Focused State*: Selected defect details (Defect class name, confidence score, severity, root cause, impact, and recommended action).
+  - Sidebar `Delete Image` action, available in both states: requires confirmation, deletes the inspection record plus its app-owned capture files under the policy above (user originals preserved), closes the viewer, and refreshes the gallery.
 
 ### Phase 8: Defect Statistics Dashboard
 - Dashboard view (default startup view unless skipped):

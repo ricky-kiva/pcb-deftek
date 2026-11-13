@@ -49,6 +49,7 @@
 ## 5. System Boundaries & Constraints
 - **Always:**
   - Run inference, camera processing, file I/O, PDF generation, and database export operations asynchronously off the UI thread.
+  - Require explicit user confirmation before destructive operations (record deletion, capture-file deletion).
   - Validate hardware compatibility before initializing DirectML GPU provider.
   - Log structured diagnostics with Serilog.
   - Adhere to Nullable Reference Types with zero warnings.
@@ -58,6 +59,7 @@
   - Changing project-level persistent configurations.
 - **Never:**
   - Block the UI thread with synchronous operations.
+  - Delete or modify user-owned files (source images referenced by `SingleFile` / `BatchFolder` records); deletion is limited to database records and app-owned capture artifacts.
   - Hardcode absolute database paths or user folders.
   - Swallow exceptions silently.
   - Commit credentials, secrets, or unverified binaries.
