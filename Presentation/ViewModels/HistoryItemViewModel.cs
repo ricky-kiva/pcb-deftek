@@ -11,6 +11,7 @@ using pcb_deftek.Domain.Contracts;
 using pcb_deftek.Domain.Models;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
+using pcb_deftek.Presentation.Models;
 
 namespace pcb_deftek.Presentation.ViewModels;
 

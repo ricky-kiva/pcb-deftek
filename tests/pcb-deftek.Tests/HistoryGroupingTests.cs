@@ -4,7 +4,7 @@ using System.Linq;
 using FluentAssertions;
 using pcb_deftek.Domain.Contracts;
 using pcb_deftek.Domain.Models;
-using pcb_deftek.Presentation.ViewModels;
+using pcb_deftek.Presentation.Models;
 using Xunit;
 
 namespace pcb_deftek.Tests;

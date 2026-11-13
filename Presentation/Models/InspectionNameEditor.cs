@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 
-namespace pcb_deftek.Presentation.ViewModels;
+namespace pcb_deftek.Presentation.Models;
 
 /// <summary>
 /// Reusable inline-rename state shared by history cards and the inspection viewer.

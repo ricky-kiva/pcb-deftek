@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using pcb_deftek.Domain.Contracts;
 
-namespace pcb_deftek.Presentation.ViewModels;
+namespace pcb_deftek.Presentation.Models;
 
 /// <summary>
 /// Represents a gallery section containing the items captured on one local calendar date.

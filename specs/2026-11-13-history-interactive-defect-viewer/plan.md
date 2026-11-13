@@ -98,7 +98,7 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
   - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.1
 - **Files:**
-  - `Presentation/ViewModels/HistoryDateGroup.cs`
+  - `Presentation/Models/HistoryDateGroup.cs`
   - `tests/pcb-deftek.Tests/HistoryGroupingTests.cs`
 - **Estimated scope:** XS (2 files)
 
@@ -192,7 +192,7 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
   - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.1
 - **Files:**
-  - `Presentation/ViewModels/InspectionNameEditor.cs`
+  - `Presentation/Models/InspectionNameEditor.cs`
   - `Presentation/ViewModels/HistoryItemViewModel.cs`
   - `tests/pcb-deftek.Tests/HistoryItemViewModelTests.cs`
 - **Estimated scope:** S (3 files)
