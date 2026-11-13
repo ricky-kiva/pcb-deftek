@@ -23,6 +23,15 @@ public class HistoryGroupingTests
             $"images/{name}.png");
     }
 
+    private static DateTime LocalNoonUtc(int dayOffset = 0)
+    {
+        var localNoon = DateTime.SpecifyKind(
+            DateTime.Today.AddDays(dayOffset).AddHours(12),
+            DateTimeKind.Local);
+
+        return localNoon.ToUniversalTime();
+    }
+
     [Fact]
     public void Group_WithEmptyInput_ReturnsEmptyCollection()
     {
@@ -42,10 +51,9 @@ public class HistoryGroupingTests
     [Fact]
     public void Group_GroupsByLocalCalendarDateAndOrdersGroupsNewestFirst()
     {
-        var now = DateTime.UtcNow;
-        var newest = CreateSummary("newest", now);
-        var oldest = CreateSummary("oldest", now.AddDays(-3));
-        var middle = CreateSummary("middle", now.AddDays(-1));
+        var newest = CreateSummary("newest", LocalNoonUtc());
+        var oldest = CreateSummary("oldest", LocalNoonUtc(-3));
+        var middle = CreateSummary("middle", LocalNoonUtc(-1));
 
         var groups = HistoryGrouping.Group(new[] { oldest, newest, middle });
 
@@ -57,9 +65,8 @@ public class HistoryGroupingTests
     [Fact]
     public void Group_MergesSummariesFromTheSameLocalDate()
     {
-        var now = DateTime.UtcNow;
-        var first = CreateSummary("first", now);
-        var second = CreateSummary("second", now.AddHours(-1));
+        var first = CreateSummary("first", LocalNoonUtc());
+        var second = CreateSummary("second", LocalNoonUtc().AddHours(-1));
 
         var groups = HistoryGrouping.Group(new[] { first, second });
 
@@ -70,10 +77,9 @@ public class HistoryGroupingTests
     [Fact]
     public void Group_PreservesInputOrderWithinEachGroup()
     {
-        var now = DateTime.UtcNow;
-        var first = CreateSummary("first", now);
-        var second = CreateSummary("second", now.AddMinutes(-5));
-        var third = CreateSummary("third", now.AddMinutes(-10));
+        var first = CreateSummary("first", LocalNoonUtc());
+        var second = CreateSummary("second", LocalNoonUtc().AddMinutes(-5));
+        var third = CreateSummary("third", LocalNoonUtc().AddMinutes(-10));
 
         var groups = HistoryGrouping.Group(new[] { first, second, third });
 
@@ -83,7 +89,7 @@ public class HistoryGroupingTests
     [Fact]
     public void Group_ProducesCultureAwareNonEmptyLabelForEachGroup()
     {
-        var groups = HistoryGrouping.Group(new[] { CreateSummary("board", DateTime.UtcNow) });
+        var groups = HistoryGrouping.Group(new[] { CreateSummary("board", LocalNoonUtc()) });
 
         groups[0].Label.Should().NotBeNullOrWhiteSpace();
         groups[0].Label.Should().Be(groups[0].Date.ToString("D", System.Globalization.CultureInfo.CurrentCulture));
