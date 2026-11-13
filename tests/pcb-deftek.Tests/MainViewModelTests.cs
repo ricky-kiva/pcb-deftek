@@ -22,6 +22,9 @@ public class MainViewModelTests
         var services = new ServiceCollection();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<LiveDetectionViewModel>();
+        services.AddSingleton(new Mock<ICameraService>().Object);
+        services.AddSingleton(new Mock<ILiveInspectionEngine>().Object);
+        services.AddSingleton(new Mock<ILiveSnapshotService>().Object);
         services.AddSingleton(new Mock<IFileDiscoveryService>().Object);
         services.AddSingleton(new Mock<IFilePickerService>().Object);
         services.AddSingleton(new Mock<IBatchInspectionEngine>().Object);

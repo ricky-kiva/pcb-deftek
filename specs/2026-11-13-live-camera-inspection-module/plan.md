@@ -199,15 +199,15 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 4.1: ViewModel State Machine & Live Camera Lifecycle
 - **Description:** Implement `LiveDetectionViewModel` managing camera stream lifecycle, camera source switching, confidence threshold binding, and live telemetry updates.
 - **Acceptance criteria:**
-  - [ ] Subscribes to `ILiveInspectionEngine.FrameProcessed` event and dispatches UI updates thread-safely via WPF Dispatcher.
-  - [ ] Binds `CurrentFrameImage` (`BitmapSource`), `StatusText`, `IsPass` (`PASS`/`FAIL`), and `DefectCount`.
-  - [ ] Binds `InferenceLatencyMs`, `Fps`, and `IsTelemetryEnabled` (toggleable).
-  - [ ] Provides `AvailableCameras` collection and `SelectedCamera` property with automatic stream reconnection on selection change.
-  - [ ] Provides `ConfidenceThreshold` property (`0.10`–`0.95`, default `0.25`) dynamically passed to the detection engine.
-  - [ ] Automatically starts camera capture on navigation to view (`OnNavigatedToAsync`) and cleanly stops capture on navigation away (`OnNavigatedFromAsync`).
+  - [x] Subscribes to `ILiveInspectionEngine.FrameProcessed` event and dispatches UI updates thread-safely via WPF Dispatcher.
+  - [x] Binds `CurrentFrameImage` (`BitmapSource`), `StatusText`, `IsPass` (`PASS`/`FAIL`), and `DefectCount`.
+  - [x] Binds `InferenceLatencyMs`, `Fps`, and `IsTelemetryEnabled` (toggleable).
+  - [x] Provides `AvailableCameras` collection and `SelectedCamera` property with automatic stream reconnection on selection change.
+  - [x] Provides `ConfidenceThreshold` property (`0.10`–`0.95`, default `0.25`) dynamically passed to the detection engine.
+  - [x] Automatically starts camera capture on navigation to view (`OnNavigatedToAsync`) and cleanly stops capture on navigation away (`OnNavigatedFromAsync`).
 - **Verification:**
-  - [ ] Unit tests pass: `dotnet test tests/pcb-deftek.Tests/ --filter LiveDetectionViewModelTests`
-  - [ ] Build succeeds: `dotnet build pcb-deftek.csproj`
+  - [x] Unit tests pass: `dotnet test tests/pcb-deftek.Tests/ --filter LiveDetectionViewModelTests`
+  - [x] Build succeeds: `dotnet build pcb-deftek.csproj`
 - **Dependencies:** Task Group 3
 - **Files:**
   - `Presentation/ViewModels/LiveDetectionViewModel.cs`
@@ -217,12 +217,12 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 4.2: Snapshot Capture Command & Spacebar Shortcut
 - **Description:** Implement `CaptureSnapshotCommand` in `LiveDetectionViewModel` and keyboard shortcut handling.
 - **Acceptance criteria:**
-  - [ ] `CaptureSnapshotCommand` triggers snapshot capture via `ILiveSnapshotService`.
-  - [ ] Shows subtle operator feedback upon capture (e.g. temporary capture toast or badge).
-  - [ ] Can be triggered via button click or `Space` keyboard shortcut.
-  - [ ] Disabled when camera stream is not running.
+  - [x] `CaptureSnapshotCommand` triggers snapshot capture via `ILiveSnapshotService`.
+  - [x] Shows subtle operator feedback upon capture (e.g. temporary capture toast or badge).
+  - [x] Can be triggered via button click or `Space` keyboard shortcut.
+  - [x] Disabled when camera stream is not running.
 - **Verification:**
-  - [ ] Unit tests verify command execution and service invocation.
+  - [x] Unit tests verify command execution and service invocation.
 - **Dependencies:** Task 4.1
 - **Files:**
   - `Presentation/ViewModels/LiveDetectionViewModel.cs`
@@ -232,11 +232,11 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 #### Task 4.3: Sidebar Collapse Interaction & Navigation Signal
 - **Description:** Integrate sidebar collapse communication so that navigating to Live Detection automatically collapses the sidebar sheet to maximize the video viewport.
 - **Acceptance criteria:**
-  - [ ] When `LiveDetectionViewModel` is activated, signals the shell (`MainViewModel` / `WeakReferenceMessenger`) to collapse the sidebar sheet by default.
-  - [ ] Sidebar remains manually expandable/collapsible by clicking the hamburger toggle.
-  - [ ] Navigating away restores normal sidebar behavior.
+  - [x] When `LiveDetectionViewModel` is activated, signals the shell (`MainViewModel` / `WeakReferenceMessenger`) to collapse the sidebar sheet by default.
+  - [x] Sidebar remains manually expandable/collapsible by clicking the hamburger toggle.
+  - [x] Navigating away restores normal sidebar behavior.
 - **Verification:**
-  - [ ] Unit tests verify messenger signal on navigation.
+  - [x] Unit tests verify messenger signal on navigation.
 - **Dependencies:** Task 4.1
 - **Files:**
   - `Domain/Messages/SidebarCollapseMessage.cs`
@@ -248,10 +248,10 @@ Phase 6 implements the complete real-time **Live Camera Inspection Module** for 
 ---
 
 ### Checkpoint 4: ViewModel State Machine & Commanding
-- [ ] `LiveDetectionViewModel` handles frame delivery, camera switching, and confidence updates.
-- [ ] Snapshot capture command persists records and provides visual confirmation.
-- [ ] Sidebar auto-collapse on navigation verified with unit tests.
-- [ ] Clean build with 0 warnings (`dotnet build`).
+- [x] `LiveDetectionViewModel` handles frame delivery, camera switching, and confidence updates.
+- [x] Snapshot capture command persists records and provides visual confirmation.
+- [x] Sidebar auto-collapse on navigation verified with unit tests.
+- [x] Clean build with 0 warnings (`dotnet build`).
 
 ---
 
