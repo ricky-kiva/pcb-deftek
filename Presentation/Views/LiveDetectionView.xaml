@@ -35,7 +35,7 @@
 
         <!-- Primary Capture Action Button Style -->
         <Style x:Key="CaptureFrameButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource CaptureActionBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="16,10" />
@@ -211,20 +211,13 @@
                     </Border>
 
                     <!-- Detected Defect Counter -->
-                    <StackPanel Grid.Column="1"
-                                Orientation="Vertical"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center">
-                        <TextBlock Text="{Binding DefectCountText}"
-                                   FontSize="14"
-                                   FontWeight="SemiBold"
-                                   HorizontalAlignment="Right"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="Active Frame"
-                                   FontSize="10"
-                                   HorizontalAlignment="Right"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                    </StackPanel>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding DefectCountText}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                 </Grid>
             </Border>
 
@@ -355,7 +348,7 @@
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Column="0"
-                               Text="Confidence Threshold"
+                               Text="Confidence"
                                FontSize="12"
                                FontWeight="SemiBold"
                                VerticalAlignment="Center"
@@ -405,7 +398,7 @@
                           Stretch="Uniform"
                           VerticalAlignment="Center"
                           Margin="0,0,8,0" />
-                    <TextBlock Text="Capture Frame"
+                    <TextBlock Text="Capture"
                                FontSize="13"
                                FontWeight="SemiBold"
                                Foreground="#FFFFFF"
