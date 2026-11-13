@@ -36,9 +36,10 @@ public partial class LiveDetectionView : UserControl
     public double StatusCardOpacity => StatusHudCard.Opacity;
 
     /// <summary>
-    /// Gets the current opacity of the telemetry HUD card.
+    /// Gets the current opacity of the telemetry readout card (Latency + Frame Rate).
+    /// Visible only while telemetry is enabled; independent of cursor auto-hide.
     /// </summary>
-    public double TelemetryCardOpacity { get; private set; } = 1.0;
+    public double TelemetryCardOpacity => (DataContext as LiveDetectionViewModel)?.IsTelemetryEnabled == true ? 1.0 : 0.0;
 
     /// <summary>
     /// Gets the current opacity of the configuration HUD cards (Camera Selector, Confidence Slider, Capture Button).
@@ -58,7 +59,8 @@ public partial class LiveDetectionView : UserControl
 
     /// <summary>
     /// Transitions floating HUD controls into stationary cursor auto-hide state.
-    /// Retains StatusHudCard (always) and TelemetryHudCard (only if telemetry toggle is enabled).
+    /// Retains StatusHudCard (always) and TelemetryReadoutHudCard (when telemetry is enabled).
+    /// Configuration controls — including the telemetry toggle card — fade out.
     /// </summary>
     /// <param name="animate">True to apply smooth opacity animation; false for immediate transition in tests.</param>
     public void TriggerIdleAutoHide(bool animate = true)
@@ -68,27 +70,14 @@ public partial class LiveDetectionView : UserControl
         var viewModel = DataContext as LiveDetectionViewModel;
         viewModel?.TriggerIdleAutoHide();
 
-        bool isTelemetryEnabled = viewModel?.IsTelemetryEnabled ?? true;
-
         ConfigurationControlsOpacity = 0.0;
-        TelemetryCardOpacity = isTelemetryEnabled ? 1.0 : 0.0;
 
+        ApplyCardOpacity(TelemetryToggleHudCard, 0.0, animate, FadeOutDuration);
         ApplyCardOpacity(CameraSelectorHudCard, 0.0, animate, FadeOutDuration);
         ApplyCardOpacity(ConfidenceSliderHudCard, 0.0, animate, FadeOutDuration);
         ApplyCardOpacity(CaptureActionHudCard, 0.0, animate, FadeOutDuration);
 
-        if (isTelemetryEnabled)
-        {
-            ApplyCardOpacity(TelemetryHudCard, 1.0, animate, FadeInDuration);
-            TelemetryToggleHeader.Opacity = 0.0;
-            TelemetryToggleHeader.IsHitTestVisible = false;
-        }
-        else
-        {
-            ApplyCardOpacity(TelemetryHudCard, 0.0, animate, FadeOutDuration);
-        }
-
-        // Inviolable rule: Status card never fades out
+        // Inviolable rule: Status card and telemetry readout (when enabled) never fade out.
         StatusHudCard.BeginAnimation(OpacityProperty, null);
         StatusHudCard.Opacity = 1.0;
     }
@@ -102,7 +91,7 @@ public partial class LiveDetectionView : UserControl
         _idleTimer.Stop();
         _idleTimer.Start();
 
-        if (!IsControlsHidden && ConfigurationControlsOpacity >= 1.0 && TelemetryCardOpacity >= 1.0)
+        if (!IsControlsHidden && ConfigurationControlsOpacity >= 1.0)
         {
             return;
         }
@@ -113,12 +102,8 @@ public partial class LiveDetectionView : UserControl
         viewModel?.NotifyUserActivity();
 
         ConfigurationControlsOpacity = 1.0;
-        TelemetryCardOpacity = 1.0;
 
-        TelemetryToggleHeader.Opacity = 1.0;
-        TelemetryToggleHeader.IsHitTestVisible = true;
-
-        ApplyCardOpacity(TelemetryHudCard, 1.0, animate, FadeInDuration);
+        ApplyCardOpacity(TelemetryToggleHudCard, 1.0, animate, FadeInDuration);
         ApplyCardOpacity(CameraSelectorHudCard, 1.0, animate, FadeInDuration);
         ApplyCardOpacity(ConfidenceSliderHudCard, 1.0, animate, FadeInDuration);
         ApplyCardOpacity(CaptureActionHudCard, 1.0, animate, FadeInDuration);

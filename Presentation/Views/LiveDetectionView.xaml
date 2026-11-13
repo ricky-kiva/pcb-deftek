@@ -35,7 +35,7 @@
 
         <!-- Primary Capture Action Button Style -->
         <Style x:Key="CaptureFrameButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+            <Setter Property="Background" Value="{DynamicResource CaptureActionBrush}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="16,10" />
@@ -59,6 +59,54 @@
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="BtnBorder" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Telemetry Toggle CheckBox (subtle container fill; no system accent) -->
+        <Style x:Key="TelemetryCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" Background="Transparent">
+                            <Border x:Name="CheckBoxSurface"
+                                    Width="18"
+                                    Height="18"
+                                    CornerRadius="4"
+                                    Background="Transparent"
+                                    BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    VerticalAlignment="Center">
+                                <Path x:Name="CheckGlyph"
+                                      Data="M 2,8 L 7,13 L 14,4"
+                                      Stroke="{DynamicResource TextFillColorPrimaryBrush}"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      Width="12"
+                                      Height="12"
+                                      Stretch="Uniform"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Visibility="Collapsed" />
+                            </Border>
+                            <ContentPresenter Margin="8,0,0,0"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckBoxSurface" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CheckBoxSurface" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -180,85 +228,86 @@
                 </Grid>
             </Border>
 
-            <!-- Card 2: Telemetry Toggle + Inference Latency (ms) & FPS -->
-            <Border x:Name="TelemetryHudCard"
+            <!-- Card 2 (Persistent when telemetry enabled): Metrics Readout — Latency + Frame Rate -->
+            <Border x:Name="TelemetryReadoutHudCard"
+                    Style="{StaticResource LiveHudCardBorderStyle}"
+                    Margin="0,0,0,10"
+                    Visibility="{Binding IsTelemetryEnabled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    AutomationProperties.Name="Live Telemetry Readout Card">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Inference Latency (ms) -->
+                    <Border Grid.Column="0"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            CornerRadius="4"
+                            Padding="8,6"
+                            Margin="0,0,4,0">
+                        <StackPanel>
+                            <TextBlock Text="Latency"
+                                       FontSize="10"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{Binding InferenceLatencyMs, StringFormat='{}{0:F1} ms'}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Margin="0,2,0,0"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Live FPS -->
+                    <Border Grid.Column="1"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            CornerRadius="4"
+                            Padding="8,6"
+                            Margin="4,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Frame Rate"
+                                       FontSize="10"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{Binding Fps, StringFormat='{}{0:F0} FPS'}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Margin="0,2,0,0"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Card 3 (Configuration): Telemetry Toggle — auto-hides on stationary cursor -->
+            <Border x:Name="TelemetryToggleHudCard"
                     Style="{StaticResource LiveHudCardBorderStyle}"
                     Margin="0,0,0,10"
                     Opacity="1.0"
-                    AutomationProperties.Name="Live Telemetry Card">
-                <StackPanel>
-                    <!-- Toggle Header Row (fades out during cursor auto-hide when user is not interacting) -->
-                    <Grid x:Name="TelemetryToggleHeader">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                    AutomationProperties.Name="Telemetry Toggle Card">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Column="0"
-                                   Text="Telemetry"
-                                   FontSize="12"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Grid.Column="0"
+                               Text="Telemetry"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
 
-                        <CheckBox Grid.Column="1"
-                                  IsChecked="{Binding IsTelemetryEnabled, Mode=TwoWay}"
-                                  Content="Show"
-                                  FontSize="11"
-                                  VerticalAlignment="Center"
-                                  Cursor="Hand"
-                                  ToolTip="Toggle real-time inference latency and FPS display"
-                                  AutomationProperties.Name="Toggle Telemetry Display" />
-                    </Grid>
-
-                    <!-- Telemetry Metrics Readout (Remains visible even during auto-hide when IsTelemetryEnabled is true) -->
-                    <Grid Margin="0,8,0,0"
-                          Visibility="{Binding IsTelemetryEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Inference Latency (ms) -->
-                        <Border Grid.Column="0"
-                                Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                CornerRadius="4"
-                                Padding="8,6"
-                                Margin="0,0,4,0">
-                            <StackPanel>
-                                <TextBlock Text="Latency"
-                                           FontSize="10"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                <TextBlock Text="{Binding InferenceLatencyMs, StringFormat='{}{0:F1} ms'}"
-                                           FontSize="13"
-                                           FontWeight="SemiBold"
-                                           Margin="0,2,0,0"
-                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Live FPS -->
-                        <Border Grid.Column="1"
-                                Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                CornerRadius="4"
-                                Padding="8,6"
-                                Margin="4,0,0,0">
-                            <StackPanel>
-                                <TextBlock Text="Frame Rate"
-                                           FontSize="10"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                <TextBlock Text="{Binding Fps, StringFormat='{}{0:F0} FPS'}"
-                                           FontSize="13"
-                                           FontWeight="SemiBold"
-                                           Margin="0,2,0,0"
-                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-                </StackPanel>
+                    <CheckBox Grid.Column="1"
+                              Style="{StaticResource TelemetryCheckBoxStyle}"
+                              IsChecked="{Binding IsTelemetryEnabled, Mode=TwoWay}"
+                              Content="Show"
+                              FontSize="11"
+                              ToolTip="Toggle real-time inference latency and FPS display"
+                              AutomationProperties.Name="Toggle Telemetry Display" />
+                </Grid>
             </Border>
 
-            <!-- Card 3: Camera Source Selector Dropdown (Auto-Hides on Stationary Cursor) -->
+            <!-- Card 4: Camera Source Selector Dropdown (Auto-Hides on Stationary Cursor) -->
             <Border x:Name="CameraSelectorHudCard"
                     Style="{StaticResource LiveHudCardBorderStyle}"
                     Opacity="1.0"

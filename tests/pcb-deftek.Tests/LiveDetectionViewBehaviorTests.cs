@@ -139,12 +139,12 @@ public class LiveDetectionViewBehaviorTests
             view.TelemetryCardOpacity.Should().Be(0.0);
             view.StatusCardOpacity.Should().Be(1.0);
 
-            // Simulate user cursor movement -> all controls restore immediately
+            // Simulate user cursor movement -> config controls restore; telemetry readout stays hidden while disabled
             view.NotifyUserActivity(animate: false);
 
             view.IsControlsHidden.Should().BeFalse();
             view.StatusCardOpacity.Should().Be(1.0);
-            view.TelemetryCardOpacity.Should().Be(1.0);
+            view.TelemetryCardOpacity.Should().Be(0.0);
             view.ConfigurationControlsOpacity.Should().Be(1.0);
         });
     }

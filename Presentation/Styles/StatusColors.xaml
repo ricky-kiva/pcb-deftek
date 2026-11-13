@@ -44,4 +44,8 @@
     <SolidColorBrush x:Key="HudCardDarkBackgroundBrush" Color="#E6202020" />
     <SolidColorBrush x:Key="HudCardDarkBorderBrush" Color="#26FFFFFF" />
 
+    <!-- Primary Capture Action Accent (shutter amber; complements the dark optical stage) -->
+    <Color x:Key="CaptureActionColor">#B45309</Color>
+    <SolidColorBrush x:Key="CaptureActionBrush" Color="{StaticResource CaptureActionColor}" />
+
 </ResourceDictionary>

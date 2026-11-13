@@ -84,7 +84,6 @@ public partial class LiveDetectionViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ConfigurationControlsOpacity))]
-    [NotifyPropertyChangedFor(nameof(TelemetryCardOpacity))]
     private bool _isControlsAutoHidden;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ConfidencePercentageText))]
@@ -120,9 +119,9 @@ public partial class LiveDetectionViewModel : ViewModelBase
     public double StatusCardOpacity => 1.0;
 
     /// <summary>
-    /// Gets the opacity of the telemetry card (remains 1.0 during auto-hide if telemetry is enabled, otherwise 0.0).
+    /// Gets the opacity of the telemetry readout card (visible while telemetry is enabled, independent of cursor auto-hide).
     /// </summary>
-    public double TelemetryCardOpacity => (IsControlsAutoHidden && !IsTelemetryEnabled) ? 0.0 : 1.0;
+    public double TelemetryCardOpacity => IsTelemetryEnabled ? 1.0 : 0.0;
 
     /// <summary>
     /// Gets the opacity of the configuration controls (camera selector, confidence slider, capture button).
