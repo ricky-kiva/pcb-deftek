@@ -52,6 +52,12 @@
 - Auto-hide behavior: Gradually fade out configuration controls when cursor is stationary for a few seconds (retaining PASS/FAIL badge, defect counter, and telemetry if toggled).
 
 ### Phase 7: History & Interactive Defect Viewer
+- History filter bar reusing the Dashboard filter structure:
+  - Date Range Selector: Day, Week, and Month button group plus a custom date-range option.
+  - Status filter: PASS/FAIL.
+  - Defect Class filter: multi-select across all 9 classes; a record matches when it contains any selected class.
+  - Filters compose and drive paged history queries.
+- Multi-select gallery selection with confirmed batch deletion of inspection records, including repository support for transactional multi-record deletion and safe handling of associated files.
 - History view with date-based grouping and gallery thumbnail cards (1:1 square preview, top-left PASS/FAIL badge, default `Date-Number` filename with double-click inline editing).
 - High-performance Interactive Image Viewer:
   - Main viewing area: Pan and smooth zoom (scroll and touchpad gestures), interactive defect bounding boxes with click-to-focus/zoom, floating Reset View button, and floating Crop button (exports currently visible viewport as new image).
