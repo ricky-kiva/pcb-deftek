@@ -12,7 +12,25 @@ public class InspectionQueryFilter
 
     public DateTime? StartDateUtc { get; init; }
     public DateTime? EndDateUtc { get; init; }
+
+    /// <summary>
+    /// Gets the optional single-status filter retained for existing callers.
+    /// Ignored when <see cref="Statuses"/> contains at least one value.
+    /// </summary>
     public InspectionStatus? Status { get; init; }
+
+    /// <summary>
+    /// Gets the optional multi-select status filter. Empty or null applies no status filter.
+    /// When populated, it takes precedence over <see cref="Status"/>.
+    /// </summary>
+    public IReadOnlyCollection<InspectionStatus>? Statuses { get; init; }
+
+    /// <summary>
+    /// Gets the optional multi-select defect-class filter. A record matches when it contains
+    /// at least one of the selected classes; empty or null applies no class filter.
+    /// </summary>
+    public IReadOnlyCollection<DefectClass>? DefectClasses { get; init; }
+
     public DetectionMode? Mode { get; init; }
     public int PageNumber { get; init; } = 1;
 
