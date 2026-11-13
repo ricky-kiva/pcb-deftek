@@ -110,6 +110,16 @@ public class HistoryViewModelTests
     }
 
     [Fact]
+    public void InitialState_DoesNotReportEmptyBeforeFirstLoad()
+    {
+        var sut = CreateSut();
+
+        sut.IsEmpty.Should().BeFalse();
+        sut.HasNoMatches.Should().BeFalse();
+        sut.IsInitialLoading.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task OnNavigatedToAsync_LoadsFirstPageAndGroupsByLocalDate()
     {
         var records = new[]
@@ -131,6 +141,8 @@ public class HistoryViewModelTests
         sut.IsEmpty.Should().BeFalse();
         sut.HasNoMatches.Should().BeFalse();
         sut.IsLoading.Should().BeFalse();
+        sut.ResultsSummary.Should().Be("3 results");
+        sut.ShowingSummary.Should().Be("Showing 3 / 3");
     }
 
     [Fact]
@@ -399,6 +411,21 @@ public class HistoryViewModelTests
 
         calls.Should().Be(2);
         sut.Items.Should().OnlyContain(item => item.IsImageUnavailable);
+    }
+
+    [Fact]
+    public async Task ActivateItem_RaisesRecordActivated()
+    {
+        SetupPages(new[] { CreateSummary("a", LocalNoonUtc()) });
+        var sut = CreateSut();
+        await sut.LoadFirstPageAsync();
+        HistoryItemViewModel? activated = null;
+        sut.RecordActivated += (_, item) => activated = item;
+
+        var card = sut.Items.Single();
+        sut.ActivateItem(card);
+
+        activated.Should().BeSameAs(card);
     }
 
     [Fact]

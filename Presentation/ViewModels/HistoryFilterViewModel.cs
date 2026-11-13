@@ -130,6 +130,40 @@ public sealed partial class HistoryFilterViewModel : ObservableObject
         ClassOptions.Any(option => option.IsSelected);
 
     /// <summary>
+    /// Gets the status filter chip label.
+    /// </summary>
+    public string StatusFilterLabel
+    {
+        get
+        {
+            var selected = SelectedStatuses;
+            return selected.Count switch
+            {
+                0 => "All statuses",
+                1 => selected.First() == InspectionStatus.Pass ? "PASS" : "FAIL",
+                _ => "PASS & FAIL"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets the defect-class filter chip label.
+    /// </summary>
+    public string ClassFilterLabel
+    {
+        get
+        {
+            var selected = SelectedClasses;
+            return selected.Count switch
+            {
+                0 => "All classes",
+                1 => DefectKnowledgeBase.GetInfo(selected.First()).Abbreviation,
+                _ => $"{selected.Count} classes"
+            };
+        }
+    }
+
+    /// <summary>
     /// Resets every filter to its default value and raises a single change notification.
     /// </summary>
     public void ClearAll()
@@ -215,6 +249,8 @@ public sealed partial class HistoryFilterViewModel : ObservableObject
         OnPropertyChanged(nameof(HasActiveFilters));
         OnPropertyChanged(nameof(SelectedStatuses));
         OnPropertyChanged(nameof(SelectedClasses));
+        OnPropertyChanged(nameof(StatusFilterLabel));
+        OnPropertyChanged(nameof(ClassFilterLabel));
         FiltersChanged?.Invoke(this, EventArgs.Empty);
     }
 

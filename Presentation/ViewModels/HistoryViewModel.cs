@@ -37,11 +37,17 @@ public sealed partial class HistoryViewModel : ViewModelBase
     private CancellationTokenSource? _loadCts;
     private int _loadVersion;
     private int _currentPage;
+    private bool _hasLoadedOnce;
 
     /// <summary>
     /// Raised after a confirmed deletion with the identifiers removed from the gallery.
     /// </summary>
     public event EventHandler<IReadOnlyList<Guid>>? RecordsDeleted;
+
+    /// <summary>
+    /// Raised when the operator opens a card. The viewer host wires this in Task 5.3.
+    /// </summary>
+    public event EventHandler<HistoryItemViewModel>? RecordActivated;
 
     /// <inheritdoc />
     public override string Title => "History";
@@ -97,16 +103,34 @@ public sealed partial class HistoryViewModel : ViewModelBase
     public bool CanLoadMore => !IsLoading && HasMore;
 
     /// <summary>Gets a value indicating whether there is no history at all.</summary>
-    public bool IsEmpty => !IsLoading && ErrorMessage is null && Items.Count == 0 && !Filters.HasActiveFilters;
+    public bool IsEmpty => !IsLoading && _hasLoadedOnce && ErrorMessage is null && Items.Count == 0 && !Filters.HasActiveFilters;
+
+    /// <summary>Gets a value indicating whether the first page is still loading.</summary>
+    public bool IsInitialLoading => IsLoading && Items.Count == 0;
 
     /// <summary>Gets a value indicating whether filters excluded every record.</summary>
-    public bool HasNoMatches => !IsLoading && ErrorMessage is null && Items.Count == 0 && Filters.HasActiveFilters;
+    public bool HasNoMatches => !IsLoading && _hasLoadedOnce && ErrorMessage is null && Items.Count == 0 && Filters.HasActiveFilters;
 
     /// <summary>Gets the number of selected cards.</summary>
     public int SelectedCount => Items.Count(item => item.IsSelected);
 
     /// <summary>Gets a value indicating whether selected records can be deleted.</summary>
     public bool CanDeleteSelected => SelectedCount > 0 && !IsDeleting;
+
+    /// <summary>Gets the pluralized result count label.</summary>
+    public string ResultsSummary => TotalCount == 1 ? "1 result" : $"{TotalCount} results";
+
+    /// <summary>Gets the "showing x of y" footer label.</summary>
+    public string ShowingSummary => $"Showing {Items.Count} / {TotalCount}";
+
+    /// <summary>
+    /// Raises <see cref="RecordActivated"/> for the specified card. The viewer host subscribes in Task 5.3.
+    /// </summary>
+    public void ActivateItem(HistoryItemViewModel item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        RecordActivated?.Invoke(this, item);
+    }
 
     /// <inheritdoc />
     public override Task OnNavigatedToAsync() => LoadFirstPageAsync();
@@ -178,6 +202,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
         {
             if (version == _loadVersion)
             {
+                _hasLoadedOnce = true;
                 IsLoading = false;
             }
         }
@@ -351,6 +376,8 @@ public sealed partial class HistoryViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(HasMore));
         OnPropertyChanged(nameof(CanLoadMore));
+        OnPropertyChanged(nameof(ResultsSummary));
+        OnPropertyChanged(nameof(ShowingSummary));
         LoadMoreCommand.NotifyCanExecuteChanged();
     }
 
@@ -437,8 +464,11 @@ public sealed partial class HistoryViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasMore));
         OnPropertyChanged(nameof(CanLoadMore));
         OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(IsInitialLoading));
         OnPropertyChanged(nameof(HasNoMatches));
         OnPropertyChanged(nameof(SelectedCount));
+        OnPropertyChanged(nameof(ResultsSummary));
+        OnPropertyChanged(nameof(ShowingSummary));
         LoadMoreCommand.NotifyCanExecuteChanged();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
     }
