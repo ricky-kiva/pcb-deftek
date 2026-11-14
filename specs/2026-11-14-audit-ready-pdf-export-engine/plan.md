@@ -215,13 +215,13 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Add a dashboard repository query returning every inspection selected by the dashboard filter (date bounds, class set, severity→class mapping), newest first, with defects loaded. Reuse the existing predicate/parameter helpers so the selection matches `GetStatisticsAsync`.
 - **Acceptance criteria:**
-  - [ ] Date bounds are inclusive UTC; empty class/severity sets add no restriction.
-  - [ ] Severity selection maps through `DefectKnowledgeBase` exactly as `GetStatisticsAsync` does.
-  - [ ] An inspection matches only when it has at least one defect in both active sets (Phase 8 D5).
-  - [ ] Results include `InspectionRecord.Id/Name/CreatedAtUtc/UpdatedAtUtc/Mode/ImagePath/Origin` and all defects.
-  - [ ] Ordering is `CreatedAtUtc DESC` with a deterministic tiebreaker.
+  - [x] Date bounds are inclusive UTC; empty class/severity sets add no restriction.
+  - [x] Severity selection maps through `DefectKnowledgeBase` exactly as `GetStatisticsAsync` does.
+  - [x] An inspection matches only when it has at least one defect in both active sets (Phase 8 D5).
+  - [x] Results include `InspectionRecord.Id/Name/CreatedAtUtc/UpdatedAtUtc/Mode/ImagePath/Origin` and all defects.
+  - [x] Ordering is `CreatedAtUtc DESC` with a deterministic tiebreaker.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardRepositoryTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardRepositoryTests`
 - **Dependencies:** Task 1.3
 - **Files:**
   - `Infrastructure/Persistence/Repositories/IDashboardRepository.cs`
@@ -233,12 +233,12 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Add `GetMatchingInspectionCountAsync` using the same predicate composition, then extend the real-SQLite tests to prove evidence, count, and aggregates agree.
 - **Acceptance criteria:**
-  - [ ] For each filter combination (all time, range, classes, severities, both), count equals `GetMatchingInspectionsAsync().Count` and `GetStatisticsAsync().TotalInspections`.
-  - [ ] PASS inspections are excluded when class/severity filters are active.
-  - [ ] Defect counts across evidence entries equal `TotalDefects`.
-  - [ ] Empty result returns 0 / an empty list, never null.
+  - [x] For each filter combination (all time, range, classes, severities, both), count equals `GetMatchingInspectionsAsync().Count` and `GetStatisticsAsync().TotalInspections`.
+  - [x] PASS inspections are excluded when class/severity filters are active.
+  - [x] Defect counts across evidence entries equal `TotalDefects`.
+  - [x] Empty result returns 0 / an empty list, never null.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardRepositoryTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardRepositoryTests`
 - **Dependencies:** Task 3.1
 - **Files:**
   - `Infrastructure/Persistence/Repositories/IDashboardRepository.cs`
@@ -249,9 +249,9 @@ Ordering follows the dependency graph: package + contracts → process control/c
 ---
 
 ### Checkpoint 3: Evidence Corpus Correct
-- [ ] Evidence count equals dashboard totals for every filter combination.
-- [ ] No N+1 queries; one command per evidence/count query.
-- [ ] Existing dashboard repository tests remain green.
+- [x] Evidence count equals dashboard totals for every filter combination.
+- [x] No N+1 queries; one command per evidence/count query.
+- [x] Existing dashboard repository tests remain green.
 
 ---
 
