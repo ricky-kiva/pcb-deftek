@@ -193,7 +193,7 @@ Ordering follows the dependency graph: package + contracts → process control/c
   - [x] Cancellation is observable by an in-flight export token.
 - **Verification:**
   - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardProgressServiceTests`
-  - [ ] Manual: start a large export and close the app; no PDF or staging folder remains. Deferred to Group 6 (export engine not implemented); service-level `CancelAll` is unit-tested.
+  - [ ] Manual: start a large export and close the app; no PDF or staging folder remains. Export cancellation and artifact cleanup are automated; the close-app manual check remains for validation.
 - **Dependencies:** Task 2.1
 - **Files:**
   - `App.xaml.cs`
@@ -359,7 +359,7 @@ Ordering follows the dependency graph: package + contracts → process control/c
 ### Checkpoint 5: Report Renders Correctly
 - [ ] A real PDF opens and contains all sections. Automated composition tests assert header/metrics/evidence/footer and a valid `%PDF-` signature; no interactive PDF viewer was used.
 - [x] Evidence image width and table columns match the revision.
-- [ ] Generation is measured once for a 100-inspection corpus. Deferred to Group 6/validation; the 12-inspection smoke test completes successfully.
+- [ ] Generation is measured once for a 100-inspection corpus. Measurement remains deferred to Group 7 validation; the 12-inspection smoke test completes successfully.
 
 ---
 
@@ -369,19 +369,19 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Implement the orchestrator: resolve/validate destination, query statistics and evidence, stage annotated PNGs one at a time with progress, compose the PDF off the UI thread, move atomically, toast on success/failure, honour the cancellation token, and clean up in `finally`. `Dispose` cancels and removes temp artifacts.
 - **Acceptance criteria:**
-  - [ ] Destination comes from `IUserSettingsService.ReportExportPath`; blank falls back to `KnownFolderPaths.GetReportExportDirectory()`.
-  - [ ] Missing directory is created; filename policy and collision suffixes are unit-tested.
-  - [ ] Annotation uses `IImageAnnotationService` with a bounded `maxDimension`; source images are only read.
-  - [ ] PNG encoding works off the UI thread with frozen bitmaps.
-  - [ ] Zero matching inspections returns `NoMatches` without creating a file or starting progress.
-  - [ ] Progress: 0/10/15/15–95/100 reported through the supplied `IProgress<DashboardExportProgress>`; `Completed` only after the final move.
-  - [ ] The export service has no reference to Presentation progress types or the view model.
-  - [ ] Cancellation reports `Cancelled`, deletes the temp PDF/staging folder, and shows no success toast.
-  - [ ] Failure deletes temp artifacts, logs, and raises the typed export exception.
-  - [ ] Success and failure toasts dispatch through `INotificationService`; cancellation sends no toast.
-  - [ ] Concurrent calls are serialized or rejected; no interleaved writes.
+  - [x] Destination comes from `IUserSettingsService.ReportExportPath`; blank falls back to `KnownFolderPaths.GetReportExportDirectory()`.
+  - [x] Missing directory is created; filename policy and collision suffixes are unit-tested.
+  - [x] Annotation uses `IImageAnnotationService` with a bounded `maxDimension`; source images are only read.
+  - [x] PNG encoding works off the UI thread with frozen bitmaps.
+  - [x] Zero matching inspections returns `NoMatches` without creating a file or starting progress.
+  - [x] Progress: 0/10/15/15–95/100 reported through the supplied `IProgress<DashboardExportProgress>`; `Completed` only after the final move.
+  - [x] The export service has no reference to Presentation progress types or the view model.
+  - [x] Cancellation reports `Cancelled`, deletes the temp PDF/staging folder, and shows no success toast.
+  - [x] Failure deletes temp artifacts, logs, and raises the typed export exception.
+  - [x] Success and failure toasts dispatch through `INotificationService`; cancellation sends no toast.
+  - [x] Concurrent calls are serialized or rejected; no interleaved writes.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardPdfExportServiceTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardPdfExportServiceTests`
 - **Dependencies:** Tasks 3.1, 5.3
 - **Files:**
   - `Infrastructure/Export/DashboardPdfExportService.cs`
@@ -392,13 +392,13 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** When an evidence image is missing or cannot be decoded, delete that inspection through `IInspectionDeletionService` and exclude it from the report. Guard against environmental failures so a disconnected volume cannot trigger mass deletion.
 - **Acceptance criteria:**
-  - [ ] A missing/corrupt image deletes the inspection record and its app-owned captures; user-owned files are untouched.
-  - [ ] Deleted inspections are absent from the evidence section; the export continues.
-  - [ ] Deletion is retried once before committing; when the parent directory is inaccessible, deletion is skipped and logged.
-  - [ ] Deletion failures are logged and do not abort the export.
-  - [ ] Report totals remain the filtered aggregate from export start (documented in requirements).
+  - [x] A missing/corrupt image deletes the inspection record and its app-owned captures; user-owned files are untouched.
+  - [x] Deleted inspections are absent from the evidence section; the export continues.
+  - [x] Deletion is retried once before committing; when the parent directory is inaccessible, deletion is skipped and logged.
+  - [x] Deletion failures are logged and do not abort the export.
+  - [x] Report totals remain the filtered aggregate from export start (documented in requirements).
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardPdfExportServiceTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardPdfExportServiceTests`
 - **Dependencies:** Task 6.1
 - **Files:**
   - `Infrastructure/Export/DashboardPdfExportService.cs`
@@ -409,15 +409,15 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** After gallery thumbnail hydration, remove records whose image is missing or undecodable using the deletion service, refresh counts/groups, and inform the operator.
 - **Acceptance criteria:**
-  - [ ] Cards whose thumbnail cannot be decoded are removed from the gallery.
-  - [ ] The corresponding records are deleted from SQLite; app-owned captures are cleaned; user originals are untouched.
-  - [ ] After cleanup the gallery reloads page 1 so page-number paging cannot skip records; total count, groups, selection, and empty/no-match states remain consistent.
-  - [ ] No placeholder is shown for records that are removed in the same hydration pass.
-  - [ ] A single toast reports how many unreadable inspections were removed; failures are logged.
-  - [ ] Deletion is retried once before committing; it is skipped when the parent directory is inaccessible (environmental failure).
+  - [x] Cards whose thumbnail cannot be decoded are removed from the gallery.
+  - [x] The corresponding records are deleted from SQLite; app-owned captures are cleaned; user originals are untouched.
+  - [x] After cleanup the gallery reloads page 1 so page-number paging cannot skip records; total count, groups, selection, and empty/no-match states remain consistent.
+  - [x] No placeholder is shown for records that are removed in the same hydration pass.
+  - [x] A single toast reports how many unreadable inspections were removed; failures are logged.
+  - [x] Deletion is retried once before committing; it is skipped when the parent directory is inaccessible (environmental failure).
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~HistoryViewModelTests`
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~HistoryItemViewModelTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~HistoryViewModelTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~HistoryItemViewModelTests`
 - **Dependencies:** None (uses the existing deletion service)
 - **Files:**
   - `Presentation/ViewModels/HistoryViewModel.cs`
@@ -428,18 +428,18 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Inject `IDashboardExportService` and `IConfirmationService`, delete `ExportRequested`, make `RequestExportCommand` async with a running guard, run preflight (no-match toast, >100 confirmation), auto-open the modal, pass the progress service's DataExport token, and report cancellation/failure.
 - **Acceptance criteria:**
-  - [ ] `ExportRequested` and its event-based tests are removed.
-  - [ ] Zero matches → toast only; no modal, no progress, no export call.
-  - [ ] More than 100 matches (`LargeExportInspectionThreshold = 100`) → confirmation with the count; declining aborts.
-  - [ ] 100 or fewer matches → export starts without a prompt.
-  - [ ] Command is disabled/ignored while exporting and resumes afterward.
-  - [ ] Modal opens on start; the DataExport token is cancelled by the modal Cancel button.
-  - [ ] A `Progress<DashboardExportProgress>` forwards exporter percentages/messages to `IDashboardProgressService.ReportDataExport`; terminal statuses are `Completed`, `Cancelled`, or `Failed`.
-  - [ ] If the export removed invalid records, dashboard statistics reload after completion so displayed totals match the database.
-  - [ ] Cancellation ends without a success/error toast; failure sets a visible state.
-  - [ ] Success/failure never throw on the dispatcher.
+  - [x] `ExportRequested` and its event-based tests are removed.
+  - [x] Zero matches → toast only; no modal, no progress, no export call.
+  - [x] More than 100 matches (`LargeExportInspectionThreshold = 100`) → confirmation with the count; declining aborts.
+  - [x] 100 or fewer matches → export starts without a prompt.
+  - [x] Command is disabled/ignored while exporting and resumes afterward.
+  - [x] Modal opens on start; the DataExport token is cancelled by the modal Cancel button.
+  - [x] A `Progress<DashboardExportProgress>` forwards exporter percentages/messages to `IDashboardProgressService.ReportDataExport`; terminal statuses are `Completed`, `Cancelled`, or `Failed`.
+  - [x] If the export removed invalid records, dashboard statistics reload after completion so displayed totals match the database.
+  - [x] Cancellation ends without a success/error toast; failure sets a visible state.
+  - [x] Success/failure never throw on the dispatcher.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardViewModelTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardViewModelTests`
 - **Dependencies:** Tasks 6.1, 2.2, 2.3
 - **Files:**
   - `Presentation/ViewModels/DashboardViewModel.cs`
@@ -450,11 +450,11 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Register the export service and assert lifetimes/resolution in the real provider, including the new `IDashboardProgressService` members and view-model dependencies.
 - **Acceptance criteria:**
-  - [ ] `IDashboardExportService` resolves with all dependencies.
-  - [ ] `IDashboardProgressService` remains a singleton; `DashboardViewModel` remains transient.
-  - [ ] No circular dependency between export, progress, deletion, and settings services.
+  - [x] `IDashboardExportService` resolves with all dependencies.
+  - [x] `IDashboardProgressService` remains a singleton; `DashboardViewModel` remains transient.
+  - [x] No circular dependency between export, progress, deletion, and settings services.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DependencyInjectionTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DependencyInjectionTests`
 - **Dependencies:** Tasks 6.1, 6.4
 - **Files:**
   - `App.xaml.cs`
@@ -464,11 +464,11 @@ Ordering follows the dependency graph: package + contracts → process control/c
 ---
 
 ### Checkpoint 6: Export Works End-to-End
-- [ ] Dashboard Export produces a PDF respecting the active filter.
-- [ ] No-match, large-export confirmation, and modal cancellation paths work.
-- [ ] Invalid-image records are removed from report and History.
-- [ ] Progress/modal states reflect running/completed/cancelled/failed.
-- [ ] Review with human before BDD.
+- [x] Dashboard Export passes the active filter to the exporter and the exporter writes a PDF (automated VM/service tests; real-SQLite end-to-end is Group 7).
+- [x] No-match, large-export confirmation, and modal cancellation paths work.
+- [x] Invalid-image records are removed from report and History.
+- [x] Progress/modal states reflect running/completed/cancelled/failed.
+- [ ] Review with human before BDD. PR is open and awaiting review.
 
 ---
 
