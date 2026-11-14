@@ -261,13 +261,13 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Build the report model from `DashboardStatistics`, the valid matching inspections, and the filter. Apply fixed card order, `CurrentCulture` formatting, filter summaries, mode labels, PASS/FAIL labels, and defect ordering (confidence desc, then class order). Defect rows carry class name, confidence, and severity only.
 - **Acceptance criteria:**
-  - [ ] Four metric blocks in canonical order, independent of dashboard card order/layout.
-  - [ ] Values and captions match `DashboardViewModel` projections for the same `DashboardStatistics` (parity test).
-  - [ ] Filter summary renders `All time`/`All nine classes`/`All severities` when unrestricted, otherwise local dates, taxonomy-ordered names, and severity labels.
-  - [ ] Defect rows resolve names/severities from `DefectKnowledgeBase`; no abbreviation field.
-  - [ ] No evidence entries yields a model that the orchestrator refuses to export (no document is generated).
+  - [x] Four metric blocks in canonical order, independent of dashboard card order/layout.
+  - [x] Values and captions match `DashboardViewModel` projections for the same `DashboardStatistics` (parity test).
+  - [x] Filter summary renders `All time`/`All nine classes`/`All severities` when unrestricted, otherwise local dates, taxonomy-ordered names, and severity labels.
+  - [x] Defect rows resolve names/severities from `DefectKnowledgeBase`; no abbreviation field.
+  - [x] No evidence entries yields a model that the orchestrator refuses to export (no document is generated).
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardReportContentFactoryTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardReportContentFactoryTests`
 - **Dependencies:** Tasks 1.2, 3.2
 - **Files:**
   - `Infrastructure/Export/DashboardReportContentFactory.cs`
@@ -278,14 +278,14 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Render three chart kinds as self-contained SVG strings sized to the available width: single-series line, dual PASS/FAIL line, and nine-class vertical bars. Use fixed hex colors, deterministic label thinning, and non-degenerate axes for 0/1/n points.
 - **Acceptance criteria:**
-  - [ ] Output is valid XML with a `viewBox`, no scripts, no external resources.
-  - [ ] Label step never overlaps labels at the report width; the rule is unit-tested.
-  - [ ] PASS uses `#107C41`, FAIL uses `#C42B1C`, bar fills use `DefectClassInfo.ColorHex`.
-  - [ ] All nine bars appear in class order, including zero values.
-  - [ ] Empty/single-point series render without division by zero or inverted coordinates.
-  - [ ] Values are XML-escaped (labels/class names cannot break the document).
+  - [x] Output is valid XML with a `viewBox`, no scripts, no external resources.
+  - [x] Label step never overlaps labels at the report width; the rule is unit-tested.
+  - [x] PASS uses `#107C41`, FAIL uses `#C42B1C`, bar fills use `DefectClassInfo.ColorHex`.
+  - [x] All nine bars appear in class order, including zero values.
+  - [x] Empty/single-point series render without division by zero or inverted coordinates.
+  - [x] Values are XML-escaped (labels/class names cannot break the document).
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardReportChartSvgRendererTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardReportChartSvgRendererTests`
 - **Dependencies:** Task 4.1
 - **Files:**
   - `Infrastructure/Export/DashboardReportChartSvgRenderer.cs`
@@ -295,9 +295,9 @@ Ordering follows the dependency graph: package + contracts → process control/c
 ---
 
 ### Checkpoint 4: Content & Charts Correct
-- [ ] Content parity with dashboard projections is proven by tests.
-- [ ] SVG charts parse as XML and render at report width.
-- [ ] No QuestPDF dependency in content/chart code.
+- [x] Content parity with dashboard projections is proven by tests.
+- [x] SVG charts parse as XML and render at report width.
+- [x] No QuestPDF dependency in content/chart code.
 
 ---
 
