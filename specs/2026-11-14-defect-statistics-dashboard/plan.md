@@ -37,8 +37,9 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 - **Description:** Add immutable contracts for the dashboard query and its results, independent of WPF and SQL.
 - **Acceptance criteria:**
   - [ ] `DashboardFilter` carries inclusive UTC start/end bounds, selected `DefectClass` set, selected `DefectSeverity` set, and preset metadata needed for labels.
-  - [ ] `DashboardStatistics` exposes total inspections, total matching defects, total pass/fail counts, a per-local-day series containing inspection count, matching-defect count, and pass/fail counts, and per-class defect counts.
-  - [ ] Daily points are ordered oldest→newest and each point carries scans, defects, passes, and fails; class counts are ordered by `DefectClassInfo.ClassId` and include all nine classes with zero defaults.
+  - [ ] `DashboardStatistics` exposes total inspections, total matching defects, total pass/fail counts, the resolved `DashboardBucketGranularity`, adaptive buckets (start/end/label, inspections, matching defects, passes, fails), and per-class defect counts.
+  - [ ] Buckets are ordered oldest→newest and cover hourly, daily, weekly (culture week start), or monthly granularity; class counts are ordered by `DefectClassInfo.ClassId` and include all nine classes with zero defaults.
+  - [ ] A pure `DashboardBucketPolicy` maps a date span to granularity: ≤2 days hourly, ≤90 days daily, ≤2 years weekly, otherwise monthly; empty data resolves to daily.
   - [ ] Contracts are pure records/read-only types with no WPF or repository dependencies.
 - **Verification:**
   - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardStatisticsTests`
@@ -47,8 +48,9 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 - **Files:**
   - `Domain/Contracts/DashboardFilter.cs`
   - `Domain/Contracts/DashboardStatistics.cs`
+  - `Domain/Contracts/DashboardBucketPolicy.cs`
   - `tests/pcb-deftek.Tests/DashboardStatisticsTests.cs`
-- **Estimated scope:** S (3 files)
+- **Estimated scope:** M (4 files)
 
 #### Task 1.2: SQLite Dashboard Aggregate Query
 
@@ -58,7 +60,9 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
   - [ ] Query applies inclusive `CreatedAtUtc` bounds and optional class/severity filters; severity maps to class codes through `DefectKnowledgeBase` (no schema change).
   - [ ] When class/severity filters are active, only inspections with at least one matching defect are included; PASS inspections are excluded.
   - [ ] Total defects and distribution count only defects matching the active filters; distribution includes all nine classes.
-  - [ ] Daily buckets use local calendar dates derived from `CreatedAtUtc`; each bucket contains inspections, matching defects, passes, and fails; ordering is stable.
+  - [ ] Query resolves adaptive granularity from explicit filter bounds; for all-time, it uses the matching data extent; empty data falls back to daily.
+  - [ ] Buckets group in local time at hour/day/week/month granularity; each bucket contains inspections, matching defects, passes, and fails; ordering is stable.
+  - [ ] Bucket labels are culture-aware and identify the unit (hour/day/week/month).
   - [ ] Empty result returns zeroed metrics and nine zero class buckets without exceptions.
 - **Verification:**
   - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardRepositoryTests`
@@ -76,6 +80,7 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 - **Description:** Prove dashboard aggregates against the real SQLite schema, including boundary dates and combined filters.
 - **Acceptance criteria:**
   - [ ] Date bounds include records exactly at local start/end converted to UTC.
+  - [ ] Adaptive boundaries at 2 days, 90 days, and 2 years select the correct granularity.
   - [ ] Class-only, severity-only, and class+severity filters compose correctly.
   - [ ] Duplicate defect classes count individually while distribution groups by class.
   - [ ] Records with no defects never appear when a class/severity filter is active.
@@ -146,9 +151,9 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 - **Acceptance criteria:**
   - [ ] Constructor depends only on interfaces and exposes `Statistics`, `MetricCards`, `DefectInfoItems`, `IsLoading`, `ErrorMessage`, `HasData`, and filter state.
   - [ ] Initial navigation loads all-time statistics; filter changes cancel the prior load and reload from scratch without stale updates.
-  - [ ] Metric card projections expose display values, per-day time series (scans, defects, or pass/fail), and class distribution from the aggregate result.
-  - [ ] Layout defaults to two columns; toggle exposes one/two-column state and notifies the view.
-  - [ ] Card order is a stable observable list; move left/right and drag reorder mutate only that list.
+  - [ ] Metric card projections expose display values, adaptive-bucket time series (scans, defects, or pass/fail), and class distribution from the aggregate result.
+  - [ ] Layout and card order are exposed for the view; default layout is two columns/default order until persisted preferences load.
+  - [ ] Card order is a stable observable list; move left/right and drag reorder mutate that list through the persistence workflow in Task 2.4.
   - [ ] Defect info items come from `DefectKnowledgeBase.GetAll()` with the asset path contract from requirements §5.
   - [ ] `ExportRequested` is raised with a snapshot of the active filter; no PDF is generated.
 - **Verification:**
@@ -162,7 +167,27 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
   - `tests/pcb-deftek.Tests/DashboardViewModelTests.cs`
 - **Estimated scope:** M (4 files)
 
-#### Task 2.4: Startup Preference & Tile Progress State
+#### Task 2.4: Persisted Card Order & Layout
+
+- **Description:** Persist metric-card order and column layout in user settings so they survive page changes and restarts.
+- **Acceptance criteria:**
+  - [ ] `UserSettings` gains `DashboardCardOrder` and `DashboardColumnLayout`; missing/default values resolve to the standard four-card order and 2 columns.
+  - [ ] Settings storage persists both values when a card is reordered or the layout toggle changes.
+  - [ ] Dashboard load restores order/layout before the first render; unrecognized card keys or invalid layout values are ignored safely.
+  - [ ] Navigating away/back and restarting preserves the preference.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter UserSettingsServiceTests`
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 2.3
+- **Files:**
+  - `Domain/Models/UserSettings.cs`
+  - `Infrastructure/Persistence/Repositories/UserSettingsService.cs`
+  - `Presentation/ViewModels/DashboardViewModel.cs`
+  - `tests/pcb-deftek.Tests/DashboardViewModelTests.cs`
+- **Estimated scope:** S (4 files)
+
+#### Task 2.5: Startup Preference & Tile Progress State
 
 - **Description:** Wire the Dashboard startup checkbox and the notification progress modal state.
 - **Acceptance criteria:**
@@ -188,6 +213,7 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 - [ ] All dashboard filter/state tests pass.
 - [ ] History filter tests remain green after the shared resolver extraction.
 - [ ] Startup checkbox and progress service behave deterministically in tests.
+- [ ] Card order/layout persist through a settings reload.
 - [ ] Review with human before chart/UI work.
 
 ---
@@ -196,7 +222,7 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 #### Task 3.1: PASS/FAIL Line Chart
 
-- **Description:** Lightweight WPF chart control for the daily dual-series PASS/FAIL rate.
+- **Description:** Lightweight WPF chart control for the adaptive dual-series PASS/FAIL rate.
 - **Acceptance criteria:**
   - [ ] Dependency properties for points; renders green PASS and red FAIL series using theme/status brushes.
   - [ ] Handles zero, one, and many points without divide-by-zero or clipped axes.
@@ -216,10 +242,10 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 #### Task 3.2: Total PCBs / Total Defects Time-Series Chart
 
-- **Description:** Lightweight single-series WPF chart for scan and defect volume per local day.
+- **Description:** Lightweight single-series WPF chart for scan and defect volume per adaptive local bucket.
 - **Acceptance criteria:**
-  - [ ] Dependency properties for per-day points, series brush, and accessible series name.
-  - [ ] Renders inspections-per-day for Total PCBs and matching-defects-per-day for Total Defects using their card accent colors.
+  - [ ] Dependency properties for adaptive bucket points, granularity/label metadata, series brush, and accessible series name.
+  - [ ] Renders inspections-per-bucket for Total PCBs and matching-defects-per-bucket for Total Defects using their card accent colors.
   - [ ] Handles zero, one, and many days without divide-by-zero or clipped axes.
   - [ ] Hover shows the day and count; click raises the chart-activated event; labels thin at narrow widths.
   - [ ] Empty series renders a clear no-data baseline rather than a broken glyph.
@@ -287,7 +313,7 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 - **Acceptance criteria:**
   - [ ] Date presets/custom flyout, class/severity multi-selects, clear filters, count/status summary, export/notification controls, and layout toggle render correctly.
   - [ ] All four metric cards render their value and supporting chart (PCBs/defects time series, PASS/FAIL line, distribution bars).
-  - [ ] Metric cards switch between 1-column and 2-column grids without clipping or losing chart state.
+  - [ ] Metric cards switch between 1-column and 2-column grids without clipping or losing chart state; the saved layout is used on first render.
   - [ ] Loading, no-data, error/retry, and filtered-empty states are distinct.
   - [ ] All controls are keyboard reachable and use existing Fluent tokens.
 - **Verification:**
@@ -304,8 +330,8 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Wire card reorder, chart hover/click, layout toggle, and filter flyout interactions.
 - **Acceptance criteria:**
-  - [ ] Dragging a card handle reorders the four cards and updates the grid; dropping outside restores order.
-  - [ ] Keyboard Move Left/Right commands provide a non-pointer reorder path.
+  - [ ] Dragging a card handle reorders the four cards, updates the grid, and persists the new order; dropping outside restores order.
+  - [ ] Keyboard Move Left/Right commands provide a non-pointer reorder path and also persist the order.
   - [ ] Chart hover shows values; clicking opens the enlarged modal and focus returns on close.
   - [ ] Filter flyouts close on selection/outside click and never leave stale popup state.
 - **Verification:**
@@ -416,7 +442,7 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 - **Description:** Add Reqnroll acceptance coverage for filters, metrics, layout/reorder, accordion assets, progress modal, and startup preference.
 - **Acceptance criteria:**
   - [ ] Isolated SQLite database with seeded inspections/defects across dates, classes, and severities.
-  - [ ] Scenarios assert totals, chart buckets, filter composition, layout toggle/reorder, all nine accordion assets, progress idle state, and persisted startup preference.
+  - [ ] Scenarios assert totals, adaptive chart buckets, filter composition, persisted layout/reorder, all nine accordion assets, progress idle state, and persisted startup preference.
   - [ ] No dependency on the developer's real app data or asset downloads.
 - **Verification:**
   - [ ] `dotnet test tests/pcb-deftek.Bdd/ --filter DashboardFeature`
@@ -472,6 +498,4 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 ## Open Questions
 
-1. Card order persistence: session-only in Phase 8; revisit if users expect restart persistence.
-2. Startup checkbox placement: follows roadmap on Dashboard; confirm long-term.
-3. Large all-time chart range: Phase 8 uses actual inspection days; revisit bucketing if histories exceed practical chart width.
+None. Card order/layout persistence (D10/D11), permanent Dashboard startup checkbox (D14), and adaptive bucketing (D18) are resolved.

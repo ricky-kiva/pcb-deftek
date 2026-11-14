@@ -38,13 +38,13 @@ This phase builds directly on:
    - Defect Severity multi-select across all five severities.
    - PDF Export Data action (event seam for Phase 9).
    - Notification action opening a progress modal for inference and data export.
-   - 1-column / 2-column metric-card layout toggle.
+   - 1-column / 2-column metric-card layout toggle, persisted across navigation and restarts.
 2. **Metric cards (Row 2)**
    - Total PCBs Inspected, with a per-time-unit scan volume chart.
    - Total Defects Detected, with a per-time-unit defect volume chart.
    - PASS/FAIL Inspection Rate dual-line chart.
    - Defect Distribution Across Defect Classes vertical bar chart.
-   - Drag-and-drop card reordering (session-only).
+   - Drag-and-drop card reordering, persisted across navigation and restarts.
    - Click a chart to open an enlarged chart modal.
    - Hover feedback on chart data points.
 3. **Defect Class Information (Row 3)**
@@ -65,7 +65,6 @@ This phase builds directly on:
 ### 2.2 Out of Scope (Deferred)
 
 - Actual PDF generation and report layout (Phase 9). Phase 8 only exposes the filtered export command/event.
-- Persisting metric-card order across restarts; reordering is session-only.
 - Drill-down navigation from a chart point into History.
 - Custom chart types beyond the specified line, time-series column, and class-distribution bar charts.
 - Exporting dashboard data to CSV/Excel.
@@ -83,19 +82,19 @@ This phase builds directly on:
 | D3 | Date presets use local calendar bounds converted to UTC, matching History | Consistent user expectations across pages. |
 | D4 | Defect Type filter uses `DefectClass`; Severity filter maps selected severities to the class codes in `DefectKnowledgeBase` and applies `Defects.ClassCode IN (...)` | Severity is metadata, not stored in SQLite; mapping from the single knowledge source avoids schema changes. |
 | D5 | When class/severity filters are active, an inspection is included only if it has at least one defect matching both active sets; PASS inspections are excluded because they have no defects | One consistent filter scope across all four cards. |
-| D6 | Total PCBs = included inspections; Total Defects = matching defect rows; each is also projected as a per-local-day time series for its card chart. Distribution = matching defects grouped by class with all nine classes represented (zero included); PASS/FAIL chart = included inspections grouped by local day | Explicit, testable metric definitions; every card carries a visualization rather than a standalone number. |
-| D7 | PASS/FAIL uses a dual-series line chart; Total PCBs and Total Defects use single-series time charts over the same local-day buckets; Distribution uses all nine classes in taxonomy order | Keeps all four cards visual, avoids fabricated empty-day points between recorded days, and keeps class comparison complete. |
+| D6 | Total PCBs = included inspections; Total Defects = matching defect rows; each is projected as an adaptive local-time series for its card chart. Distribution = matching defects grouped by class with all nine classes represented (zero included); PASS/FAIL chart = included inspections over the same adaptive buckets | Explicit, testable metric definitions; every card carries a visualization rather than a standalone number. |
+| D7 | PASS/FAIL uses a dual-series line chart; Total PCBs and Total Defects use single-series time charts over the shared adaptive buckets; Distribution uses all nine classes in taxonomy order | Keeps all four cards visual, shares one bucket policy across the time-series cards, and keeps class comparison complete. |
 | D8 | Build line/bar charts with WPF shapes and custom controls; no chart NuGet package | The project has no chart dependency; adding one requires approval and is unnecessary for four fixed cards. |
 | D9 | Metric cards share a common card shell; chart content is composed via templates, not a single over-configured card control | Keeps card structure consistent and chart rendering focused. |
-| D10 | Drag-and-drop reorders the four cards in memory only for the session | Roadmap does not require persistence; avoids expanding user settings/schema. |
-| D11 | 2-column layout is the default; 1-column layout stacks cards at full width | Preserves the dashboard's analytics density on desktop while supporting narrow/windowed use. |
+| D10 | Card order and column layout are persisted in `UserSettings` (`DashboardCardOrder`, `DashboardColumnLayout`); changes save immediately and survive page navigation and restart. Invalid/missing order falls back to the default order; invalid layout falls back to 2 columns. | User preference must not reset between pages or launches; the settings table is key-value, so no schema change is needed. |
+| D11 | 2-column layout is the default; 1-column stacks cards at full width. The saved layout overrides the default on load. | Preserves desktop density while supporting narrow/windowed use, with a durable user choice. |
 | D12 | PDF Export command raises an `ExportRequested` event carrying a snapshot of the active filter; Phase 9 subscribes and generates the report | Provides a real integration seam without shipping a fake PDF. |
 | D13 | Notification modal binds to `IDashboardProgressService` state for inference and data-export operations; Phase 8 wires the service and displays idle/running/completed states | Keeps progress presentation testable and decoupled from the pages that produce progress. |
-| D14 | Startup checkbox reads/writes the existing `SkipDashboardOnStartup` setting | Roadmap requests the preference on Dashboard after its removal from Settings. |
+| D14 | The "Skip dashboard on startup" checkbox remains on Dashboard long-term and reads/writes the existing setting | Dashboard is its permanent home after removal from Settings. |
 | D15 | Defect information images resolve from `Assets/Images/dashb-info-{abbreviation}.png` using lowercase abbreviations | Matches the nine existing assets exactly, independent of display-name spelling. |
 | D16 | Missing/corrupt defect images render the existing image placeholder; they never throw | Consistent graceful-degradation policy. |
 | D17 | No new NuGet packages and no database schema changes in Phase 8 | The feature is aggregation and presentation over existing tables. |
-| D18 | The time unit for the Total PCBs and Total Defects charts is the local calendar day for the active date range | Matches grouping elsewhere in History and the PASS/FAIL chart; adaptive week/month bucketing is deferred until large-range performance requires it. |
+| D18 | Time-series charts share adaptive local-time buckets: span ≤ 2 days → hourly; ≤ 90 days → daily; ≤ 2 years → weekly (culture week start); otherwise monthly. Explicit filter bounds determine span; all-time uses the actual inspection-date extent; no data uses an empty daily chart. | Keeps charts readable from a single day to multi-year history, and aligns all four time-series cards on one bucket policy. |
 
 ---
 
@@ -108,9 +107,9 @@ Let **base inspections** be inspections inside the selected date range, further 
 
 | Metric | Definition |
 |---|---|
-| Total PCBs Inspected | Count of base inspections, plus a per-local-day series of inspection counts for the card chart. |
-| Total Defects Detected | Count of defects belonging to base inspections that match the active class/severity sets, plus a per-local-day series of matching defect counts for the card chart. |
-| PASS/FAIL Inspection Rate | Per local calendar day, count base inspections with zero defects (PASS) and with one or more defects (FAIL). With defect filters active, the PASS series is naturally zero. |
+| Total PCBs Inspected | Count of base inspections, plus an adaptive local-time series of inspection counts for the card chart. |
+| Total Defects Detected | Count of defects belonging to base inspections that match the active class/severity sets, plus an adaptive local-time series of matching defect counts for the card chart. |
+| PASS/FAIL Inspection Rate | Per adaptive local-time bucket, count base inspections with zero defects (PASS) and with one or more defects (FAIL). With defect filters active, the PASS series is naturally zero. |
 | Defect Distribution | Matching defects grouped by class, ordered `ClassId`, all nine classes present. |
 
 The date filter is inclusive. Custom range start > end is rejected and does not query.
@@ -154,11 +153,11 @@ The Dashboard Defect Information accordion MUST use the existing files under `As
 ### 6.2 Row 2 — Metric Cards
 
 - Four cards in the chosen order; each card has a compact title, primary value, and supporting visualization/caption.
-- **Total PCBs:** count + period label + single-series per-local-day scan volume chart.
-- **Total Defects:** count + period label + single-series per-local-day matching-defect volume chart.
-- **PASS/FAIL Rate:** dual-line chart (green PASS, red FAIL) with day labels and hover values.
+- **Total PCBs:** count + period label + single-series adaptive-bucket scan volume chart.
+- **Total Defects:** count + period label + single-series adaptive-bucket matching-defect volume chart.
+- **PASS/FAIL Rate:** dual-line chart (green PASS, red FAIL) over the shared adaptive buckets, with labels and hover values.
 - **Defect Distribution:** vertical bars with abbreviated labels, class colors from `DefectClassInfo.ColorHex`, hover counts.
-- Drag handle on each card; drag reorders within the grid; keyboard alternative via Move Left/Right commands or menu.
+- Drag handle on each card; drag reorders within the grid and persists the new order; keyboard alternative via Move Left/Right commands or menu.
 - Clicking any chart (PCBs, Defects, PASS/FAIL, Distribution) opens a larger modal chart; `Esc` and the close button dismiss it.
 
 ### 6.3 Row 3 — Defect Class Information
@@ -189,6 +188,8 @@ The Dashboard Defect Information accordion MUST use the existing files under `As
 - All queries and settings persistence asynchronous and cancellable.
 - Existing Fluent theme tokens and `DefectClassInfo.ColorHex` only; no new palette.
 - Chart controls must expose accessible summaries and remain readable in Light/Dark themes.
+- One shared bucket policy resolves adaptive granularity for all time-series cards; labels reflect the active unit.
+- Card order and layout persist through `IUserSettingsService`; missing/invalid values normalize to the default order and 2 columns.
 - No new NuGet packages; no schema migrations in Phase 8.
 - Reuse existing `HistoryFilterViewModel` date logic where practical, without coupling the pages.
 
@@ -203,8 +204,10 @@ The Dashboard Defect Information accordion MUST use the existing files under `As
 | Class/severity filter selects no matching defects | Zero metrics and no-matches chart state |
 | All nine classes selected | Equivalent to no class filter when combined with no severity filter |
 | Missing defect image | Placeholder; accordion still usable |
-| Chart with one data point | Line renders a visible point/segment without divide-by-zero |
-| Chart with many days | Chart remains readable; horizontal labels thin out |
+| Chart with one data point | Line/column renders a visible point/bar without divide-by-zero |
+| Chart with many buckets | Chart remains readable; labels thin out; bucket tooltips retain exact values |
+| Adaptive boundary | A range crossing 2 days/90 days/2 years selects the correct next granularity |
+| Invalid persisted order/layout | Falls back to default order and 2 columns without crashing |
 | Window too narrow for two columns | Layout toggle available; card content wraps without clipping |
 | Drag card over non-drop target | No reorder; original order retained |
 | Notification modal while idle | Both bars at 0% with Idle status; no timer runs |
@@ -214,6 +217,4 @@ The Dashboard Defect Information accordion MUST use the existing files under `As
 
 ## 9. Open Questions
 
-1. Should card order persist across restarts? Phase 8 default: session-only (D10).
-2. Should the startup checkbox remain on Dashboard long-term, or be removed entirely? Phase 8 follows the roadmap (D14).
-3. Should the time-series cards bucket by day when the date range spans years? Phase 8 uses local-day buckets (D18); adaptive bucketing is deferred.
+None. All three Phase 8 questions are resolved by D10/D11 (persisted card order and layout), D14 (permanent Dashboard startup checkbox), and D18 (adaptive bucketing).
