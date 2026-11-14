@@ -29,7 +29,8 @@ public class SettingsViewModelTests
             DefaultStartupPage = "Live Detection",
             SkipDashboardOnStartup = true,
             ReportExportPath = @"C:\Exports\Reports",
-            DatabaseExportPath = @"C:\Exports\Backups"
+            DatabaseExportPath = @"C:\Exports\Backups",
+            CropOutputDirectory = @"C:\Exports\Crops"
         });
 
         _exportService = new StubDatabaseExportService(@"C:\Exports\Backups");
@@ -53,6 +54,7 @@ public class SettingsViewModelTests
         vm.SkipDashboardOnStartup.Should().BeTrue();
         vm.ReportExportPath.Should().Be(@"C:\Exports\Reports");
         vm.DatabaseExportPath.Should().Be(@"C:\Exports\Backups");
+        vm.CropOutputDirectory.Should().Be(@"C:\Exports\Crops");
     }
 
     [Fact]
@@ -68,6 +70,7 @@ public class SettingsViewModelTests
         vm.SkipDashboardOnStartup = false;
         vm.ReportExportPath = @"D:\CustomReportPath";
         vm.DatabaseExportPath = @"D:\CustomDbPath";
+        vm.CropOutputDirectory = @"D:\CustomCropPath";
 
         // Act
         await vm.SaveAsync();
@@ -80,6 +83,7 @@ public class SettingsViewModelTests
         saved.SkipDashboardOnStartup.Should().BeFalse();
         saved.ReportExportPath.Should().Be(@"D:\CustomReportPath");
         saved.DatabaseExportPath.Should().Be(@"D:\CustomDbPath");
+        saved.CropOutputDirectory.Should().Be(@"D:\CustomCropPath");
     }
 
     [Fact]

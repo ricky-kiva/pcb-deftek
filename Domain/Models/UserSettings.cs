@@ -36,4 +36,9 @@ public record UserSettings
     /// Gets the directory where SQLite database backups should be exported.
     /// </summary>
     public string DatabaseExportPath { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Gets the directory where cropped inspection images should be written.
+    /// </summary>
+    public string CropOutputDirectory { get; init; } = string.Empty;
 }

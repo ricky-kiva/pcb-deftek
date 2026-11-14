@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using pcb_deftek.Common.Storage;
 using pcb_deftek.Domain.Models;
 using pcb_deftek.Infrastructure.Inference;
 using pcb_deftek.Infrastructure.Notifications;
@@ -67,6 +68,9 @@ public partial class SettingsViewModel : ViewModelBase
     private string _databaseExportPath = string.Empty;
 
     [ObservableProperty]
+    private string _cropOutputDirectory = string.Empty;
+
+    [ObservableProperty]
     private bool _isExportingDatabase;
 
     [ObservableProperty]
@@ -124,6 +128,7 @@ public partial class SettingsViewModel : ViewModelBase
         SkipDashboardOnStartup = settings.SkipDashboardOnStartup;
         ReportExportPath = settings.ReportExportPath;
         DatabaseExportPath = settings.DatabaseExportPath;
+        CropOutputDirectory = settings.CropOutputDirectory;
         ExportStatusMessage = string.Empty;
     }
 
@@ -139,8 +144,15 @@ public partial class SettingsViewModel : ViewModelBase
             PreferredDevice = SelectedDevice,
             DefaultStartupPage = SelectedStartupPage,
             SkipDashboardOnStartup = SkipDashboardOnStartup,
-            ReportExportPath = string.IsNullOrWhiteSpace(ReportExportPath) ? _exportService.DefaultExportDirectory : ReportExportPath,
-            DatabaseExportPath = string.IsNullOrWhiteSpace(DatabaseExportPath) ? _exportService.DefaultExportDirectory : DatabaseExportPath
+            ReportExportPath = string.IsNullOrWhiteSpace(ReportExportPath)
+                ? KnownFolderPaths.GetReportExportDirectory()
+                : ReportExportPath,
+            DatabaseExportPath = string.IsNullOrWhiteSpace(DatabaseExportPath)
+                ? KnownFolderPaths.GetDatabaseBackupDirectory()
+                : DatabaseExportPath,
+            CropOutputDirectory = string.IsNullOrWhiteSpace(CropOutputDirectory)
+                ? KnownFolderPaths.GetCropImagesDirectory()
+                : CropOutputDirectory
         };
 
         await _settingsService.SaveSettingsAsync(settings).ConfigureAwait(false);

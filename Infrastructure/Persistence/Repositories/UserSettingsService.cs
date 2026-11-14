@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Messaging;
+using pcb_deftek.Common.Storage;
 using pcb_deftek.Domain.Models;
 using pcb_deftek.Domain.Models.Messages;
 using pcb_deftek.Infrastructure.Persistence.DatabaseExport;
@@ -21,6 +22,7 @@ public class UserSettingsService : IUserSettingsService
     public const string KeySkipDashboardOnStartup = "Settings:App:SkipDashboardOnStartup";
     public const string KeyReportExportPath = "Settings:Export:ReportPath";
     public const string KeyDatabaseExportPath = "Settings:Export:DatabasePath";
+    public const string KeyCropOutputDirectory = "Settings:Export:CropPath";
 
     private readonly ISettingsRepository _settingsRepository;
     private readonly IDatabaseExportService _exportService;
@@ -62,13 +64,19 @@ public class UserSettingsService : IUserSettingsService
             string? reportPath = await _settingsRepository.GetSettingAsync<string>(KeyReportExportPath, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(reportPath))
             {
-                reportPath = _exportService.DefaultExportDirectory;
+                reportPath = KnownFolderPaths.GetReportExportDirectory();
             }
 
             string? dbPath = await _settingsRepository.GetSettingAsync<string>(KeyDatabaseExportPath, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(dbPath))
             {
                 dbPath = _exportService.DefaultExportDirectory;
+            }
+
+            string? cropPath = await _settingsRepository.GetSettingAsync<string>(KeyCropOutputDirectory, cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(cropPath))
+            {
+                cropPath = KnownFolderPaths.GetCropImagesDirectory();
             }
 
             return new UserSettings
@@ -78,7 +86,8 @@ public class UserSettingsService : IUserSettingsService
                 DefaultStartupPage = defaultPage,
                 SkipDashboardOnStartup = skipDashboard,
                 ReportExportPath = reportPath,
-                DatabaseExportPath = dbPath
+                DatabaseExportPath = dbPath,
+                CropOutputDirectory = cropPath
             };
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -86,8 +95,9 @@ public class UserSettingsService : IUserSettingsService
             Log.Warning(ex, "Failed to load user settings from repository; utilizing default configuration: {Message}", ex.Message);
             return new UserSettings
             {
-                ReportExportPath = _exportService.DefaultExportDirectory,
-                DatabaseExportPath = _exportService.DefaultExportDirectory
+                ReportExportPath = KnownFolderPaths.GetReportExportDirectory(),
+                DatabaseExportPath = _exportService.DefaultExportDirectory,
+                CropOutputDirectory = KnownFolderPaths.GetCropImagesDirectory()
             };
         }
     }
@@ -103,6 +113,7 @@ public class UserSettingsService : IUserSettingsService
         await _settingsRepository.SetSettingAsync(KeySkipDashboardOnStartup, settings.SkipDashboardOnStartup, cancellationToken).ConfigureAwait(false);
         await _settingsRepository.SetSettingAsync(KeyReportExportPath, settings.ReportExportPath, cancellationToken).ConfigureAwait(false);
         await _settingsRepository.SetSettingAsync(KeyDatabaseExportPath, settings.DatabaseExportPath, cancellationToken).ConfigureAwait(false);
+        await _settingsRepository.SetSettingAsync(KeyCropOutputDirectory, settings.CropOutputDirectory, cancellationToken).ConfigureAwait(false);
 
         Log.Information("User settings saved successfully. Threshold: {Threshold}, Device: {Device}, Startup: {Page}",
             settings.ConfidenceThreshold, settings.PreferredDevice, settings.DefaultStartupPage);

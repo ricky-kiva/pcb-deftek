@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using pcb_deftek.Common.Exceptions;
+using pcb_deftek.Common.Storage;
 using pcb_deftek.Infrastructure.Persistence;
 using pcb_deftek.Infrastructure.Persistence.DatabaseExport;
 using Xunit;
@@ -50,6 +51,14 @@ public class SqliteDatabaseExportServiceTests : IDisposable
         {
             // Best effort cleanup in test temp
         }
+    }
+
+    [Fact]
+    public void DefaultExportDirectory_WhenNoOverride_UsesDatabaseBackupDirectory()
+    {
+        var service = new SqliteDatabaseExportService(_connectionFactory);
+
+        service.DefaultExportDirectory.Should().Be(KnownFolderPaths.GetDatabaseBackupDirectory());
     }
 
     [Fact]

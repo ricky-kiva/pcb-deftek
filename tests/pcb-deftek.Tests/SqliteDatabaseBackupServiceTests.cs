@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
+using pcb_deftek.Common.Storage;
 using pcb_deftek.Domain.Models;
 using pcb_deftek.Infrastructure.Persistence;
 using pcb_deftek.Infrastructure.Persistence.DatabaseBackup;
@@ -36,14 +37,14 @@ public class SqliteDatabaseBackupServiceTests : IDisposable
     }
 
     [Fact]
-    public void BackupDirectory_WhenDefault_ResolvesUnderDatabaseDirectory()
+    public void BackupDirectory_WhenDefault_ResolvesUnderDownloadsBackup()
     {
         // Arrange
         var defaultService = new SqliteDatabaseBackupService(_factory);
 
         // Assert
         defaultService.BackupDirectory.Should().NotBeNullOrWhiteSpace();
-        defaultService.BackupDirectory.Should().EndWith("backups");
+        defaultService.BackupDirectory.Should().Be(KnownFolderPaths.GetDatabaseBackupDirectory());
     }
 
     [Fact]
