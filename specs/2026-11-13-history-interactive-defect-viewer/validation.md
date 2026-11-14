@@ -82,7 +82,7 @@ Scenarios must run against an isolated SQLite database (reusing `TestSqliteConne
 - **Grouping:** cards are grouped by local calendar date with newest dates first; each record appears exactly once.
 - **Card content:** square 1:1 preview, PASS/FAIL badge in the top-left, record name, local timestamp, detection mode, defect count.
 - **Badges:** a record with 0 defects shows green `PASS`; 1+ defects shows red `FAIL` — including records whose defects are not loaded into the gallery page.
-- **Thumbnails:** generated off the UI thread, ≤240 px, frozen; missing/corrupt files show the image placeholder.
+- **Thumbnails:** generated off the UI thread, ≤240 px, frozen; missing/corrupt files show the image placeholder. **Revised by Phase 9:** those records are deleted and their cards removed during hydration (no placeholder remains).
 - **Paging:** "Load more" appends the next 60 records until `TotalItems`; no duplicates; button hides at the end.
 - **Empty state:** no records shows guidance to run File-Based or Live detection, not an error.
 - **Error state:** repository failure shows a retry action and logs the exception.

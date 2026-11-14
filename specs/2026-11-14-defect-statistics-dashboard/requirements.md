@@ -88,7 +88,7 @@ This phase builds directly on:
 | D9 | Metric cards share a common card shell; chart content is composed via templates, not a single over-configured card control | Keeps card structure consistent and chart rendering focused. |
 | D10 | Card order and column layout are persisted in `UserSettings` (`DashboardCardOrder`, `DashboardColumnLayout`); changes save immediately and survive page navigation and restart. Invalid/missing order falls back to the default order; invalid layout falls back to 2 columns. | User preference must not reset between pages or launches; the settings table is key-value, so no schema change is needed. |
 | D11 | 2-column layout is the default; 1-column stacks cards at full width. The saved layout overrides the default on load. | Preserves desktop density while supporting narrow/windowed use, with a durable user choice. |
-| D12 | PDF Export command raises an `ExportRequested` event carrying a snapshot of the active filter; Phase 9 subscribes and generates the report | Provides a real integration seam without shipping a fake PDF. |
+| D12 | PDF Export command raises an `ExportRequested` event carrying a snapshot of the active filter; Phase 9 subscribes and generates the report | Provides a real integration seam without shipping a fake PDF. **Superseded by Phase 9:** replaced by `IDashboardExportService` and a real export command. |
 | D13 | Notification modal binds to `IDashboardProgressService` state for inference and data-export operations; Phase 8 wires the service and displays idle/running/completed states | Keeps progress presentation testable and decoupled from the pages that produce progress. |
 | D14 | The "Skip dashboard on startup" checkbox remains on Dashboard long-term and reads/writes the existing setting | Dashboard is its permanent home after removal from Settings. |
 | D15 | Defect information images resolve from `Assets/Images/dashb-info-{abbreviation}.png` using lowercase abbreviations | Matches the nine existing assets exactly, independent of display-name spelling. |
@@ -176,7 +176,7 @@ The Dashboard Defect Information accordion MUST use the existing files under `As
 ### 6.5 Notification Modal
 
 - Displays two labeled progress bars: **Inference** and **Data export**.
-- Shows Idle / Running / Completed / Failed status and a percentage when known.
+- Shows Idle / Running / Completed / Failed status and a percentage when known. **Revised by Phase 9:** adds `Cancelled`, per-process Cancel buttons, and the `Alerts` → `Processes` rename with an activity notification dot (see `specs/2026-11-14-audit-ready-pdf-export-engine/requirements.md`, D21).
 - Accessible name for the dialog and each bar; close on `Esc` or close button.
 - No fake progress animation; values come from `IDashboardProgressService`.
 
@@ -211,7 +211,7 @@ The Dashboard Defect Information accordion MUST use the existing files under `As
 | Window too narrow for two columns | Layout toggle available; card content wraps without clipping |
 | Drag card over non-drop target | No reorder; original order retained |
 | Notification modal while idle | Both bars at 0% with Idle status; no timer runs |
-| PDF export clicked before Phase 9 | Command raises `ExportRequested`; no file is fabricated |
+| PDF export clicked before Phase 9 | Command raises `ExportRequested`; no file is fabricated (**superseded by Phase 9:** real export via `IDashboardExportService`) |
 
 ---
 

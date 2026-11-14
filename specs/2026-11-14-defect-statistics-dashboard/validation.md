@@ -73,7 +73,7 @@ Scenarios must use an isolated SQLite database and temporary data; no dependency
 - Defect Type and Severity are multi-select; OR within category, AND across categories.
 - Clear Filters resets all three categories and reloads.
 - Changing filters cancels an in-flight query; no stale metrics or charts are shown.
-- Export Data raises a filtered export request; no PDF file is fabricated in Phase 8.
+- Export Data raises a filtered export request; no PDF file is fabricated in Phase 8. **Phase 9 revision:** the seam is replaced by the PDF export engine.
 - Notifications opens the progress modal.
 - Layout toggle reflects 1-column/2-column state.
 
@@ -115,7 +115,7 @@ Scenarios must use an isolated SQLite database and temporary data; no dependency
 
 ### 3.5 Notification Modal
 
-- Displays Inference and Data export bars with Idle/Running/Completed/Failed status.
+- Displays Inference and Data export bars with Idle/Running/Completed/Failed status. **Phase 9 revision:** `Cancelled` status, per-process Cancel buttons, single idle status line, and Processes/activity-dot toolbar.
 - Progress values stay within 0–100; idle state shows 0% and no animation.
 - Modal is accessible and dismissible via `Esc`/close.
 - No fake progress timers.
