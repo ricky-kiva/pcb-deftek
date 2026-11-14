@@ -33,15 +33,7 @@ public sealed class ViewportTransform
             throw new ArgumentOutOfRangeException(nameof(imageHeight));
         }
 
-        if (!double.IsFinite(viewportWidth) || viewportWidth <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(viewportWidth));
-        }
-
-        if (!double.IsFinite(viewportHeight) || viewportHeight <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(viewportHeight));
-        }
+        ValidateViewport(viewportWidth, viewportHeight);
 
         ImageWidth = imageWidth;
         ImageHeight = imageHeight;
@@ -59,13 +51,13 @@ public sealed class ViewportTransform
     public double ImageHeight { get; }
 
     /// <summary>Gets the viewport width in device-independent units.</summary>
-    public double ViewportWidth { get; }
+    public double ViewportWidth { get; private set; }
 
     /// <summary>Gets the viewport height in device-independent units.</summary>
-    public double ViewportHeight { get; }
+    public double ViewportHeight { get; private set; }
 
     /// <summary>Gets the scale that fits the whole image inside the viewport.</summary>
-    public double FitScale { get; }
+    public double FitScale { get; private set; }
 
     /// <summary>Gets the current viewport units per image pixel.</summary>
     public double Scale { get; private set; }
@@ -169,6 +161,44 @@ public sealed class ViewportTransform
     }
 
     /// <summary>
+    /// Recomputes the fit scale for a new viewport size while preserving zoom and the image
+    /// center currently under the viewport center.
+    /// </summary>
+    public void Resize(double viewportWidth, double viewportHeight)
+    {
+        ValidateViewport(viewportWidth, viewportHeight);
+
+        double zoom = ZoomFactor;
+        double centerX = (((ViewportWidth / 2) - OffsetX) / Scale) / ImageWidth;
+        double centerY = (((ViewportHeight / 2) - OffsetY) / Scale) / ImageHeight;
+
+        ViewportWidth = viewportWidth;
+        ViewportHeight = viewportHeight;
+        FitScale = Math.Min(viewportWidth / ImageWidth, viewportHeight / ImageHeight);
+        Scale = Math.Clamp(FitScale * zoom, FitScale * MinZoom, FitScale * MaxZoom);
+        OffsetX = (ViewportWidth / 2) - (centerX * ImageWidth * Scale);
+        OffsetY = (ViewportHeight / 2) - (centerY * ImageHeight * Scale);
+        ClampOffsets();
+    }
+
+    /// <summary>
+    /// Applies a view state, clamping scale and offsets to the image bounds.
+    /// Used by focus/reset animation frames.
+    /// </summary>
+    public void SetView(double scale, double offsetX, double offsetY)
+    {
+        if (!double.IsFinite(scale) || !double.IsFinite(offsetX) || !double.IsFinite(offsetY))
+        {
+            throw new ArgumentOutOfRangeException(nameof(scale));
+        }
+
+        Scale = Math.Clamp(scale, FitScale * MinZoom, FitScale * MaxZoom);
+        OffsetX = offsetX;
+        OffsetY = offsetY;
+        ClampOffsets();
+    }
+
+    /// <summary>
     /// Gets the visible image region as normalized coordinates, clamped to the full image.
     /// </summary>
     public NormalizedRect GetVisibleNormalizedRect()
@@ -196,6 +226,19 @@ public sealed class ViewportTransform
     {
         OffsetX = ClampAxis(OffsetX, DisplayWidth, ViewportWidth);
         OffsetY = ClampAxis(OffsetY, DisplayHeight, ViewportHeight);
+    }
+
+    private static void ValidateViewport(double width, double height)
+    {
+        if (!double.IsFinite(width) || width <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (!double.IsFinite(height) || height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
     }
 
     private static double ClampAxis(double offset, double displayed, double viewport)
