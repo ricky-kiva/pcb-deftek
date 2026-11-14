@@ -183,6 +183,7 @@ public class InspectionViewerViewModelTests : IDisposable
         sut.CurrentName.Should().Be("Missing image");
         sut.DefectMarkers.Should().ContainSingle();
         sut.CropViewportCommand.CanExecute(NormalizedRect.Full).Should().BeFalse();
+        sut.DeleteImageCommand.CanExecute(null).Should().BeFalse();
     }
 
     [Fact]
@@ -219,6 +220,7 @@ public class InspectionViewerViewModelTests : IDisposable
 
         sut.IsDefectFocused.Should().BeTrue();
         sut.SelectedMarker.Should().Be(sut.DefectMarkers[0]);
+        sut.DefectMarkers[0].IsSelected.Should().BeTrue();
         sut.FocusedClassName.Should().Be("Short");
         sut.FocusedConfidenceText.Should().Be("80%");
         sut.FocusedSeverityText.Should().Be("Critical");
