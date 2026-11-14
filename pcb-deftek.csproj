@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Infrastructure\Persistence\Migrations\Scripts\*.sql" />
+    <Resource Include="Assets\Images\*.png" />
     <None Update="Assets\Models\best.onnx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -26,6 +26,9 @@ public sealed class DefectInfoItemViewModel
     /// <summary>Gets the taxonomy order index.</summary>
     public int ClassId => Info.ClassId;
 
+    /// <summary>Gets a value indicating whether this is the first accordion item.</summary>
+    public bool IsFirst => Info.ClassId == 0;
+
     /// <summary>Gets the display name.</summary>
     public string DisplayName => Info.DisplayName;
 
