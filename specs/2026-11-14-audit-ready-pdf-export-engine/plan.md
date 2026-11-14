@@ -307,14 +307,14 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Implement the QuestPDF document: A4 portrait, margins, header/filter summary, four metric blocks with SVG charts, and footer page numbering.
 - **Acceptance criteria:**
-  - [ ] Header renders title, generated timestamp, and filter summary.
-  - [ ] Four blocks render in fixed canonical order, each with title/value/caption/chart.
-  - [ ] Footer shows `Page x of y`.
-  - [ ] Metric charts render correctly for zero/single/many buckets.
-  - [ ] Document composition has no UI-thread dependency.
+  - [x] Header renders title, generated timestamp, and filter summary.
+  - [x] Four blocks render in fixed canonical order, each with title/value/caption/chart.
+  - [x] Footer shows `Page x of y`.
+  - [x] Metric charts render correctly for zero/single/many buckets.
+  - [x] Document composition has no UI-thread dependency.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardReportDocumentTests`
-  - [ ] Generated PDF starts with `%PDF-` and is non-trivial in size.
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardReportDocumentTests`
+  - [x] Generated PDF starts with `%PDF-` and is non-trivial in size.
 - **Dependencies:** Tasks 4.1, 4.2
 - **Files:**
   - `Infrastructure/Export/DashboardReportDocument.cs`
@@ -325,14 +325,14 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Compose evidence pages: inspection heading, metadata line, annotated image at maximum 40 % of the content width, and a three-column defect table (Class, Confidence, Severity).
 - **Acceptance criteria:**
-  - [ ] Evidence section starts on a new page and lists newest-first.
-  - [ ] Each block shows name, local timestamp, mode, PASS/FAIL, and defect count.
-  - [ ] The image never exceeds 40 % of the content width and preserves aspect ratio.
-  - [ ] The defect table has exactly three columns: Class, Confidence, Severity (no abbreviation).
-  - [ ] Zero-defect inspections show image + metadata only.
-  - [ ] Evidence blocks receive only valid, staged images; no `Image unavailable` placeholder exists.
+  - [x] Evidence section starts on a new page and lists newest-first.
+  - [x] Each block shows name, local timestamp, mode, PASS/FAIL, and defect count.
+  - [x] The image never exceeds 40 % of the content width and preserves aspect ratio.
+  - [x] The defect table has exactly three columns: Class, Confidence, Severity (no abbreviation).
+  - [x] Zero-defect inspections show image + metadata only.
+  - [x] Evidence blocks receive only valid, staged images; no `Image unavailable` placeholder exists.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardReportDocumentTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardReportDocumentTests`
 - **Dependencies:** Task 5.1
 - **Files:**
   - `Infrastructure/Export/DashboardReportDocument.cs`
@@ -343,23 +343,23 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Generate a document with mixed PASS/FAIL data, all nine classes, and multi-page evidence into a temp directory; assert the file signature, non-zero size, no staged leftovers, and cleanup.
 - **Acceptance criteria:**
-  - [ ] Test writes and deletes only under its own temp root.
-  - [ ] PDF signature is `%PDF-` and size exceeds a minimal threshold.
-  - [ ] Generation succeeds with 0 defects and with 9 classes present.
-  - [ ] No file handle leaks (temp folder deletes cleanly).
+  - [x] Test writes and deletes only under its own temp root.
+  - [x] PDF signature is `%PDF-` and size exceeds a minimal threshold.
+  - [x] Generation succeeds with 0 defects and with 9 classes present.
+  - [x] No file handle leaks (temp folder deletes cleanly).
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardPdfExportServiceTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardReportPdfSmokeTests`
 - **Dependencies:** Task 5.2
 - **Files:**
-  - `tests/pcb-deftek.Tests/DashboardPdfExportServiceTests.cs`
+  - `tests/pcb-deftek.Tests/DashboardReportPdfSmokeTests.cs`
 - **Estimated scope:** S (1 file)
 
 ---
 
 ### Checkpoint 5: Report Renders Correctly
-- [ ] A real PDF opens and contains all sections.
-- [ ] Evidence image width and table columns match the revision.
-- [ ] Generation is measured once for a 100-inspection corpus.
+- [ ] A real PDF opens and contains all sections. Automated composition tests assert header/metrics/evidence/footer and a valid `%PDF-` signature; no interactive PDF viewer was used.
+- [x] Evidence image width and table columns match the revision.
+- [ ] Generation is measured once for a 100-inspection corpus. Deferred to Group 6/validation; the 12-inspection smoke test completes successfully.
 
 ---
 
