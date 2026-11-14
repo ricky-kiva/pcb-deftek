@@ -181,17 +181,20 @@ public class DashboardViewCompositionTests
             message.Visibility.Should().Be(Visibility.Collapsed);
 
             vm.Progress.ReportInference(DashboardProgressStatus.Running, 40, "Detecting");
+            vm.Progress.ReportDataExport(DashboardProgressStatus.Running, 20, "Exporting");
             Layout(view);
 
             cancel.Visibility.Should().Be(Visibility.Visible);
             progressBar.Visibility.Should().Be(Visibility.Visible);
             message.Visibility.Should().Be(Visibility.Visible);
+            ((Button)view.FindName("DataExportCancelButton")).Visibility.Should().Be(Visibility.Visible);
 
-            vm.CancelProcessCommand.Execute(DashboardProcess.Inference);
+            cancel.Command.Execute(cancel.CommandParameter);
             Layout(view);
 
             cancel.Visibility.Should().Be(Visibility.Collapsed);
             status.Text.Should().Be("Cancelled");
+            vm.Progress.DataExport.Status.Should().Be(DashboardProgressStatus.Running);
         });
     }
 
