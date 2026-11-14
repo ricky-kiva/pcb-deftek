@@ -5,6 +5,7 @@ using System.Linq;
 using FluentAssertions;
 using pcb_deftek.Domain.Models;
 using pcb_deftek.Presentation.ViewModels;
+using pcb_deftek.Presentation.Models;
 using Xunit;
 
 namespace pcb_deftek.Tests;
@@ -22,7 +23,7 @@ public class HistoryFilterViewModelTests
     {
         var sut = new HistoryFilterViewModel();
 
-        sut.SelectedPreset.Should().Be(HistoryDatePreset.None);
+        sut.SelectedPreset.Should().Be(DateRangePreset.None);
         sut.HasActiveFilters.Should().BeFalse();
         sut.SelectedStatuses.Should().BeEmpty();
         sut.SelectedClasses.Should().BeEmpty();
@@ -70,7 +71,7 @@ public class HistoryFilterViewModelTests
     [Fact]
     public void DayPreset_ProducesInclusiveLocalDayBoundsInUtc()
     {
-        var sut = new HistoryFilterViewModel { SelectedPreset = HistoryDatePreset.Day };
+        var sut = new HistoryFilterViewModel { SelectedPreset = DateRangePreset.Day };
 
         var filter = sut.ToQueryFilter(1, 60);
 
@@ -81,7 +82,7 @@ public class HistoryFilterViewModelTests
     [Fact]
     public void WeekPreset_UsesCultureFirstDayOfWeek()
     {
-        var sut = new HistoryFilterViewModel { SelectedPreset = HistoryDatePreset.Week };
+        var sut = new HistoryFilterViewModel { SelectedPreset = DateRangePreset.Week };
 
         var filter = sut.ToQueryFilter(1, 60);
 
@@ -97,7 +98,7 @@ public class HistoryFilterViewModelTests
     [Fact]
     public void MonthPreset_ProducesCurrentMonthBounds()
     {
-        var sut = new HistoryFilterViewModel { SelectedPreset = HistoryDatePreset.Month };
+        var sut = new HistoryFilterViewModel { SelectedPreset = DateRangePreset.Month };
 
         var filter = sut.ToQueryFilter(1, 60);
 
@@ -116,7 +117,7 @@ public class HistoryFilterViewModelTests
         var end = new DateTime(2026, 11, 5);
         var sut = new HistoryFilterViewModel
         {
-            SelectedPreset = HistoryDatePreset.Custom,
+            SelectedPreset = DateRangePreset.Custom,
             CustomStartDate = start,
             CustomEndDate = end
         };
@@ -133,7 +134,7 @@ public class HistoryFilterViewModelTests
     {
         var sut = new HistoryFilterViewModel
         {
-            SelectedPreset = HistoryDatePreset.Custom,
+            SelectedPreset = DateRangePreset.Custom,
             CustomStartDate = new DateTime(2026, 11, 5),
             CustomEndDate = new DateTime(2026, 11, 1)
         };
@@ -149,7 +150,7 @@ public class HistoryFilterViewModelTests
     [Fact]
     public void ClearAll_ResetsPresetDatesStatusesAndClasses()
     {
-        var sut = new HistoryFilterViewModel { SelectedPreset = HistoryDatePreset.Day };
+        var sut = new HistoryFilterViewModel { SelectedPreset = DateRangePreset.Day };
         sut.StatusOptions[0].IsSelected = true;
         sut.ClassOptions[0].IsSelected = true;
         sut.CustomStartDate = DateTime.Today;
@@ -157,7 +158,7 @@ public class HistoryFilterViewModelTests
 
         sut.ClearAll();
 
-        sut.SelectedPreset.Should().Be(HistoryDatePreset.None);
+        sut.SelectedPreset.Should().Be(DateRangePreset.None);
         sut.CustomStartDate.Should().BeNull();
         sut.CustomEndDate.Should().BeNull();
         sut.SelectedStatuses.Should().BeEmpty();
@@ -194,7 +195,7 @@ public class HistoryFilterViewModelTests
         int changes = 0;
         sut.FiltersChanged += (_, _) => changes++;
 
-        sut.SelectedPreset = HistoryDatePreset.Day;
+        sut.SelectedPreset = DateRangePreset.Day;
         sut.StatusOptions.Single(option => option.Value == InspectionStatus.Pass).IsSelected = true;
         sut.ClassOptions.Single(option => option.Value == DefectClass.Spur).IsSelected = true;
 

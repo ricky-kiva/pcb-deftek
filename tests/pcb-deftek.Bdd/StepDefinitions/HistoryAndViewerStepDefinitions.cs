@@ -16,6 +16,7 @@ using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
 using pcb_deftek.Presentation.Services;
 using pcb_deftek.Presentation.ViewModels;
+using pcb_deftek.Presentation.Models;
 using Reqnroll;
 
 namespace pcb_deftek.Bdd.StepDefinitions;
@@ -252,7 +253,7 @@ public class HistoryAndViewerStepDefinitions : IDisposable
     public async Task WhenIFilterToTodayFailAndShort()
     {
         await LoadHistory();
-        _history.Filters.SelectedPreset = HistoryDatePreset.Day;
+        _history.Filters.SelectedPreset = DateRangePreset.Day;
         _history.Filters.StatusOptions.Single(option => option.Value == InspectionStatus.Fail).IsSelected = true;
         _history.Filters.ClassOptions.Single(option => option.Value == DefectClass.Short).IsSelected = true;
         await _history.LoadFirstPageAsync();

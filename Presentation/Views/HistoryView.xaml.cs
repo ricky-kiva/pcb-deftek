@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using pcb_deftek.Presentation.ViewModels;
+using pcb_deftek.Presentation.Models;
 
 namespace pcb_deftek.Presentation.Views;
 
@@ -25,17 +26,17 @@ public partial class HistoryView : UserControl
     private void OnDatePresetClick(object sender, RoutedEventArgs e)
     {
         if (sender is not ToggleButton { Tag: string tag } ||
-            !Enum.TryParse<HistoryDatePreset>(tag, out var preset) ||
+            !Enum.TryParse<DateRangePreset>(tag, out var preset) ||
             ViewModel is not { } viewModel)
         {
             return;
         }
 
         viewModel.Filters.SelectedPreset = viewModel.Filters.SelectedPreset == preset
-            ? HistoryDatePreset.None
+            ? DateRangePreset.None
             : preset;
 
-        if (preset != HistoryDatePreset.Custom)
+        if (preset != DateRangePreset.Custom)
         {
             CustomDatePopup.IsOpen = false;
         }
@@ -51,15 +52,15 @@ public partial class HistoryView : UserControl
         bool opening = !CustomDatePopup.IsOpen;
         CustomDatePopup.IsOpen = opening;
 
-        if (opening && viewModel.Filters.SelectedPreset != HistoryDatePreset.Custom)
+        if (opening && viewModel.Filters.SelectedPreset != DateRangePreset.Custom)
         {
-            viewModel.Filters.SelectedPreset = HistoryDatePreset.Custom;
+            viewModel.Filters.SelectedPreset = DateRangePreset.Custom;
         }
 
         // Keep the chip active while the custom preset is applied, even when the flyout closes.
         CustomDateToggle.SetCurrentValue(
             ToggleButton.IsCheckedProperty,
-            viewModel.Filters.SelectedPreset == HistoryDatePreset.Custom);
+            viewModel.Filters.SelectedPreset == DateRangePreset.Custom);
     }
 
     private void OnFilterChipClick(object sender, RoutedEventArgs e)
