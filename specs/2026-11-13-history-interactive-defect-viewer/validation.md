@@ -6,9 +6,9 @@
 - **Pass condition:** exit code 0, 0 errors, 0 warnings.
 - **Nullable:** nullable reference types enabled across all new code; no `#nullable disable`, no suppression attributes added.
 - **Architecture:** no `System.Windows.Controls` references in ViewModels; no SQL outside `Infrastructure/Persistence`; no direct file-system writes or deletes outside Infrastructure services.
-- **Destructive operations:** record/file deletion only through `IInspectionDeletionService` after `IConfirmationService` approval; deletion targets must resolve under the app-owned Captures root.
+- **Destructive operations:** record/file deletion only through `IInspectionDeletionService` after `IConfirmationService` approval; deletion targets must be app-owned crops under the configured image output root or live captures under the legacy/image roots.
 - **Dependencies:** no new NuGet packages; `pcb-deftek.csproj` package list unchanged.
-- **Database:** no schema migration added. Migration count remains 1.
+- **Database:** migration version 2 adds `Inspections.Origin` to distinguish app-generated crops/captures from external imports.
 - **Files:** no hardcoded absolute user paths; Downloads resolved through `KnownFolderPaths`; app data rooted under `%LOCALAPPDATA%\PcbDeftek\pcb-deftek`.
 
 ---
@@ -105,9 +105,9 @@ Scenarios must run against an isolated SQLite database (reusing `TestSqliteConne
 - Each card exposes a selection checkbox; clicking it toggles selection without opening the viewer; selected cards have a visible highlight.
 - "Select Loaded" selects all currently loaded cards; "Clear Selection" deselects all; selection survives Load More and is cleared by filter changes, refresh, and navigation.
 - "Delete Selected (N)" is disabled at `N = 0` and while deletion runs; the count matches selected cards.
-- Invoking delete shows a confirmation dialog naming the record count and the policy: app-owned captures are deleted, user originals are kept. Default action is Cancel.
+- Invoking delete shows a confirmation dialog naming the record count and the policy: app-owned crops and captures are deleted, user originals are kept. Default action is Cancel.
 - **Cancel** closes the dialog and changes nothing (no database writes, no file deletions, selection intact).
-- **Confirm** deletes the selected database rows and their defects in one transaction, then deletes only app-owned capture files (`LiveCamera`) under the captures root, including the `_annotated` sibling; `SingleFile`/`BatchFolder` originals remain on disk.
+- **Confirm** deletes the selected database rows and their defects in one transaction, then deletes only app-owned files: `Crop` records remove their image under the configured image output root; `LiveCamera` records remove raw and `_annotated` files under the legacy captures root or image output root. `SingleFile`/`BatchFolder` imports remain on disk.
 - After success: deleted cards disappear, date groups are recomputed, `TotalCount` updates, selection clears, and a toast reports records deleted and files cleaned.
 - If the deleted set includes the record open in the viewer, the viewer closes and its state clears.
 - A database failure leaves all rows/files intact, keeps selection, and shows an error; file-cleanup failures after a committed row delete are reported as warnings without resurrecting rows.
@@ -269,8 +269,8 @@ Phase 7 may merge into `main` only when:
 2. `dotnet build pcb-deftek.slnx` succeeds with 0 errors and 0 warnings.
 3. `dotnet test pcb-deftek.slnx` passes 100% (no skipped tests), with no regression against the 452-test Phase 6 baseline.
 4. All functional acceptance criteria in §3 are verified; performance gates in §4 are met.
-5. Deletion policy is proven by tests: database rows and app-owned captures are deleted, user originals survive, and out-of-root paths are never deleted.
-6. No new dependencies, no schema migration, no hardcoded user paths.
+5. Deletion policy is proven by tests: database rows and app-owned crops/captures are deleted, user originals survive, and out-of-root paths are never deleted.
+6. No new dependencies, no hardcoded user paths; the `Origin` migration is the only schema addition.
 7. Clean Git history following the 6-step lifecycle in `AGENTS.md`.
 8. Pull Request is linked to its issue and passes the 4-step Feature Review and Quality Improvement pipeline (`code-review-and-quality`, `code-simplification`, `performance-optimization`, `security-and-hardening`).
 9. Human review approval is recorded before merge; the PR is not self-merged.

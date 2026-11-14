@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using pcb_deftek.Common.Storage;
 using pcb_deftek.Domain.Models;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 
@@ -22,7 +23,9 @@ public sealed class InspectionDeletionService : IInspectionDeletionService
 
     private readonly IInspectionRepository _repository;
     private readonly ILogger<InspectionDeletionService> _logger;
+    private readonly IUserSettingsService? _settingsService;
     private readonly string _capturesRoot;
+    private readonly string? _imageOutputRootOverride;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InspectionDeletionService"/> class.
@@ -30,18 +33,28 @@ public sealed class InspectionDeletionService : IInspectionDeletionService
     /// <param name="repository">Repository used for record lookup and transactional deletion.</param>
     /// <param name="logger">Optional logger instance.</param>
     /// <param name="capturesDirectoryPath">
-    /// Optional captures root override (used by tests). Defaults to the application's live-capture directory.
+    /// Optional legacy captures root override (used by tests). Defaults to the application's legacy capture directory.
     /// </param>
+    /// <param name="imageOutputDirectory">
+    /// Optional image output root override (used by tests). Defaults to the configured image output directory.
+    /// </param>
+    /// <param name="settingsService">Optional settings service supplying the image output directory.</param>
     public InspectionDeletionService(
         IInspectionRepository repository,
         ILogger<InspectionDeletionService>? logger = null,
-        string? capturesDirectoryPath = null)
+        string? capturesDirectoryPath = null,
+        string? imageOutputDirectory = null,
+        IUserSettingsService? settingsService = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _logger = logger ?? NullLogger<InspectionDeletionService>.Instance;
+        _settingsService = settingsService;
+        _imageOutputRootOverride = string.IsNullOrWhiteSpace(imageOutputDirectory)
+            ? null
+            : NormalizeDirectory(imageOutputDirectory);
         _capturesRoot = NormalizeDirectory(
             string.IsNullOrWhiteSpace(capturesDirectoryPath)
-                ? LiveSnapshotService.GetDefaultCapturesDirectoryPath()
+                ? GetLegacyCapturesDirectoryPath()
                 : capturesDirectoryPath);
     }
 
@@ -75,20 +88,47 @@ public sealed class InspectionDeletionService : IInspectionDeletionService
 
         int deletedFiles = 0;
         var failedFiles = new List<string>();
+        string imageOutputRoot = await ResolveImageOutputRootAsync(cancellationToken).ConfigureAwait(false);
 
         foreach (var summary in summaries)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (summary.Mode != DetectionMode.LiveCamera)
+            if (summary.Origin == InspectionOrigin.Crop)
+            {
+                if (!IsWithinRoot(summary.ImagePath, imageOutputRoot))
+                {
+                    _logger.LogWarning(
+                        "Skipped deleting cropped image outside the image output root for inspection {InspectionId}: {ImagePath}",
+                        summary.Id,
+                        summary.ImagePath);
+                    continue;
+                }
+
+                if (TryDeleteFile(summary.ImagePath, failedFiles))
+                {
+                    deletedFiles++;
+                }
+
+                continue;
+            }
+
+            bool isLiveCapture =
+                summary.Origin == InspectionOrigin.LiveCapture ||
+                summary.Mode == DetectionMode.LiveCamera;
+
+            if (!isLiveCapture)
             {
                 continue;
             }
 
-            if (!IsWithinCapturesRoot(summary.ImagePath))
+            bool inLegacyCaptures = IsWithinRoot(summary.ImagePath, _capturesRoot);
+            bool inImageOutput = IsWithinRoot(summary.ImagePath, imageOutputRoot);
+
+            if (!inLegacyCaptures && !inImageOutput)
             {
                 _logger.LogWarning(
-                    "Skipped deleting capture file outside the captures root for inspection {InspectionId}: {ImagePath}",
+                    "Skipped deleting capture file outside the owned roots for inspection {InspectionId}: {ImagePath}",
                     summary.Id,
                     summary.ImagePath);
                 continue;
@@ -100,7 +140,9 @@ public sealed class InspectionDeletionService : IInspectionDeletionService
             }
 
             string? annotatedPath = GetAnnotatedSiblingPath(summary.ImagePath);
-            if (annotatedPath != null && IsWithinCapturesRoot(annotatedPath) && TryDeleteFile(annotatedPath, failedFiles))
+            if (annotatedPath != null &&
+                (IsWithinRoot(annotatedPath, _capturesRoot) || IsWithinRoot(annotatedPath, imageOutputRoot)) &&
+                TryDeleteFile(annotatedPath, failedFiles))
             {
                 deletedFiles++;
             }
@@ -135,7 +177,7 @@ public sealed class InspectionDeletionService : IInspectionDeletionService
         }
     }
 
-    private bool IsWithinCapturesRoot(string path)
+    private bool IsWithinRoot(string path, string root)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -149,11 +191,12 @@ public sealed class InspectionDeletionService : IInspectionDeletionService
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
-            _logger.LogWarning(ex, "Rejected invalid capture path '{FilePath}'.", path);
+            _logger.LogWarning(ex, "Rejected invalid image path '{FilePath}'.", path);
             return false;
         }
 
-        return fullPath.StartsWith(_capturesRoot, StringComparison.OrdinalIgnoreCase);
+        return fullPath.Length > root.Length &&
+               fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? GetAnnotatedSiblingPath(string rawImagePath)
@@ -161,6 +204,42 @@ public sealed class InspectionDeletionService : IInspectionDeletionService
         return rawImagePath.EndsWith(RawImageSuffix, StringComparison.OrdinalIgnoreCase)
             ? string.Concat(rawImagePath.AsSpan(0, rawImagePath.Length - RawImageSuffix.Length), AnnotatedImageSuffix)
             : null;
+    }
+
+    private async Task<string> ResolveImageOutputRootAsync(CancellationToken cancellationToken)
+    {
+        if (_imageOutputRootOverride is not null)
+        {
+            return _imageOutputRootOverride;
+        }
+
+        if (_settingsService is not null)
+        {
+            try
+            {
+                var settings = await _settingsService.LoadSettingsAsync(cancellationToken).ConfigureAwait(false);
+                if (!string.IsNullOrWhiteSpace(settings.ImageOutputDirectory))
+                {
+                    return NormalizeDirectory(settings.ImageOutputDirectory);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to read the configured image output directory; using the default.");
+            }
+        }
+
+        return NormalizeDirectory(KnownFolderPaths.GetCropImagesDirectory());
+    }
+
+    private static string GetLegacyCapturesDirectoryPath()
+    {
+        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return Path.Combine(localAppData, "PcbDeftek", "pcb-deftek", "Captures");
     }
 
     private static string NormalizeDirectory(string path)

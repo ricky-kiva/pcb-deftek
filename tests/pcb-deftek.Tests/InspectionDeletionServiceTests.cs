@@ -23,6 +23,7 @@ public class InspectionDeletionServiceTests : IDisposable
 {
     private readonly string _testRoot;
     private readonly string _capturesRoot;
+    private readonly string _imageOutputRoot;
     private readonly string _databasePath;
     private readonly SqliteInspectionRepository _repository;
     private readonly InspectionDeletionService _service;
@@ -31,8 +32,10 @@ public class InspectionDeletionServiceTests : IDisposable
     {
         _testRoot = Path.Combine(Path.GetTempPath(), $"pcb-deftek-delete-{Guid.NewGuid():N}");
         _capturesRoot = Path.Combine(_testRoot, "Captures");
+        _imageOutputRoot = Path.Combine(_testRoot, "Images");
         _databasePath = Path.Combine(_testRoot, "app.db");
         Directory.CreateDirectory(_capturesRoot);
+        Directory.CreateDirectory(_imageOutputRoot);
 
         var factory = new SqliteConnectionFactory(_databasePath);
         new SqliteDatabaseMigrator(factory).MigrateToLatestAsync().GetAwaiter().GetResult();
@@ -40,7 +43,8 @@ public class InspectionDeletionServiceTests : IDisposable
         _service = new InspectionDeletionService(
             _repository,
             NullLogger<InspectionDeletionService>.Instance,
-            _capturesRoot);
+            _capturesRoot,
+            _imageOutputRoot);
     }
 
     private static InspectionRecord CreateRecord(
@@ -98,6 +102,98 @@ public class InspectionDeletionServiceTests : IDisposable
         (await _repository.GetByIdAsync(record.Id)).Should().BeNull();
         File.Exists(rawPath).Should().BeFalse();
         File.Exists(annotatedPath).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DeleteManyAsync_DeletesCroppedImageFile()
+    {
+        var id = Guid.NewGuid();
+        string cropPath = Path.Combine(_imageOutputRoot, $"{id:N}_crop.png");
+        File.WriteAllBytes(cropPath, new byte[] { 7, 8, 9 });
+        var record = new InspectionRecord(
+            id,
+            "cropped-board",
+            DateTime.UtcNow,
+            DateTime.UtcNow,
+            DetectionMode.SingleFile,
+            cropPath,
+            origin: InspectionOrigin.Crop);
+        await _repository.InsertAsync(record);
+
+        var result = await _service.DeleteManyAsync(new[] { id });
+
+        result.DeletedRecordCount.Should().Be(1);
+        result.DeletedFileCount.Should().Be(1);
+        File.Exists(cropPath).Should().BeFalse();
+        (await _repository.GetByIdAsync(id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteManyAsync_DeletesCaptureFilesInImageOutputDirectory()
+    {
+        var id = Guid.NewGuid();
+        string rawPath = Path.Combine(_imageOutputRoot, $"{id:N}_raw.png");
+        string annotatedPath = Path.Combine(_imageOutputRoot, $"{id:N}_annotated.png");
+        File.WriteAllBytes(rawPath, new byte[] { 1 });
+        File.WriteAllBytes(annotatedPath, new byte[] { 2 });
+        var record = new InspectionRecord(
+            id,
+            "captured-board",
+            DateTime.UtcNow,
+            DateTime.UtcNow,
+            DetectionMode.LiveCamera,
+            rawPath);
+        await _repository.InsertAsync(record);
+
+        var result = await _service.DeleteManyAsync(new[] { id });
+
+        result.DeletedFileCount.Should().Be(2);
+        File.Exists(rawPath).Should().BeFalse();
+        File.Exists(annotatedPath).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DeleteManyAsync_ExternalImportInsideImageRoot_KeepsFile()
+    {
+        var id = Guid.NewGuid();
+        string externalPath = Path.Combine(_imageOutputRoot, $"{id:N}_import.png");
+        File.WriteAllBytes(externalPath, new byte[] { 4, 5, 6 });
+        var record = new InspectionRecord(
+            id,
+            "external-import",
+            DateTime.UtcNow,
+            DateTime.UtcNow,
+            DetectionMode.SingleFile,
+            externalPath);
+        await _repository.InsertAsync(record);
+
+        var result = await _service.DeleteManyAsync(new[] { id });
+
+        result.DeletedRecordCount.Should().Be(1);
+        result.DeletedFileCount.Should().Be(0);
+        File.Exists(externalPath).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DeleteManyAsync_CroppedPathOutsideImageRoot_KeepsExternalFile()
+    {
+        var id = Guid.NewGuid();
+        string externalPath = Path.Combine(_testRoot, "external.png");
+        File.WriteAllBytes(externalPath, new byte[] { 3 });
+        var record = new InspectionRecord(
+            id,
+            "external-cropped",
+            DateTime.UtcNow,
+            DateTime.UtcNow,
+            DetectionMode.SingleFile,
+            externalPath,
+            origin: InspectionOrigin.Crop);
+        await _repository.InsertAsync(record);
+
+        var result = await _service.DeleteManyAsync(new[] { id });
+
+        result.DeletedFileCount.Should().Be(0);
+        File.Exists(externalPath).Should().BeTrue();
     }
 
     [Fact]

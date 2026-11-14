@@ -25,7 +25,7 @@ This phase builds directly on:
 | Status filter | Applied in SQL via `DefectCount = 0` / `> 0`, which works | Reuse and extend to a multi-select set |
 | Record names | Mutable through `IInspectionRepository.UpdateNameAsync`; no uniqueness constraint | Inline rename uses this API |
 | `ImagePath` (file/batch) | Points at the **original user file** | Viewer must handle moved/deleted files |
-| `ImagePath` (live camera) | Points at `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\Captures\{id}_raw.png`; annotated sibling `{id}_annotated.png` exists | Viewer must use the raw image so boxes are not drawn twice |
+| `ImagePath` (live camera) | Points at the configured image output directory (default `Downloads\PCB Deftek\Images`) as `{id}_raw.png`; annotated sibling `{id}_annotated.png` exists | Viewer must use the raw image so boxes are not drawn twice |
 | Bounding boxes | Normalized `0.0–1.0` in `BoundingBox` (already rendered by `ImageAnnotationService`) | Overlay geometry is resolution-independent |
 | Defect colors | Private switch in `ImageAnnotationService.GetDefectColor` (OpenCV BGR `Scalar`) | Viewer needs the same colors in WPF; extract one source of truth |
 | Viewer primitives | None (no zoom/pan/crop code); `IconZoomReset` and `IconCrop` already exist in `Icons.xaml` | Build the viewer from scratch |
@@ -65,7 +65,7 @@ This phase builds directly on:
 3. **Enablers**
    - `InspectionSummary` read projection so the gallery gets accurate defect counts without loading defect rows.
    - Query-filter extension for date presets, multi-status, and defect-class matching.
-   - `IInspectionDeletionService` for transactional multi-record deletion and app-owned capture cleanup.
+   - `IInspectionDeletionService` for transactional multi-record deletion and app-owned crop/capture cleanup.
    - `IConfirmationService` for mandatory destructive-action confirmation.
    - Shared defect color source usable from both OpenCV annotation and WPF overlays.
    - `IViewportCropService` using OpenCvSharp to crop the source image at native resolution.
@@ -102,16 +102,16 @@ This phase builds directly on:
 | D13 | Viewer decodes the source at native resolution (no downscale) | Defect focus must stay crisp at high zoom. Files are loaded one at a time. |
 | D14 | Crop output name: `{recordName}_crop_{yyyyMMdd-HHmmss}.png`, sanitized and collision-suffixed | Human-readable exports; no overwrites; names are user-editable so sanitization is required. |
 | D15 | Zoom range 0.5×–10× of fit; pan is clamped so the image cannot leave the viewport | Predictable interaction and no "lost image" state. |
-| D16 | No new NuGet packages; no database schema changes | All required capability is present (`OpenCvSharp4`, WPF, existing repository). Ask-first constraints satisfied. |
+| D16 | No new NuGet packages; one additive schema migration adds `Inspections.Origin` to distinguish app-generated crops/captures from external imports | All required capability is present; durable provenance is required to delete only app-owned files safely. |
 | D17 | Extend `InspectionQueryFilter` additively with `Statuses` (set) and `DefectClasses` (set); keep the existing single `Status` property, with `Statuses` taking precedence when non-empty | Existing callers keep working; History gains multi-select semantics without a breaking change. |
 | D18 | Apply History filtering in a shared SQL predicate builder used by both `GetPagedAsync` and `GetSummariesPagedAsync` | Prevents the two query paths from drifting; filter totals and pages stay consistent. |
 | D19 | Class filter uses `EXISTS` against `Defects` and matches **any** selected class; defectless (PASS) records never match a class filter | Correct "contains any selected class" semantics without duplicating rows in the page query. |
 | D20 | Date presets: Day = local today, Week = current local week (culture first day), Month = current local month, Custom = inclusive local start/end; no preset selected = all time | Matches user expectations; storage remains UTC and bounds are converted to UTC for SQL. |
 | D21 | Filter changes reload from page 1 and clear selection; "Select loaded" selects only cards currently in the list | Predictable selection scope; no hidden server-side select-all across unloaded pages. |
-| D22 | Deletion policy: delete database rows and their defects in one transaction first, then delete **only** app-owned capture files under the configured Captures root (raw + `_annotated` sibling). User-owned originals for `SingleFile`/`BatchFolder` are never modified or deleted. Missing files are ignored; cleanup failures are logged and reported, while the committed row deletion stands. | Matches the approved "delete app-owned captures, keep user originals" policy; DB-first ordering avoids orphaned rows pointing at already-deleted files. |
+| D22 | Deletion policy: delete database rows and their defects in one transaction first, then delete **only** app-owned files. `Crop` origin removes the crop image under the configured image output root; `LiveCamera` removes the raw and `_annotated` files under the legacy captures root or image output root. External `SingleFile`/`BatchFolder` originals are never modified or deleted. Missing files are ignored; cleanup failures are logged and reported, while the committed row deletion stands. | Matches the approved "delete app-owned images, keep user originals" policy; DB-first ordering avoids orphaned rows pointing at already-deleted files. |
 | D23 | One `IInspectionDeletionService` serves both batch gallery deletion and the viewer sidebar action; repository gains `DeleteManyAsync` (single transaction) and a single-query path lookup for the requested IDs | One behavior, one policy, one test surface; no duplicated deletion logic. |
 | D24 | Destructive actions require confirmation through `IConfirmationService`; the WPF implementation is a native modal dialog whose default button is Cancel | Irreversible data loss must be explicit; a thin interface keeps view models testable. |
-| D25 | The viewer's `Delete Image` deletes the **current inspection** (record + app-owned captures) under D22; on success it closes the viewer and removes the card, on failure it keeps the viewer open and reports the error | "Delete image" in the sidebar refers to the viewed inspection; leaving a record pointing at a deleted file would be inconsistent. |
+| D25 | The viewer's `Delete Image` deletes the **current inspection** (record + app-owned crop/captures under D22); on success it closes the viewer and removes the card, on failure it keeps the viewer open and reports the error | "Delete image" in the sidebar refers to the viewed inspection; leaving a record pointing at a deleted file would be inconsistent. |
 | D26 | Gallery selection uses explicit per-card checkboxes; clicking the thumbnail still opens the viewer, clicking the checkbox only toggles selection | Avoids destructive ambiguity between "open" and "select". |
 | D27 | Sidebar `Delete Image` is rendered in both sidebar states below the state content, with destructive styling and disabled state while deletion runs | The action must remain available when a defect is focused; the label and styling signal irreversibility. |
 
@@ -137,7 +137,7 @@ This phase builds directly on:
 - Double-click filename starts inline editing.
 - Clicking a thumbnail opens the Interactive Image Viewer.
 - **States:** no history at all → guidance to run File or Live detection; no matches for active filters → "No inspections match these filters" with a **Clear filters** action.
-- **Delete confirmation:** modal stating how many inspections will be deleted and the retention policy — app-owned capture images are deleted, original source images are kept. Default action is Cancel.
+- **Delete confirmation:** modal stating how many inspections will be deleted and the retention policy — app-owned crop/capture images are deleted, original source images are kept. Default action is Cancel.
 
 ### 4.2 Interactive Image Viewer
 
@@ -147,7 +147,7 @@ This phase builds directly on:
 - Floating Reset View button bottom-right; floating Crop button bottom-right.
 - **Default sidebar state:** editable filename, detection timestamp, summary of defect classes with confidence scores.
 - **Focused sidebar state:** class name, confidence, severity, root cause, impact, recommended action.
-- **`Delete Image` action:** rendered in both sidebar states below the state content, with destructive styling. Requires confirmation; on success the inspection and its app-owned captures are deleted, the viewer closes, and the gallery refreshes. On failure the viewer stays open and an error notification is shown. Disabled while deletion runs or when the record is still loading.
+- **`Delete Image` action:** rendered in both sidebar states below the state content, with destructive styling. Requires confirmation; on success the inspection and its app-owned crop/captures are deleted, the viewer closes, and the gallery refreshes. On failure the viewer stays open and an error notification is shown. Disabled while deletion runs or when the record is still loading.
 
 ### 4.3 Defect Taxonomy & Colors
 
@@ -164,8 +164,8 @@ All nine classes (`SH`, `OP`, `MB`, `SP`, `SC`, `HB`, `CS`, `CFO`, `BMFO`) are s
 - Reuse existing theme brushes (`StatusPassBrush`, `StatusFailBrush`, `Severity*Brush`, `HudCard*Brush`), icons, and the `ImageAnnotationService` palette.
 - Repository access only through `IInspectionRepository`; no SQL in ViewModels.
 - Destructive operations go through `IInspectionDeletionService` and `IConfirmationService`; no direct `File.Delete` from views or view models.
-- Capture-file deletion is restricted to paths that resolve under the configured Captures root; any other path is skipped and logged.
-- Record deletion and rename are the only mutations in this phase; no schema changes.
+- File deletion is restricted to app-owned crops under the configured image output root and live captures under the legacy captures or image output roots; external imports and any other path are skipped and logged.
+- Record deletion and rename are the only mutations in this phase; the only schema addition is `Inspections.Origin` for image provenance.
 
 ---
 
@@ -194,7 +194,7 @@ All nine classes (`SH`, `OP`, `MB`, `SP`, `SC`, `HB`, `CS`, `CFO`, `BMFO`) are s
 | Confirmation cancelled | No database or file changes; selection remains |
 | Batch delete fails in the database | Transaction rolls back; no capture files are deleted; selection remains; error shown |
 | Capture file missing or locked during delete | Row deletion stands; missing file ignored; cleanup failure logged and reported without failing the whole operation |
-| Record path outside the Captures root | Never delete the file; log a warning and delete only the row (defensive ownership guard) |
+| Record path outside the owned image roots | Never delete the file; log a warning and delete only the row (defensive ownership guard) |
 | Deleting a `SingleFile` / `BatchFolder` record | Database row removed; the user's original image is untouched |
 | Deleting the inspection currently open in the viewer (via gallery or sidebar) | Viewer closes without errors; card disappears from the gallery; count updates |
 | Repeated delete clicks | Command disabled while running; no duplicate operations |

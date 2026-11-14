@@ -261,7 +261,8 @@ public class DomainModelsAndContractsTests
         var original = InspectionRecord.Create(
             name: "OriginalName",
             mode: DetectionMode.BatchFolder,
-            imagePath: "images/board3.png");
+            imagePath: "images/board3.png",
+            origin: InspectionOrigin.Crop);
 
         // Act
         var updated = original.WithUpdatedName("RenamedBoard");
@@ -273,6 +274,7 @@ public class DomainModelsAndContractsTests
         updated.UpdatedAtUtc.Should().BeAfter(original.UpdatedAtUtc);
         updated.Mode.Should().Be(original.Mode);
         updated.ImagePath.Should().Be(original.ImagePath);
+        updated.Origin.Should().Be(InspectionOrigin.Crop);
     }
 
     [Theory]

@@ -20,6 +20,7 @@ public class InspectionRecord
     public bool HasDefects => DefectCount > 0;
     public string ImagePath { get; }
     public IReadOnlyList<DetectedDefect> Defects { get; }
+    public InspectionOrigin Origin { get; }
     public InspectionRecord(
         Guid id,
         string name,
@@ -27,7 +28,8 @@ public class InspectionRecord
         DateTime updatedAtUtc,
         DetectionMode mode,
         string imagePath,
-        IReadOnlyList<DetectedDefect>? defects = null)
+        IReadOnlyList<DetectedDefect>? defects = null,
+        InspectionOrigin origin = InspectionOrigin.External)
     {
         if (id == Guid.Empty)
             throw new ValidationException("Inspection ID cannot be empty.", nameof(Id), id);
@@ -42,6 +44,7 @@ public class InspectionRecord
         Mode = mode;
         ImagePath = imagePath.Trim();
         Defects = defects ?? Array.Empty<DetectedDefect>();
+        Origin = origin;
     }
     /// <summary>
     /// Factory method for creating a newly initiated <see cref="InspectionRecord"/> with server-generated fields.
@@ -52,7 +55,8 @@ public class InspectionRecord
         string imagePath,
         IReadOnlyList<DetectedDefect>? defects = null,
         Guid? id = null,
-        DateTime? createdAtUtc = null)
+        DateTime? createdAtUtc = null,
+        InspectionOrigin origin = InspectionOrigin.External)
     {
         var timestamp = createdAtUtc ?? DateTime.UtcNow;
         return new InspectionRecord(
@@ -62,7 +66,8 @@ public class InspectionRecord
             updatedAtUtc: timestamp,
             mode: mode,
             imagePath: imagePath,
-            defects: defects);
+            defects: defects,
+            origin: origin);
     }
 
     /// <summary>
@@ -71,6 +76,6 @@ public class InspectionRecord
     public InspectionRecord WithUpdatedName(string newName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(newName);
-        return new InspectionRecord(Id, newName, CreatedAtUtc, DateTime.UtcNow, Mode, ImagePath, Defects);
+        return new InspectionRecord(Id, newName, CreatedAtUtc, DateTime.UtcNow, Mode, ImagePath, Defects, Origin);
     }
 }
