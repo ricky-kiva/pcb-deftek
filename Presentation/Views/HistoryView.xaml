@@ -5,9 +5,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:pcb_deftek.Presentation.ViewModels"
              xmlns:converters="clr-namespace:pcb_deftek.Presentation.Converters"
+             xmlns:local="clr-namespace:pcb_deftek.Presentation.Views"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:HistoryViewModel}"
-             d:DesignHeight="720" d:DesignWidth="1100">
+             d:DesignHeight="720" d:DesignWidth="1100"
+             Focusable="True">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
@@ -668,6 +670,13 @@
                     Style="{StaticResource QuietButtonStyle}"
                     Command="{Binding LoadMoreCommand}"
                     Visibility="{Binding HasMore, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </Grid>
+
+        <!-- Interactive defect viewer -->
+        <Grid Grid.RowSpan="4"
+              Panel.ZIndex="1000"
+              Visibility="{Binding IsViewerOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <local:DefectViewerView DataContext="{Binding Viewer}" />
         </Grid>
     </Grid>
 </UserControl>

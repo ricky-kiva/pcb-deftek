@@ -33,7 +33,6 @@ public sealed partial class HistoryViewModel : ViewModelBase
     private readonly IConfirmationService _confirmationService;
     private readonly ILogger<HistoryViewModel> _logger;
     private readonly HashSet<Guid> _loadedIds = new();
-
     private CancellationTokenSource? _loadCts;
     private int _loadVersion;
     private int _currentPage;
@@ -44,13 +43,11 @@ public sealed partial class HistoryViewModel : ViewModelBase
     /// </summary>
     public event EventHandler<IReadOnlyList<Guid>>? RecordsDeleted;
 
-    /// <summary>
-    /// Raised when the operator opens a card. The viewer host wires this in Task 5.3.
-    /// </summary>
-    public event EventHandler<HistoryItemViewModel>? RecordActivated;
-
     /// <inheritdoc />
     public override string Title => "History";
+
+    /// <summary>Gets the hosted inspection viewer.</summary>
+    public InspectionViewerViewModel Viewer { get; }
 
     /// <summary>Gets the filter bar state.</summary>
     public HistoryFilterViewModel Filters { get; }
@@ -60,6 +57,9 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
     /// <summary>Gets the cards grouped by local calendar date.</summary>
     public ObservableCollection<HistoryDateGroup<HistoryItemViewModel>> Groups { get; } = new();
+
+    [ObservableProperty]
+    private bool _isViewerOpen;
 
     [ObservableProperty]
     private bool _isLoading;
@@ -83,6 +83,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
         INotificationService notificationService,
         IInspectionDeletionService deletionService,
         IConfirmationService confirmationService,
+        InspectionViewerViewModel viewer,
         ILogger<HistoryViewModel>? logger = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
@@ -90,8 +91,11 @@ public sealed partial class HistoryViewModel : ViewModelBase
         _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
         _deletionService = deletionService ?? throw new ArgumentNullException(nameof(deletionService));
         _confirmationService = confirmationService ?? throw new ArgumentNullException(nameof(confirmationService));
+        Viewer = viewer ?? throw new ArgumentNullException(nameof(viewer));
         _logger = logger ?? NullLogger<HistoryViewModel>.Instance;
 
+        Viewer.Closed += OnViewerClosed;
+        Viewer.Deleted += OnViewerRecordDeleted;
         Filters = new HistoryFilterViewModel();
         Filters.FiltersChanged += OnFiltersChanged;
     }
@@ -124,12 +128,13 @@ public sealed partial class HistoryViewModel : ViewModelBase
     public string ShowingSummary => $"Showing {Items.Count} / {TotalCount}";
 
     /// <summary>
-    /// Raises <see cref="RecordActivated"/> for the specified card. The viewer host subscribes in Task 5.3.
+    /// Opens the viewer for the specified card and loads its full record.
     /// </summary>
-    public void ActivateItem(HistoryItemViewModel item)
+    public async Task OpenViewerAsync(HistoryItemViewModel item)
     {
         ArgumentNullException.ThrowIfNull(item);
-        RecordActivated?.Invoke(this, item);
+        IsViewerOpen = true;
+        await Viewer.LoadAsync(item.Id);
     }
 
     /// <inheritdoc />
@@ -139,6 +144,8 @@ public sealed partial class HistoryViewModel : ViewModelBase
     public override Task OnNavigatedFromAsync()
     {
         _loadCts?.Cancel();
+        Viewer.Close();
+        IsViewerOpen = false;
         return Task.CompletedTask;
     }
 
@@ -351,6 +358,12 @@ public sealed partial class HistoryViewModel : ViewModelBase
             }
 
             await ShowToastSafeAsync("Deleted Inspections", message);
+            if (Viewer.CurrentRecordId is Guid openId && ids.Contains(openId))
+            {
+                Viewer.Close();
+                IsViewerOpen = false;
+            }
+
             RecordsDeleted?.Invoke(this, ids);
         }
         catch (Exception ex)
@@ -411,6 +424,25 @@ public sealed partial class HistoryViewModel : ViewModelBase
             OnPropertyChanged(nameof(SelectedCount));
             DeleteSelectedCommand.NotifyCanExecuteChanged();
         }
+    }
+
+    private void OnViewerClosed(object? sender, EventArgs e)
+    {
+        IsViewerOpen = false;
+    }
+
+    private void OnViewerRecordDeleted(object? sender, Guid recordId)
+    {
+        var item = Items.FirstOrDefault(candidate => candidate.Id == recordId);
+        if (item is not null)
+        {
+            RemoveItem(item);
+            TotalCount = Math.Max(0, TotalCount - 1);
+            RebuildGroups();
+            NotifyGalleryState();
+        }
+
+        IsViewerOpen = false;
     }
 
     private void OnItemRenameFailed(object? sender, string message)
