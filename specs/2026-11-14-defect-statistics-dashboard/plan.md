@@ -486,7 +486,7 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 - [ ] All six task groups complete.
 - [x] Solution builds with 0 warnings.
 - [x] All unit, integration, and BDD tests pass (`dotnet test pcb-deftek.slnx`).
-- [ ] PR linked to its issue and passes the 4-step Feature Review and Quality Improvement pipeline.
+- [x] PR linked to its issue and passes the 4-step Feature Review and Quality Improvement pipeline.
 - [ ] Human review approved; PR not merged without approval.
 
 ---
