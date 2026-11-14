@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controls="clr-namespace:pcb_deftek.Presentation.Controls"
              xmlns:converters="clr-namespace:pcb_deftek.Presentation.Converters"
+             xmlns:services="clr-namespace:pcb_deftek.Presentation.Services"
              mc:Ignorable="d"
              d:DesignHeight="720" d:DesignWidth="1100"
              Focusable="True"
@@ -278,16 +279,40 @@
                 </WrapPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-                    <Button Content="Export"
+                    <Button x:Name="ExportButton"
                             Style="{StaticResource QuietButtonStyle}"
                             Command="{Binding RequestExportCommand}"
                             ToolTip="Export the filtered dashboard report"
-                            AutomationProperties.Name="Export dashboard data" />
-                    <Button Content="Alerts"
+                            AutomationProperties.Name="Export dashboard data">
+                        <StackPanel Orientation="Horizontal">
+                            <Path x:Name="ExportIcon"
+                                  Data="{DynamicResource IconExport}"
+                                  Width="14" Height="14" Stretch="Uniform"
+                                  Margin="0,0,6,0" VerticalAlignment="Center"
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                            <TextBlock Text="Export" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="ProcessesButton"
                             Style="{StaticResource QuietButtonStyle}"
                             Command="{Binding OpenNotificationsCommand}"
-                            ToolTip="Open inference and export progress"
-                            AutomationProperties.Name="Open dashboard notifications" />
+                            ToolTip="Open inference and export processes"
+                            AutomationProperties.Name="Processes">
+                        <StackPanel Orientation="Horizontal">
+                            <Grid Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center">
+                                <Path Data="{DynamicResource IconProcesses}"
+                                      Stretch="Uniform"
+                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                <Ellipse x:Name="ProcessActivityDot"
+                                         Width="7" Height="7"
+                                         HorizontalAlignment="Right"
+                                         VerticalAlignment="Top"
+                                         Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                                         Visibility="{Binding HasActiveProcesses, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            </Grid>
+                            <TextBlock Text="Processes" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                     <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
                             BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                             BorderThickness="1"
@@ -700,25 +725,69 @@
                     </Button>
 
                     <StackPanel Grid.Row="1" Grid.ColumnSpan="2">
-                        <TextBlock Text="Inference" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,4" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Inference" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,4" />
+                            <Button x:Name="InferenceCancelButton"
+                                    Grid.Column="1"
+                                    Content="Cancel"
+                                    Style="{StaticResource QuietButtonStyle}"
+                                    Padding="8,2"
+                                    FontSize="11"
+                                    Margin="0,6,0,0"
+                                    Command="{Binding CancelProcessCommand}"
+                                    CommandParameter="{x:Static services:DashboardProcess.Inference}"
+                                    Visibility="{Binding Progress.Inference.IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    AutomationProperties.Name="Cancel inference"
+                                    ToolTip="Cancel inference" />
+                        </Grid>
                         <ProgressBar x:Name="InferenceProgressBar"
                                      Minimum="0" Maximum="100" Height="4"
                                      Value="{Binding Progress.Inference.Percentage}"
+                                     Visibility="{Binding Progress.Inference.IsIdle, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                      AutomationProperties.Name="Inference progress" />
-                        <TextBlock Text="{Binding Progress.Inference.Status}" FontSize="11" Margin="0,4,0,0"
+                        <TextBlock x:Name="InferenceStatusText"
+                                   Text="{Binding Progress.Inference.Status}" FontSize="11" Margin="0,4,0,0"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="{Binding Progress.Inference.Message}" FontSize="11" Margin="0,1,0,0"
-                                   TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        <TextBlock x:Name="InferenceMessageText"
+                                   Text="{Binding Progress.Inference.Message}" FontSize="11" Margin="0,1,0,0"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   Visibility="{Binding Progress.Inference.HasMessage, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                        <TextBlock Text="Data export" Style="{StaticResource SectionLabelStyle}" Margin="0,16,0,4" />
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Data export" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,4" />
+                            <Button x:Name="DataExportCancelButton"
+                                    Grid.Column="1"
+                                    Content="Cancel"
+                                    Style="{StaticResource QuietButtonStyle}"
+                                    Padding="8,2"
+                                    FontSize="11"
+                                    Margin="0,6,0,0"
+                                    Command="{Binding CancelProcessCommand}"
+                                    CommandParameter="{x:Static services:DashboardProcess.DataExport}"
+                                    Visibility="{Binding Progress.DataExport.IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    AutomationProperties.Name="Cancel data export"
+                                    ToolTip="Cancel data export" />
+                        </Grid>
                         <ProgressBar x:Name="DataExportProgressBar"
                                      Minimum="0" Maximum="100" Height="4"
                                      Value="{Binding Progress.DataExport.Percentage}"
+                                     Visibility="{Binding Progress.DataExport.IsIdle, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
                                      AutomationProperties.Name="Data export progress" />
-                        <TextBlock Text="{Binding Progress.DataExport.Status}" FontSize="11" Margin="0,4,0,0"
+                        <TextBlock x:Name="DataExportStatusText"
+                                   Text="{Binding Progress.DataExport.Status}" FontSize="11" Margin="0,4,0,0"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="{Binding Progress.DataExport.Message}" FontSize="11" Margin="0,1,0,0"
-                                   TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        <TextBlock x:Name="DataExportMessageText"
+                                   Text="{Binding Progress.DataExport.Message}" FontSize="11" Margin="0,1,0,0"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   Visibility="{Binding Progress.DataExport.HasMessage, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     </StackPanel>
                 </Grid>
             </Border>

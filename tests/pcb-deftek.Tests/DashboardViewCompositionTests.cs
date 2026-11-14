@@ -84,7 +84,9 @@ public class DashboardViewCompositionTests
             {
                 DashboardProgressStatus.Idle,
                 DashboardProgressStatus.Running,
-                DashboardProgressStatus.Completed
+                DashboardProgressStatus.Completed,
+                DashboardProgressStatus.Failed,
+                DashboardProgressStatus.Cancelled
             })
             {
                 vm.Progress.ReportInference(status, status == DashboardProgressStatus.Completed ? 100 : 40, status.ToString());
@@ -133,6 +135,63 @@ public class DashboardViewCompositionTests
 
             RenderPixelCount(view, 1100, 720).Should().BeGreaterThan(0);
             RenderPixelCount(view, 820, 720).Should().BeGreaterThan(0);
+        });
+    }
+
+    [Fact]
+    public void Toolbar_UsesProcessesButtonWithActivityDotAndExportIcon()
+    {
+        RunOnSta(() =>
+        {
+            var (view, vm) = CreateView();
+            view.DataContext = vm;
+            Layout(view);
+
+            var processes = (Button?)view.FindName("ProcessesButton");
+            processes.Should().NotBeNull();
+            System.Windows.Automation.AutomationProperties.GetName(processes!).Should().Be("Processes");
+            view.FindName("ExportIcon").Should().NotBeNull();
+            ((FrameworkElement)view.FindName("ProcessActivityDot")).Visibility.Should().Be(Visibility.Collapsed);
+
+            vm.Progress.ReportInference(DashboardProgressStatus.Running, 10, "Detecting");
+            Layout(view);
+
+            ((FrameworkElement)view.FindName("ProcessActivityDot")).Visibility.Should().Be(Visibility.Visible);
+        });
+    }
+
+    [Fact]
+    public void ProgressModal_CancelButtonAndIdleChromeFollowProcessState()
+    {
+        RunOnSta(() =>
+        {
+            var (view, vm) = CreateView();
+            view.DataContext = vm;
+            vm.OpenNotificationsCommand.Execute(null);
+            Layout(view);
+
+            var cancel = (Button)view.FindName("InferenceCancelButton");
+            var progressBar = (ProgressBar)view.FindName("InferenceProgressBar");
+            var status = (TextBlock)view.FindName("InferenceStatusText");
+            var message = (FrameworkElement)view.FindName("InferenceMessageText");
+
+            cancel.Visibility.Should().Be(Visibility.Collapsed);
+            progressBar.Visibility.Should().Be(Visibility.Collapsed);
+            status.Text.Should().Be("Idle");
+            message.Visibility.Should().Be(Visibility.Collapsed);
+
+            vm.Progress.ReportInference(DashboardProgressStatus.Running, 40, "Detecting");
+            Layout(view);
+
+            cancel.Visibility.Should().Be(Visibility.Visible);
+            progressBar.Visibility.Should().Be(Visibility.Visible);
+            message.Visibility.Should().Be(Visibility.Visible);
+
+            vm.CancelProcessCommand.Execute(DashboardProcess.Inference);
+            Layout(view);
+
+            cancel.Visibility.Should().Be(Visibility.Collapsed);
+            status.Text.Should().Be("Cancelled");
         });
     }
 
