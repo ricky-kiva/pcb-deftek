@@ -391,7 +391,7 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
 
         bool confirmed = await _confirmationService.ConfirmAsync(
             "Delete Inspection",
-            "Delete this inspection and its app-owned capture images? Original source images are kept.",
+            "Delete this inspection and its app-owned cropped/captured images? Original source images are kept.",
             "Delete",
             CancellationToken.None);
 
@@ -471,7 +471,8 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
             now,
             DetectionMode.SingleFile,
             crop.FilePath,
-            defects);
+            defects,
+            origin: InspectionOrigin.Crop);
 
         await _repository.InsertAsync(record, cancellationToken);
         return record;

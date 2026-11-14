@@ -58,8 +58,8 @@ public class SqliteMigrationTests : IDisposable
         // Assert
         result.Success.Should().BeTrue();
         result.PreviousVersion.Should().Be(0);
-        result.CurrentVersion.Should().Be(1);
-        result.MigrationsApplied.Should().Be(1);
+        result.CurrentVersion.Should().Be(2);
+        result.MigrationsApplied.Should().Be(2);
 
         // Verify tables exist
         await using var connection = await _factory.CreateOpenConnectionAsync();
@@ -80,8 +80,8 @@ public class SqliteMigrationTests : IDisposable
 
         // Assert
         secondRunResult.Success.Should().BeTrue();
-        secondRunResult.PreviousVersion.Should().Be(1);
-        secondRunResult.CurrentVersion.Should().Be(1);
+        secondRunResult.PreviousVersion.Should().Be(2);
+        secondRunResult.CurrentVersion.Should().Be(2);
         secondRunResult.MigrationsApplied.Should().Be(0);
     }
 
@@ -95,13 +95,15 @@ public class SqliteMigrationTests : IDisposable
         var history = await _migrator.GetMigrationHistoryAsync();
 
         // Assert
-        history.Should().HaveCount(1);
-        var entry = history[0];
-        entry.Version.Should().Be(1);
-        entry.Description.Should().Be("initial_schema");
+        history.Should().HaveCount(2);
+        var entry = history[1];
+        entry.Version.Should().Be(2);
+        entry.Description.Should().Be("add_inspection_origin");
         entry.Checksum.Should().HaveLength(64, "SHA-256 hash in hex format has exactly 64 characters");
         entry.ExecutionDurationMs.Should().BeGreaterThanOrEqualTo(0);
         entry.AppliedAtUtc.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(10));
+        history[0].Version.Should().Be(1);
+        history[0].Description.Should().Be("initial_schema");
     }
 
     [Fact]
@@ -115,9 +117,9 @@ public class SqliteMigrationTests : IDisposable
 
         // Assert
         rollbackResult.Success.Should().BeTrue();
-        rollbackResult.PreviousVersion.Should().Be(1);
+        rollbackResult.PreviousVersion.Should().Be(2);
         rollbackResult.CurrentVersion.Should().Be(0);
-        rollbackResult.MigrationsApplied.Should().Be(1);
+        rollbackResult.MigrationsApplied.Should().Be(2);
 
         // Verify tables no longer exist
         await using var connection = await _factory.CreateOpenConnectionAsync();

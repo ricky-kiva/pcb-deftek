@@ -35,8 +35,8 @@ public class SqliteInspectionRepository : IInspectionRepository
         try
         {
             const string insertInspectionSql = @"
-                INSERT INTO Inspections (Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, DefectCount, ImagePath)
-                VALUES (@Id, @Name, @CreatedAtUtc, @UpdatedAtUtc, @DetectionMode, @DefectCount, @ImagePath);
+                INSERT INTO Inspections (Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, DefectCount, ImagePath, Origin)
+                VALUES (@Id, @Name, @CreatedAtUtc, @UpdatedAtUtc, @DetectionMode, @DefectCount, @ImagePath, @Origin);
             ";
 
             await using (var cmd = connection.CreateCommand())
@@ -50,6 +50,7 @@ public class SqliteInspectionRepository : IInspectionRepository
                 cmd.Parameters.AddWithValue("@DetectionMode", (int)record.Mode);
                 cmd.Parameters.AddWithValue("@DefectCount", record.DefectCount);
                 cmd.Parameters.AddWithValue("@ImagePath", record.ImagePath);
+                cmd.Parameters.AddWithValue("@Origin", (int)record.Origin);
 
                 await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -95,7 +96,7 @@ public class SqliteInspectionRepository : IInspectionRepository
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
         const string selectInspectionSql = @"
-            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, ImagePath
+            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, ImagePath, Origin
             FROM Inspections
             WHERE Id = @Id;
         ";
@@ -104,6 +105,7 @@ public class SqliteInspectionRepository : IInspectionRepository
         DateTime createdAtUtc = default;
         DateTime updatedAtUtc = default;
         DetectionMode mode = default;
+        InspectionOrigin origin = InspectionOrigin.External;
         string? imagePath = null;
         bool found = false;
 
@@ -120,6 +122,7 @@ public class SqliteInspectionRepository : IInspectionRepository
                 updatedAtUtc = DateTime.Parse(reader.GetString(3), null, DateTimeStyles.RoundtripKind);
                 mode = (DetectionMode)reader.GetInt32(4);
                 imagePath = reader.GetString(5);
+                origin = (InspectionOrigin)reader.GetInt32(6);
                 found = true;
             }
         }
@@ -138,7 +141,8 @@ public class SqliteInspectionRepository : IInspectionRepository
             updatedAtUtc: updatedAtUtc,
             mode: mode,
             imagePath: imagePath,
-            defects: defects);
+            defects: defects,
+            origin: origin);
     }
 
     /// <inheritdoc />
@@ -172,7 +176,7 @@ public class SqliteInspectionRepository : IInspectionRepository
         int offset = (filter.PageNumber - 1) * filter.PageSize;
 
         string querySql = $@"
-            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, ImagePath
+            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, ImagePath, Origin
             FROM Inspections
             {whereClause}
             ORDER BY {sortColumn} {sortDirection}, Id DESC
@@ -197,8 +201,9 @@ public class SqliteInspectionRepository : IInspectionRepository
                 var updatedAt = DateTime.Parse(reader.GetString(3), null, DateTimeStyles.RoundtripKind);
                 var mode = (DetectionMode)reader.GetInt32(4);
                 var imagePath = reader.GetString(5);
+                var origin = (InspectionOrigin)reader.GetInt32(6);
 
-                items.Add(new InspectionRecord(id, name, createdAt, updatedAt, mode, imagePath));
+                items.Add(new InspectionRecord(id, name, createdAt, updatedAt, mode, imagePath, origin: origin));
             }
         }
 
@@ -238,7 +243,7 @@ public class SqliteInspectionRepository : IInspectionRepository
         int offset = (filter.PageNumber - 1) * filter.PageSize;
 
         string querySql = $@"
-            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, DefectCount, ImagePath
+            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, DefectCount, ImagePath, Origin
             FROM Inspections
             {whereClause}
             ORDER BY {sortColumn} {sortDirection}, Id DESC
@@ -290,7 +295,7 @@ public class SqliteInspectionRepository : IInspectionRepository
         }
 
         string querySql = $@"
-            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, DefectCount, ImagePath
+            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, DefectCount, ImagePath, Origin
             FROM Inspections
             WHERE Id IN ({string.Join(", ", idParameters)})
             ORDER BY CreatedAtUtc DESC, Id DESC;
@@ -320,7 +325,7 @@ public class SqliteInspectionRepository : IInspectionRepository
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
         const string sql = @"
-            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, ImagePath
+            SELECT Id, Name, CreatedAtUtc, UpdatedAtUtc, DetectionMode, ImagePath, Origin
             FROM Inspections
             WHERE CreatedAtUtc >= @FromUtc AND CreatedAtUtc <= @ToUtc
             ORDER BY CreatedAtUtc DESC;
@@ -342,8 +347,9 @@ public class SqliteInspectionRepository : IInspectionRepository
             var updatedAt = DateTime.Parse(reader.GetString(3), null, DateTimeStyles.RoundtripKind);
             var mode = (DetectionMode)reader.GetInt32(4);
             var imagePath = reader.GetString(5);
+            var origin = (InspectionOrigin)reader.GetInt32(6);
 
-            items.Add(new InspectionRecord(id, name, createdAt, updatedAt, mode, imagePath));
+            items.Add(new InspectionRecord(id, name, createdAt, updatedAt, mode, imagePath, origin: origin));
         }
 
         return items;
@@ -454,7 +460,8 @@ public class SqliteInspectionRepository : IInspectionRepository
             UpdatedAtUtc: DateTime.Parse(reader.GetString(3), null, DateTimeStyles.RoundtripKind),
             Mode: (DetectionMode)reader.GetInt32(4),
             DefectCount: reader.GetInt32(5),
-            ImagePath: reader.GetString(6));
+            ImagePath: reader.GetString(6),
+            Origin: (InspectionOrigin)reader.GetInt32(7));
     }
 
     private static (StringBuilder WhereClause, List<SqliteParameter> Parameters) BuildFilterClause(

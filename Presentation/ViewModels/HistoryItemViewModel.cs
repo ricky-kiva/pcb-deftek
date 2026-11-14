@@ -103,14 +103,19 @@ public sealed partial class HistoryItemViewModel : ObservableObject
         _ => $"{DefectCount} Defects"
     };
 
+    /// <summary>Gets the image provenance.</summary>
+    public InspectionOrigin Origin => _summary.Origin;
+
     /// <summary>Gets the human-readable capture modality.</summary>
-    public string ModeText => Mode switch
-    {
-        DetectionMode.SingleFile => "Single File",
-        DetectionMode.BatchFolder => "Batch Folder",
-        DetectionMode.LiveCamera => "Live Camera",
-        _ => Mode.ToString()
-    };
+    public string ModeText => Origin == InspectionOrigin.Crop
+        ? "Cropped"
+        : Mode switch
+        {
+            DetectionMode.SingleFile => "Single File",
+            DetectionMode.BatchFolder => "Batch Folder",
+            DetectionMode.LiveCamera => "Live Camera",
+            _ => Mode.ToString()
+        };
 
     /// <summary>Gets the persisted inspection name.</summary>
     public string Name => _nameEditor.Name;

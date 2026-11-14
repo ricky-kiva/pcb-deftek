@@ -21,7 +21,8 @@ public sealed record InspectionSummary(
     DateTime UpdatedAtUtc,
     DetectionMode Mode,
     int DefectCount,
-    string ImagePath)
+    string ImagePath,
+    InspectionOrigin Origin = InspectionOrigin.External)
 {
     /// <summary>
     /// Gets the PASS/FAIL status derived from the persisted defect count.

@@ -317,7 +317,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
         bool confirmed = await _confirmationService
             .ConfirmAsync(
                 "Delete Inspections",
-                $"Delete {selected.Count} inspection(s)? App-owned capture images will be deleted. " +
+                $"Delete {selected.Count} inspection(s)? App-owned cropped and captured images will be deleted. " +
                 "Original source images are kept.",
                 "Delete",
                 CancellationToken.None);
