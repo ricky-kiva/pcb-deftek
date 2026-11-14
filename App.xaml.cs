@@ -135,6 +135,7 @@ public partial class App : Application
         // Notification & File Ingestion Services
         services.AddSingleton<INotificationService, WindowsNotificationService>();
         services.AddSingleton<IDashboardProgressService, DashboardProgressService>();
+        services.AddSingleton<IDashboardExportService, DashboardPdfExportService>();
         services.AddSingleton<IFileDiscoveryService, FileDiscoveryService>();
         services.AddSingleton<IFilePickerService, WpfFilePickerService>();
         services.AddSingleton<IBatchInspectionEngine, BatchInspectionEngine>();
