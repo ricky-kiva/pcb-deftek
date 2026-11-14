@@ -226,17 +226,18 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Lightweight WPF chart control for the adaptive dual-series PASS/FAIL rate.
 - **Acceptance criteria:**
-  - [ ] Dependency properties for points; renders green PASS and red FAIL series using theme/status brushes.
-  - [ ] Handles zero, one, and many points without divide-by-zero or clipped axes.
-  - [ ] Hovering a point exposes a tooltip with day and both counts; accessible summary names both series.
-  - [ ] Click raises a chart-activated event for the enlarged modal.
-  - [ ] Label thinning prevents overlap at narrow widths.
+  - [x] Dependency properties for points; renders green PASS and red FAIL series using theme/status brushes.
+  - [x] Handles zero, one, and many points without divide-by-zero or clipped axes.
+  - [x] Hovering a point exposes a tooltip with day and both counts; accessible summary names both series.
+  - [x] Click raises a chart-activated event for the enlarged modal.
+  - [x] Label thinning prevents overlap at narrow widths.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter PassFailChartTests`
-  - [ ] Offscreen render check at 1-column and 2-column widths
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter PassFailChartTests`
+  - [x] Offscreen render check at 1-column and 2-column widths
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.1
 - **Files:**
+  - `Presentation/Controls/ChartRenderHelpers.cs`
   - `Presentation/Controls/PassFailLineChart.xaml`
   - `Presentation/Controls/PassFailLineChart.xaml.cs`
   - `tests/pcb-deftek.Tests/PassFailChartTests.cs`
@@ -246,15 +247,15 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Lightweight single-series WPF chart for scan and defect volume per adaptive local bucket.
 - **Acceptance criteria:**
-  - [ ] Dependency properties for adaptive bucket points, granularity/label metadata, series brush, and accessible series name.
-  - [ ] Renders inspections-per-bucket for Total PCBs and matching-defects-per-bucket for Total Defects using their card accent colors.
-  - [ ] Handles zero, one, and many days without divide-by-zero or clipped axes.
-  - [ ] Hover shows the day and count; click raises the chart-activated event; labels thin at narrow widths.
-  - [ ] Empty series renders a clear no-data baseline rather than a broken glyph.
+  - [x] Dependency properties for adaptive bucket points, granularity/label metadata, series brush, and accessible series name.
+  - [x] Renders inspections-per-bucket for Total PCBs and matching-defects-per-bucket for Total Defects using their card accent colors.
+  - [x] Handles zero, one, and many days without divide-by-zero or clipped axes.
+  - [x] Hover shows the day and count; click raises the chart-activated event; labels thin at narrow widths.
+  - [x] Empty series renders a clear no-data baseline rather than a broken glyph.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter MetricTimeSeriesChartTests`
-  - [ ] Offscreen render check at 1-column and 2-column widths
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter MetricTimeSeriesChartTests`
+  - [x] Offscreen render check at 1-column and 2-column widths
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.1
 - **Files:**
   - `Presentation/Controls/MetricTimeSeriesChart.xaml`
@@ -266,14 +267,14 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Lightweight WPF vertical bar chart for all nine defect classes.
 - **Acceptance criteria:**
-  - [ ] Renders nine bars in `ClassId` order with abbreviated labels and `ColorHex` fills.
-  - [ ] Bars scale to the maximum non-zero count; zero counts render a visible baseline.
-  - [ ] Hovering a bar shows class name and count; accessible summary lists all nine values.
-  - [ ] Click raises a chart-activated event; labels remain readable at narrow widths.
+  - [x] Renders nine bars in `ClassId` order with abbreviated labels and `ColorHex` fills.
+  - [x] Bars scale to the maximum non-zero count; zero counts render a visible baseline.
+  - [x] Hovering a bar shows class name and count; accessible summary lists all nine values.
+  - [x] Click raises a chart-activated event; labels remain readable at narrow widths.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DefectBarChartTests`
-  - [ ] Offscreen render check in Light/Dark
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DefectBarChartTests`
+  - [x] Offscreen render check in Light/Dark
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.1
 - **Files:**
   - `Presentation/Controls/DefectBarChart.xaml`
@@ -285,24 +286,27 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Reuse all chart controls in a larger modal without duplicating data projection.
 - **Acceptance criteria:**
-  - [ ] Card chart and enlarged chart bind to the same data.
-  - [ ] Modal opens from any chart click, closes via `Esc`/close, and restores focus.
-  - [ ] Modal has an accessible title and no new chart rendering path.
+  - [x] Card chart and enlarged chart bind to the same data.
+  - [x] Modal opens from any chart click, closes via `Esc`/close, and restores focus.
+  - [x] Modal has an accessible title and no new chart rendering path.
 - **Verification:**
-  - [ ] Offscreen render of card grid and each enlarged chart
-  - [ ] Build succeeds with 0 warnings
+  - [x] Offscreen render of card grid and each enlarged chart
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Tasks 3.1, 3.2, 3.3
 - **Files:**
+  - `Presentation/Controls/DashboardChartHost.xaml`
+  - `Presentation/Controls/DashboardChartHost.xaml.cs`
   - `Presentation/Views/DashboardView.xaml`
   - `Presentation/Views/DashboardView.xaml.cs`
-- **Estimated scope:** S (2 files)
+  - `tests/pcb-deftek.Tests/DashboardChartHostTests.cs`
+- **Estimated scope:** S (3 files)
 
 ---
 
 ### Checkpoint 3: Charts Render Correctly
-- [ ] All chart controls render boundary cases.
-- [ ] Hover/click/accessibility behavior is verified.
-- [ ] Light/dark chart contrast is acceptable.
+- [x] All chart controls render boundary cases.
+- [x] Hover/click/accessibility behavior is verified.
+- [x] Light/dark chart contrast is acceptable.
 - [ ] Review with human before page composition.
 
 ---
