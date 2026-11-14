@@ -10,7 +10,7 @@ public record UserSettings
     /// <summary>
     /// Gets the minimum confidence threshold required for a defect prediction to be retained (0.0 to 1.0).
     /// </summary>
-    public double ConfidenceThreshold { get; init; } = 0.25;
+    public double ConfidenceThreshold { get; init; } = 0.65;
 
     /// <summary>
     /// Gets the preferred inference execution device ("Cpu" or "GpuDirectML").
@@ -38,7 +38,7 @@ public record UserSettings
     public string DatabaseExportPath { get; init; } = string.Empty;
 
     /// <summary>
-    /// Gets the directory where cropped inspection images should be written.
+    /// Gets the directory where cropped and live-captured inspection images should be written.
     /// </summary>
-    public string CropOutputDirectory { get; init; } = string.Empty;
+    public string ImageOutputDirectory { get; init; } = string.Empty;
 }

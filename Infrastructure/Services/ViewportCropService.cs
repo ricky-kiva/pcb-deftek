@@ -68,9 +68,9 @@ public sealed class ViewportCropService : IViewportCropService
         try
         {
             var settings = await _settingsService.LoadSettingsAsync(cancellationToken).ConfigureAwait(false);
-            return string.IsNullOrWhiteSpace(settings.CropOutputDirectory)
+            return string.IsNullOrWhiteSpace(settings.ImageOutputDirectory)
                 ? KnownFolderPaths.GetCropImagesDirectory()
-                : settings.CropOutputDirectory;
+                : settings.ImageOutputDirectory;
         }
         catch (OperationCanceledException)
         {

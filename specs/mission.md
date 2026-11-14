@@ -45,7 +45,7 @@ These features comprise the primary deliverables for initial development and val
   - Defect Class Information: Single Accordion containing defect cards (defect class name, severity information, 1:1 sample image, explanation, root cause, impact, and recommended action).
   - Startup Preference: "Skip dashboard on startup" checkbox navigating directly to Live Detection on launch.
 - **Data & Report Export:** PDF export capturing all 4 metric cards in a single column and annotated PCB detection images with bounding boxes/metadata, defaulting to the Windows Downloads folder with a Windows notification on completion.
-- **Settings:** Confidence threshold slider/input, dynamic CPU/GPU device selection, default startup page selector, About & Attribution (model info and developer links/social icons/Ko-fi), Report export location setting, and Database export location setting + manual database export trigger with Windows notification.
+- **Settings:** Confidence threshold slider/input (default 65%), dynamic CPU/GPU device selection, default startup page selector, Attribution (model info and developer links/social icons/Ko-fi), Report and Image output location settings, and Database backup location setting + manual database export trigger with Windows notification.
 
 ### 5.2. Future Enhancements
 These capabilities are confirmed enhancements that will be implemented in future phases after all essential features above are complete and validated:

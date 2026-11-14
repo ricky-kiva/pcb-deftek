@@ -23,7 +23,7 @@ public class YoloPostprocessor : IYoloPostprocessor
 
     public YoloPostprocessor(InferenceOptions? options = null)
     {
-        _defaultConfidenceThreshold = options?.ConfidenceThreshold ?? 0.25f;
+        _defaultConfidenceThreshold = options?.ConfidenceThreshold ?? 0.65f;
         _defaultNmsIouThreshold = options?.NmsIouThreshold ?? 0.45f;
     }
 

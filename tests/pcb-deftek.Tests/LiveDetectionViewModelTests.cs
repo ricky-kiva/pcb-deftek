@@ -44,7 +44,7 @@ public class LiveDetectionViewModelTests
                 new(1, "Integrated Webcam")
             });
 
-        _mockEngine.SetupProperty(e => e.ConfidenceThreshold, 0.25);
+        _mockEngine.SetupProperty(e => e.ConfidenceThreshold, 0.65);
     }
 
     private LiveDetectionViewModel CreateSut()
@@ -109,8 +109,8 @@ public class LiveDetectionViewModelTests
         sut.DefectCount.Should().Be(0);
         sut.DefectCountText.Should().Be("0 Defects");
         sut.IsTelemetryEnabled.Should().BeTrue();
-        sut.ConfidenceThreshold.Should().Be(0.25);
-        sut.ConfidencePercentageText.Should().Be("25%");
+        sut.ConfidenceThreshold.Should().Be(0.65);
+        sut.ConfidencePercentageText.Should().Be("65%");
         sut.CanCaptureSnapshot.Should().BeFalse();
     }
 

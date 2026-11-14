@@ -21,9 +21,9 @@ public record InferenceOptions
     public int IntraOpNumThreads { get; init; } = 0;
 
     /// <summary>
-    /// Confidence score threshold for keeping candidate defect detections (default 0.25).
+    /// Confidence score threshold for keeping candidate defect detections (default 0.65).
     /// </summary>
-    public float ConfidenceThreshold { get; init; } = 0.25f;
+    public float ConfidenceThreshold { get; init; } = 0.65f;
 
     /// <summary>
     /// Intersection over Union (IoU) threshold for Non-Maximum Suppression (default 0.45).

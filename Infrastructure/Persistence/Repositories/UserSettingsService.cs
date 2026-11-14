@@ -22,7 +22,8 @@ public class UserSettingsService : IUserSettingsService
     public const string KeySkipDashboardOnStartup = "Settings:App:SkipDashboardOnStartup";
     public const string KeyReportExportPath = "Settings:Export:ReportPath";
     public const string KeyDatabaseExportPath = "Settings:Export:DatabasePath";
-    public const string KeyCropOutputDirectory = "Settings:Export:CropPath";
+    public const string KeyImageOutputDirectory = "Settings:Export:ImagePath";
+    private const string LegacyCropOutputDirectoryKey = "Settings:Export:CropPath";
 
     private readonly ISettingsRepository _settingsRepository;
     private readonly IDatabaseExportService _exportService;
@@ -44,7 +45,7 @@ public class UserSettingsService : IUserSettingsService
             double threshold = await _settingsRepository.GetSettingAsync<double>(KeyConfidenceThreshold, cancellationToken).ConfigureAwait(false);
             if (threshold <= 0.0 || threshold > 1.0)
             {
-                threshold = 0.25;
+                threshold = 0.65;
             }
 
             string? device = await _settingsRepository.GetSettingAsync<string>(KeyPreferredDevice, cancellationToken).ConfigureAwait(false);
@@ -73,10 +74,15 @@ public class UserSettingsService : IUserSettingsService
                 dbPath = _exportService.DefaultExportDirectory;
             }
 
-            string? cropPath = await _settingsRepository.GetSettingAsync<string>(KeyCropOutputDirectory, cancellationToken).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(cropPath))
+            string? imagePath = await _settingsRepository.GetSettingAsync<string>(KeyImageOutputDirectory, cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(imagePath))
             {
-                cropPath = KnownFolderPaths.GetCropImagesDirectory();
+                imagePath = await _settingsRepository.GetSettingAsync<string>(LegacyCropOutputDirectoryKey, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (string.IsNullOrWhiteSpace(imagePath))
+            {
+                imagePath = KnownFolderPaths.GetCropImagesDirectory();
             }
 
             return new UserSettings
@@ -87,7 +93,7 @@ public class UserSettingsService : IUserSettingsService
                 SkipDashboardOnStartup = skipDashboard,
                 ReportExportPath = reportPath,
                 DatabaseExportPath = dbPath,
-                CropOutputDirectory = cropPath
+                ImageOutputDirectory = imagePath
             };
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -97,7 +103,7 @@ public class UserSettingsService : IUserSettingsService
             {
                 ReportExportPath = KnownFolderPaths.GetReportExportDirectory(),
                 DatabaseExportPath = _exportService.DefaultExportDirectory,
-                CropOutputDirectory = KnownFolderPaths.GetCropImagesDirectory()
+                ImageOutputDirectory = KnownFolderPaths.GetCropImagesDirectory()
             };
         }
     }
@@ -113,7 +119,7 @@ public class UserSettingsService : IUserSettingsService
         await _settingsRepository.SetSettingAsync(KeySkipDashboardOnStartup, settings.SkipDashboardOnStartup, cancellationToken).ConfigureAwait(false);
         await _settingsRepository.SetSettingAsync(KeyReportExportPath, settings.ReportExportPath, cancellationToken).ConfigureAwait(false);
         await _settingsRepository.SetSettingAsync(KeyDatabaseExportPath, settings.DatabaseExportPath, cancellationToken).ConfigureAwait(false);
-        await _settingsRepository.SetSettingAsync(KeyCropOutputDirectory, settings.CropOutputDirectory, cancellationToken).ConfigureAwait(false);
+        await _settingsRepository.SetSettingAsync(KeyImageOutputDirectory, settings.ImageOutputDirectory, cancellationToken).ConfigureAwait(false);
 
         Log.Information("User settings saved successfully. Threshold: {Threshold}, Device: {Device}, Startup: {Page}",
             settings.ConfidenceThreshold, settings.PreferredDevice, settings.DefaultStartupPage);

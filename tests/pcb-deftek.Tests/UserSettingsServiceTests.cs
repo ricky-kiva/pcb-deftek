@@ -55,13 +55,13 @@ public class UserSettingsServiceTests : IDisposable
 
         // Assert
         settings.Should().NotBeNull();
-        settings.ConfidenceThreshold.Should().Be(0.25);
+        settings.ConfidenceThreshold.Should().Be(0.65);
         settings.PreferredDevice.Should().Be("Cpu");
         settings.DefaultStartupPage.Should().Be("Dashboard");
         settings.SkipDashboardOnStartup.Should().BeFalse();
         settings.ReportExportPath.Should().Be(KnownFolderPaths.GetReportExportDirectory());
         settings.DatabaseExportPath.Should().Be(_defaultDownloadsPath);
-        settings.CropOutputDirectory.Should().Be(KnownFolderPaths.GetCropImagesDirectory());
+        settings.ImageOutputDirectory.Should().Be(KnownFolderPaths.GetCropImagesDirectory());
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class UserSettingsServiceTests : IDisposable
             SkipDashboardOnStartup = true,
             ReportExportPath = customReportPath,
             DatabaseExportPath = customDatabasePath,
-            CropOutputDirectory = customCropPath
+            ImageOutputDirectory = customCropPath
         };
 
         // Act
@@ -95,7 +95,7 @@ public class UserSettingsServiceTests : IDisposable
         loaded.SkipDashboardOnStartup.Should().BeTrue();
         loaded.ReportExportPath.Should().Be(customReportPath);
         loaded.DatabaseExportPath.Should().Be(customDatabasePath);
-        loaded.CropOutputDirectory.Should().Be(customCropPath);
+        loaded.ImageOutputDirectory.Should().Be(customCropPath);
     }
 
     [Fact]
