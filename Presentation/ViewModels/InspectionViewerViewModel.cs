@@ -45,6 +45,11 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
     public event EventHandler<Guid>? Deleted;
 
     /// <summary>
+    /// Raised whenever the viewer closes and clears its state.
+    /// </summary>
+    public event EventHandler? Closed;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="InspectionViewerViewModel"/> class.
     /// </summary>
     public InspectionViewerViewModel(
@@ -71,6 +76,29 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
 
     /// <summary>Gets the persisted record name, or an empty string when no record is loaded.</summary>
     public string CurrentName => _nameEditor?.Name ?? string.Empty;
+
+    /// <summary>Gets the loaded inspection identifier, or null when the viewer is closed.</summary>
+    public Guid? CurrentRecordId => _record?.Id;
+
+    /// <summary>Gets a value indicating whether a full-size image is available.</summary>
+    public bool HasImage => ImageSource is not null;
+
+    /// <summary>Gets a value indicating whether the record contains any defects.</summary>
+    public bool HasDefects => ClassSummaries.Count > 0;
+
+    /// <summary>Gets a value indicating whether the record has no defects.</summary>
+    public bool HasNoDefects => !HasDefects;
+
+    /// <summary>Gets the pluralized class-summary count label.</summary>
+    public string ClassCountText => ClassSummaries.Count == 1
+        ? "1 class"
+        : $"{ClassSummaries.Count} classes";
+
+    /// <summary>Gets the focused defect palette color as <c>#RRGGBB</c>.</summary>
+    public string FocusedColorHex => SelectedMarker?.ColorHex ?? "#C42B1C";
+
+    /// <summary>Gets the focused class abbreviation.</summary>
+    public string FocusedAbbreviation => SelectedMarker?.Abbreviation ?? string.Empty;
 
     /// <summary>Gets or sets the in-progress name while editing.</summary>
     public string EditedName
@@ -122,7 +150,8 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
     public bool CanCrop => _record is not null && ImageSource is not null && !IsLoading;
 
     /// <summary>Gets a value indicating whether the current record can be deleted.</summary>
-    public bool CanDeleteImage => _record is not null && !IsLoading && !IsDeleting;
+    public bool CanDeleteImage =>
+        _record is not null && ImageSource is not null && !IsLoading && !IsDeleting;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CropViewportCommand))]
@@ -135,6 +164,7 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CropViewportCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteImageCommand))]
     private BitmapSource? _imageSource;
 
     [ObservableProperty]
@@ -148,6 +178,11 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
 
     partial void OnSelectedMarkerChanged(DefectMarkerViewModel? value)
     {
+        foreach (var marker in DefectMarkers)
+        {
+            marker.IsSelected = ReferenceEquals(marker, value);
+        }
+
         OnPropertyChanged(nameof(IsDefectFocused));
         OnPropertyChanged(nameof(FocusedClassName));
         OnPropertyChanged(nameof(FocusedConfidenceText));
@@ -155,12 +190,17 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
         OnPropertyChanged(nameof(FocusedRootCause));
         OnPropertyChanged(nameof(FocusedImpact));
         OnPropertyChanged(nameof(FocusedAction));
+        OnPropertyChanged(nameof(FocusedColorHex));
+        OnPropertyChanged(nameof(FocusedAbbreviation));
     }
 
     partial void OnImageSourceChanged(BitmapSource? value)
     {
+        OnPropertyChanged(nameof(HasImage));
         OnPropertyChanged(nameof(CanCrop));
+        OnPropertyChanged(nameof(CanDeleteImage));
         CropViewportCommand.NotifyCanExecuteChanged();
+        DeleteImageCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnIsLoadingChanged(bool value)
@@ -260,6 +300,7 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
         IsDeleting = false;
         ResetViewerState();
         NotifyRecordState();
+        Closed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -322,7 +363,7 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
     private async Task DeleteImageAsync()
     {
         var record = _record;
-        if (record is null || IsDeleting)
+        if (record is null || ImageSource is null || IsDeleting)
         {
             return;
         }
@@ -400,6 +441,8 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
 
         ImageSource = image;
         IsImageUnavailable = image is null;
+        OnPropertyChanged(nameof(HasDefects));
+        OnPropertyChanged(nameof(HasNoDefects));
         NotifyRecordState();
     }
 
@@ -425,6 +468,11 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
     private void NotifyRecordState()
     {
         OnPropertyChanged(nameof(CurrentName));
+        OnPropertyChanged(nameof(CurrentRecordId));
+        OnPropertyChanged(nameof(HasImage));
+        OnPropertyChanged(nameof(HasDefects));
+        OnPropertyChanged(nameof(HasNoDefects));
+        OnPropertyChanged(nameof(ClassCountText));
         OnPropertyChanged(nameof(EditedName));
         OnPropertyChanged(nameof(IsEditingName));
         OnPropertyChanged(nameof(IsSavingName));

@@ -1,0 +1,480 @@
+<UserControl x:Class="pcb_deftek.Presentation.Views.DefectViewerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:pcb_deftek.Presentation.Controls"
+             xmlns:vm="clr-namespace:pcb_deftek.Presentation.ViewModels"
+             xmlns:converters="clr-namespace:pcb_deftek.Presentation.Converters"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:InspectionViewerViewModel}"
+             d:DesignHeight="760" d:DesignWidth="1200"
+             Focusable="True"
+             PreviewKeyDown="OnViewerKeyDown"
+             IsVisibleChanged="OnViewerIsVisibleChanged"
+             Loaded="OnViewerLoaded">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibilityConverter" />
+        <converters:HexColorToBrushConverter x:Key="HexColorToBrushConverter" />
+
+        <Style x:Key="ViewerLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+
+        <Style x:Key="ViewerValueStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="ViewerBodyStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="LineHeight" Value="18" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="ViewerSectionHeadingStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style x:Key="ViewerDangerButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource StatusFailBrush}" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="DangerBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="DangerBorder" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="DangerBorder" Property="Opacity" Value="0.78" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="DangerBorder" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="DangerBorder" Property="BorderThickness" Value="1" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="DangerBorder" Property="Background" Value="{DynamicResource ControlFillColorDisabledBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ViewerToolButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="Transparent"
+                                BorderThickness="0"
+                                CornerRadius="5"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="Root" Property="BorderThickness" Value="1" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                                <Setter Property="Cursor" Value="Arrow" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="#8A000000" Focusable="False"
+          KeyboardNavigation.TabNavigation="Cycle"
+          KeyboardNavigation.ControlTabNavigation="Cycle">
+        <Border Margin="24"
+                MaxWidth="1240"
+                MaxHeight="820"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <Border Grid.Row="0"
+                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                        BorderThickness="0,0,0,1"
+                        Padding="20,12">
+                    <DockPanel>
+                        <Button x:Name="CloseButton"
+                                DockPanel.Dock="Right"
+                                Style="{StaticResource ViewerToolButtonStyle}"
+                                Click="OnCloseClick"
+                                ToolTip="Close viewer (Esc)"
+                                AutomationProperties.Name="Close inspection viewer">
+                            <Path Data="{StaticResource IconClose}"
+                                  Fill="{DynamicResource TextFillColorPrimaryBrush}"
+                                  Width="13"
+                                  Height="13"
+                                  Stretch="Uniform" />
+                        </Button>
+
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Inspection review"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Inspect defects, crop the visible view, or delete the record."
+                                       FontSize="11"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,2,0,0" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- Content -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="370" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Image canvas -->
+                    <Border Grid.Column="0"
+                            Background="#10000000"
+                            BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                            BorderThickness="0,0,1,0">
+                        <Grid>
+                            <controls:DefectImageViewer x:Name="ImageCanvas"
+                                                        AutomationProperties.Name="Inspection image with defect bounding boxes"
+                                                        AutomationProperties.HelpText="Scroll to zoom, drag to pan, click a box to inspect the defect."
+                                                        ImageSource="{Binding ImageSource}"
+                                                        Markers="{Binding DefectMarkers}"
+                                                        SelectedMarker="{Binding SelectedMarker, Mode=TwoWay}"
+                                                        MarkerSelected="OnMarkerSelected"
+                                                        ViewportChanged="OnViewportChanged" />
+
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        MaxWidth="320"
+                                        IsHitTestVisible="False"
+                                        Visibility="{Binding IsImageUnavailable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Path Data="{StaticResource IconImage}"
+                                      Fill="{DynamicResource TextFillColorTertiaryBrush}"
+                                      Width="48"
+                                      Height="48"
+                                      Stretch="Uniform"
+                                      HorizontalAlignment="Center" />
+                                <TextBlock Text="Image unavailable"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,12,0,0" />
+                                <TextBlock Text="The source image is missing or could not be read."
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           Margin="0,4,0,0" />
+                            </StackPanel>
+
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ProgressBar IsIndeterminate="True" Width="180" Height="4" />
+                                <TextBlock Text="Loading inspection..."
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,8,0,0" />
+                            </StackPanel>
+
+                            <!-- Floating view controls -->
+                            <Border HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom"
+                                    Margin="16"
+                                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                                    BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="7"
+                                    Padding="3">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource ViewerToolButtonStyle}"
+                                            Click="OnResetClick"
+                                            IsEnabled="{Binding HasImage}"
+                                            ToolTip="Reset view"
+                                            AutomationProperties.Name="Reset view">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource IconZoomReset}"
+                                                  Fill="{DynamicResource TextFillColorPrimaryBrush}"
+                                                  Width="13"
+                                                  Height="13"
+                                                  Stretch="Uniform"
+                                                  VerticalAlignment="Center" />
+                                            <TextBlock Text="Reset"
+                                                       Margin="6,0,0,0"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource ViewerToolButtonStyle}"
+                                            Click="OnCropClick"
+                                            IsEnabled="{Binding CanCrop}"
+                                            ToolTip="Export the visible view as PNG"
+                                            AutomationProperties.Name="Crop visible view">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource IconCrop}"
+                                                  Fill="{DynamicResource TextFillColorPrimaryBrush}"
+                                                  Width="13"
+                                                  Height="13"
+                                                  Stretch="Uniform"
+                                                  VerticalAlignment="Center" />
+                                            <TextBlock Text="Crop"
+                                                       Margin="6,0,0,0"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Information sidebar -->
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <ScrollViewer Grid.Row="0"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="20,18,20,10">
+                            <Grid>
+                                <!-- Default state -->
+                                <StackPanel Visibility="{Binding IsDefectFocused, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                    <TextBlock Text="Name" Style="{StaticResource ViewerLabelStyle}" />
+                                    <TextBox x:Name="NameTextBox"
+                                             Text="{Binding EditedName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             FontSize="19"
+                                             FontWeight="SemiBold"
+                                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                             Background="Transparent"
+                                             BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                             BorderThickness="0,0,0,1"
+                                             Padding="0,2,0,6"
+                                             Margin="0,0,0,10"
+                                             GotKeyboardFocus="OnNameGotFocus"
+                                             LostKeyboardFocus="OnNameLostFocus"
+                                             PreviewKeyDown="OnNameKeyDown"
+                                             AutomationProperties.Name="Inspection name" />
+
+                                    <TextBlock Text="{Binding FormattedTimestamp}"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                                    <Border Height="1"
+                                            Background="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                            Margin="0,18,0,16" />
+
+                                    <DockPanel Margin="0,0,0,8">
+                                        <TextBlock DockPanel.Dock="Right"
+                                                   Text="{Binding ClassCountText}"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   VerticalAlignment="Center"
+                                                   Visibility="{Binding HasDefects, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <TextBlock Text="Defects" Style="{StaticResource ViewerSectionHeadingStyle}" Margin="0" />
+                                    </DockPanel>
+
+                                    <ItemsControl ItemsSource="{Binding ClassSummaries}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                                        BorderThickness="0,0,0,1"
+                                                        Padding="0,9">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <Rectangle Grid.Column="0"
+                                                                   Width="4"
+                                                                   Height="26"
+                                                                   RadiusX="2"
+                                                                   RadiusY="2"
+                                                                   Fill="{Binding ColorHex, Converter={StaticResource HexColorToBrushConverter}}"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,10,0" />
+
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding DisplayName}"
+                                                                       FontSize="12.5"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                            <TextBlock Text="{Binding Abbreviation}"
+                                                                       FontSize="10"
+                                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                            <TextBlock Text="{Binding Count, StringFormat={}{0}×}"
+                                                                       FontSize="12"
+                                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                                       HorizontalAlignment="Right" />
+                                                            <TextBlock Text="{Binding HighestConfidenceText}"
+                                                                       FontSize="10"
+                                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                                       HorizontalAlignment="Right" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <Border BorderBrush="{DynamicResource StatusPassBorderBrush}"
+                                            Background="{DynamicResource StatusPassLightBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Padding="12,10"
+                                            Margin="0,4,0,0"
+                                            Visibility="{Binding HasNoDefects, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel>
+                                            <TextBlock Text="No defects detected"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource StatusPassBrush}" />
+                                            <TextBlock Text="This inspection passed and has no bounding boxes to review."
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Focused state -->
+                                <StackPanel Visibility="{Binding IsDefectFocused, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Rectangle Width="4"
+                                                   Height="28"
+                                                   RadiusX="2"
+                                                   RadiusY="2"
+                                                   Fill="{Binding FocusedColorHex, Converter={StaticResource HexColorToBrushConverter}}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,10,0" />
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding FocusedClassName}"
+                                                       FontSize="20"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            <TextBlock Text="{Binding FocusedAbbreviation}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Confidence" Style="{StaticResource ViewerLabelStyle}" />
+                                            <TextBlock Text="{Binding FocusedConfidenceText}" Style="{StaticResource ViewerValueStyle}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Severity" Style="{StaticResource ViewerLabelStyle}" />
+                                            <TextBlock Text="{Binding FocusedSeverityText}" Style="{StaticResource ViewerValueStyle}" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Border Height="1"
+                                            Background="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                            Margin="0,16,0,14" />
+
+                                    <TextBlock Text="Root cause" Style="{StaticResource ViewerSectionHeadingStyle}" />
+                                    <TextBlock Text="{Binding FocusedRootCause}" Style="{StaticResource ViewerBodyStyle}" Margin="0,0,0,14" />
+
+                                    <TextBlock Text="Impact" Style="{StaticResource ViewerSectionHeadingStyle}" />
+                                    <TextBlock Text="{Binding FocusedImpact}" Style="{StaticResource ViewerBodyStyle}" Margin="0,0,0,14" />
+
+                                    <TextBlock Text="Recommended action" Style="{StaticResource ViewerSectionHeadingStyle}" />
+                                    <TextBlock Text="{Binding FocusedAction}" Style="{StaticResource ViewerBodyStyle}" />
+                                </StackPanel>
+                            </Grid>
+                        </ScrollViewer>
+
+                        <!-- Destructive action, persistent across sidebar states -->
+                        <Border Grid.Row="1"
+                                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                BorderThickness="0,1,0,0"
+                                Padding="20,12">
+                            <Button Style="{StaticResource ViewerDangerButtonStyle}"
+                                    Command="{Binding DeleteImageCommand}"
+                                    ToolTip="Delete this inspection and its app-owned captures"
+                                    AutomationProperties.Name="Delete inspection image">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource IconDelete}"
+                                          Fill="#FFFFFF"
+                                          Width="13"
+                                          Height="13"
+                                          Stretch="Uniform"
+                                          VerticalAlignment="Center" />
+                                    <TextBlock Text="Delete Image"
+                                               Margin="6,0,0,0"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
