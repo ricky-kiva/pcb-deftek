@@ -113,7 +113,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid Margin="24,18,24,16">
+    <Grid Margin="24,18,24,8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -587,9 +587,9 @@
         <CheckBox Grid.Row="3"
                   IsChecked="{Binding SkipDashboardOnStartup, Mode=TwoWay}"
                   FontSize="11"
-                  MinHeight="22"
+                  Height="22"
                   Padding="0,4"
-                  Margin="2,0,0,0"
+                  Margin="2,8,0,0"
                   VerticalContentAlignment="Center"
                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                   AutomationProperties.Name="Skip dashboard on startup">
