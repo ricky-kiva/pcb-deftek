@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -90,6 +91,34 @@ public class DashboardViewCompositionTests
                 vm.Progress.ReportDataExport(status, status == DashboardProgressStatus.Completed ? 100 : 25, status.ToString());
                 RenderPixelCount(view, 1000, 720).Should().BeGreaterThan(0);
             }
+        });
+    }
+
+    [Fact]
+    public void ChartModal_EscapeClosesTheOverlay()
+    {
+        RunOnSta(() =>
+        {
+            var (view, vm) = CreateView();
+            view.DataContext = vm;
+            vm.LoadAsync().GetAwaiter().GetResult();
+            Layout(view);
+            vm.OpenChartCommand.Execute(vm.MetricCards[0]);
+
+            using var source = new System.Windows.Interop.HwndSource(new System.Windows.Interop.HwndSourceParameters("dashboard-escape-test")
+            {
+                Width = 1100,
+                Height = 720,
+                WindowStyle = 0x800000
+            });
+            source.RootVisual = view;
+            var keyEvent = new KeyEventArgs(Keyboard.PrimaryDevice, source, 0, Key.Escape)
+            {
+                RoutedEvent = Keyboard.PreviewKeyDownEvent
+            };
+            view.RaiseEvent(keyEvent);
+
+            vm.IsChartModalOpen.Should().BeFalse();
         });
     }
 
