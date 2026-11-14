@@ -35,7 +35,7 @@ public class DashboardViewCompositionTests
             cards.Items.Count.Should().Be(4);
             FindVisualChild<UniformGrid>(cards)!.Columns.Should().Be(2);
 
-            vm.ToggleLayoutCommand.Execute(null);
+            vm.SetOneColumnLayoutCommand.Execute(null);
             Layout(view);
             FindVisualChild<UniformGrid>(cards)!.Columns.Should().Be(1);
 

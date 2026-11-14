@@ -35,37 +35,58 @@
                 <Setter Property="Focusable" Value="True" />
             </Style>
 
+            <Style x:Key="LayoutSegmentStyle" TargetType="RadioButton">
+                <Setter Property="Width" Value="30" />
+                <Setter Property="Height" Value="24" />
+                <Setter Property="Margin" Value="1" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="Segment"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Segment" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Segment" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                    <Setter TargetName="Segment" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter TargetName="Segment" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="PassFailValueStyle" TargetType="StackPanel">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Kind}" Value="PassFail">
+                        <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
             <Style x:Key="SectionLabelStyle" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="12" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
                 <Setter Property="Margin" Value="0,10,0,3" />
-            </Style>
-
-            <Style x:Key="DefectSeverityBadgeStyle" TargetType="Border">
-                <Setter Property="Background" Value="{DynamicResource SeverityMediumTintBrush}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource SeverityMediumBrush}" />
-                <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="CornerRadius" Value="4" />
-                <Setter Property="Padding" Value="6,2" />
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding Severity}" Value="Critical">
-                        <Setter Property="Background" Value="{DynamicResource SeverityCriticalTintBrush}" />
-                        <Setter Property="BorderBrush" Value="{DynamicResource SeverityCriticalBrush}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Severity}" Value="High">
-                        <Setter Property="Background" Value="{DynamicResource SeverityHighTintBrush}" />
-                        <Setter Property="BorderBrush" Value="{DynamicResource SeverityHighBrush}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Severity}" Value="MediumHigh">
-                        <Setter Property="Background" Value="{DynamicResource SeverityMediumHighTintBrush}" />
-                        <Setter Property="BorderBrush" Value="{DynamicResource SeverityMediumHighBrush}" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Severity}" Value="LowMedium">
-                        <Setter Property="Background" Value="{DynamicResource SeverityLowMediumTintBrush}" />
-                        <Setter Property="BorderBrush" Value="{DynamicResource SeverityLowMediumBrush}" />
-                    </DataTrigger>
-                </Style.Triggers>
             </Style>
 
             <Style x:Key="ReadOnlyBodyTextBoxStyle" TargetType="TextBox">
@@ -141,6 +162,12 @@
                                   IsChecked="{Binding Filters.SelectedPreset, Mode=OneWay, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Month}"
                                   Click="OnDatePresetClick"
                                   AutomationProperties.Name="Filter dashboard by this month" />
+                    <ToggleButton Style="{StaticResource FilterChipStyle}"
+                                  Content="Monthly"
+                                  Tag="Monthly"
+                                  IsChecked="{Binding Filters.SelectedPreset, Mode=OneWay, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Monthly}"
+                                  Click="OnDatePresetClick"
+                                  AutomationProperties.Name="Filter dashboard by monthly range" />
                     <ToggleButton x:Name="CustomDateToggle"
                                   Style="{StaticResource FilterChipStyle}"
                                   Content="Custom"
@@ -257,11 +284,6 @@
                 </WrapPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-                    <TextBlock Text="{Binding SummaryText}"
-                               FontSize="12"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               VerticalAlignment="Center"
-                               Margin="0,0,6,0" />
                     <Button Content="Export"
                             Style="{StaticResource QuietButtonStyle}"
                             Command="{Binding RequestExportCommand}"
@@ -272,11 +294,36 @@
                             Command="{Binding OpenNotificationsCommand}"
                             ToolTip="Open inference and export progress"
                             AutomationProperties.Name="Open dashboard notifications" />
-                    <Button Content="{Binding LayoutToggleLabel}"
-                            Style="{StaticResource QuietButtonStyle}"
-                            Command="{Binding ToggleLayoutCommand}"
-                            ToolTip="Switch metric card columns"
-                            AutomationProperties.Name="Toggle metric card layout" />
+                    <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                            BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="2"
+                            Margin="6,0,0,0"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="OneColumnLayoutButton"
+                                         GroupName="DashboardLayout"
+                                         Style="{StaticResource LayoutSegmentStyle}"
+                                         IsChecked="{Binding IsOneColumnLayout, Mode=OneWay}"
+                                         Command="{Binding SetOneColumnLayoutCommand}"
+                                         AutomationProperties.Name="Use one column">
+                                <Path Data="M4,5H20V19H4V5M6,7V17H18V7H6Z"
+                                      Width="13" Height="13" Stretch="Uniform"
+                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                            </RadioButton>
+                            <RadioButton x:Name="TwoColumnLayoutButton"
+                                         GroupName="DashboardLayout"
+                                         Style="{StaticResource LayoutSegmentStyle}"
+                                         IsChecked="{Binding IsTwoColumnLayout, Mode=OneWay}"
+                                         Command="{Binding SetTwoColumnLayoutCommand}"
+                                         AutomationProperties.Name="Use two columns">
+                                <Path Data="M3,5H10V19H3V5M14,5H21V19H14V5M5,7V17H8V7H5M16,7V17H19V7H16Z"
+                                      Width="13" Height="13" Stretch="Uniform"
+                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                            </RadioButton>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Grid>
         </Border>
@@ -333,12 +380,54 @@
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                         </Grid>
 
-                                        <TextBlock Grid.Row="1"
-                                                   Text="{Binding DisplayValue}"
-                                                   FontSize="26"
-                                                   FontWeight="SemiBold"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                        <Grid Grid.Row="1">
+                                            <TextBlock Text="{Binding DisplayValue}"
+                                                       FontSize="26"
+                                                       FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Kind}" Value="PassFail">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Kind}" Value="Distribution">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <StackPanel Orientation="Horizontal" Style="{StaticResource PassFailValueStyle}">
+                                                <TextBlock Text="{Binding PassCount, StringFormat={}{0:N0}}"
+                                                           FontSize="26"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                <TextBlock Text=" PASS"
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Bottom"
+                                                           Margin="4,0,10,4"
+                                                           Foreground="{DynamicResource StatusPassBrush}" />
+                                                <TextBlock Text="/"
+                                                           FontSize="11"
+                                                           VerticalAlignment="Bottom"
+                                                           Margin="0,0,10,4"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Text="{Binding FailCount, StringFormat={}{0:N0}}"
+                                                           FontSize="26"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                <TextBlock Text=" FAIL"
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Bottom"
+                                                           Margin="4,0,0,4"
+                                                           Foreground="{DynamicResource StatusFailBrush}" />
+                                            </StackPanel>
+                                        </Grid>
 
                                         <controls:DashboardChartHost Grid.Row="2"
                                                                      Card="{Binding}"
@@ -346,33 +435,12 @@
                                                                      Margin="0,8,0,4"
                                                                      ChartActivated="OnChartActivated" />
 
-                                        <Grid Grid.Row="3" Margin="0,6,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding Caption}"
-                                                       FontSize="10"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                <Button Content="←"
-                                                        Width="26" Height="24" Padding="0"
-                                                        Style="{StaticResource QuietButtonStyle}"
-                                                        Command="{Binding DataContext.MoveCardLeftCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}"
-                                                        ToolTip="Move card left"
-                                                        AutomationProperties.Name="Move card left" />
-                                                <Button Content="→"
-                                                        Width="26" Height="24" Padding="0"
-                                                        Style="{StaticResource QuietButtonStyle}"
-                                                        Command="{Binding DataContext.MoveCardRightCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}"
-                                                        ToolTip="Move card right"
-                                                        AutomationProperties.Name="Move card right" />
-                                            </StackPanel>
-                                        </Grid>
+                                        <TextBlock Grid.Row="3"
+                                                   Margin="0,6,0,0"
+                                                   Text="{Binding Caption}"
+                                                   FontSize="10"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -415,13 +483,18 @@
                                           IsExpanded="{Binding IsFirst, Mode=OneTime}"
                                           AutomationProperties.Name="{Binding DisplayName}">
                                     <Expander.Header>
-                                        <DockPanel>
+                                        <DockPanel Cursor="Hand" Background="Transparent" HorizontalAlignment="Stretch">
                                             <TextBlock Text="{Binding DisplayName}"
                                                        FontSize="13" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                             <TextBlock Text="{Binding SeverityLabel}"
                                                        FontSize="11"
                                                        Margin="10,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Text="{Binding Abbreviation}"
+                                                       FontSize="11"
+                                                       Margin="4,0,0,0"
                                                        VerticalAlignment="Center"
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                         </DockPanel>
@@ -449,17 +522,13 @@
                                                                VerticalAlignment="Bottom"
                                                                Margin="6"
                                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                                    <Image Source="{Binding Abbreviation, Converter={StaticResource DefectAbbreviationToImagePathConverter}}"
+                                                    <Image x:Name="DefectImage"
+                                                           Source="{Binding Abbreviation, Converter={StaticResource DefectAbbreviationToImagePathConverter}}"
                                                            Stretch="UniformToFill"
                                                            RenderOptions.BitmapScalingMode="HighQuality"
+                                                           SizeChanged="OnDefectImageSizeChanged"
                                                            ImageFailed="OnDefectImageFailed" />
                                                 </Grid>
-                                            </Border>
-                                            <Border Style="{StaticResource DefectSeverityBadgeStyle}"
-                                                    HorizontalAlignment="Left"
-                                                    Margin="0,8,0,0">
-                                                <TextBlock Text="{Binding SeverityLabel}" FontSize="10"
-                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                             </Border>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1">
@@ -514,7 +583,11 @@
         <CheckBox Grid.Row="3"
                   Content="Skip dashboard on startup"
                   IsChecked="{Binding SkipDashboardOnStartup, Mode=TwoWay}"
-                  Margin="2,10,0,0"
+                  FontSize="11"
+                  Height="22"
+                  Padding="0"
+                  Margin="2,4,0,0"
+                  VerticalContentAlignment="Center"
                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                   AutomationProperties.Name="Skip dashboard on startup" />
 
@@ -564,6 +637,7 @@
                             Grid.Column="1"
                             Width="32" Height="32" Padding="0"
                             HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Cursor="Hand"
                             Command="{Binding CloseChartCommand}"
                             AutomationProperties.Name="Close enlarged chart"
                             ToolTip="Close">
@@ -613,6 +687,7 @@
                     </StackPanel>
                     <Button x:Name="NotificationModalCloseButton"
                             Grid.Column="1" Width="32" Height="32" Padding="0"
+                            Cursor="Hand"
                             Command="{Binding CloseNotificationsCommand}"
                             AutomationProperties.Name="Close dashboard activity"
                             ToolTip="Close">
