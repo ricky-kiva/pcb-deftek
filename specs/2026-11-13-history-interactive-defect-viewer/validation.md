@@ -164,10 +164,11 @@ Scenarios must run against an isolated SQLite database (reusing `TestSqliteConne
 ### 3.10 Crop
 
 - Crop exports exactly the visible viewport region, at native source resolution.
-- Output is a valid PNG in the Windows Downloads folder by default.
+- Output is a valid PNG in the configured crop directory (default `Downloads/PCB Deftek/Images`).
 - File name is `{recordName}_crop_{yyyyMMdd-HHmmss}.png`, sanitized; collisions get a numeric suffix; existing files are never overwritten.
-- A completion toast reports the full path; failure produces a failure notification and does not crash.
-- Cropping does not create an inspection record or modify the source file.
+- A completion toast reports the full path and confirms the new History entry.
+- The crop is inserted into History as a new inspection with the defects intersecting the crop; each box is clipped and re-normalized to the crop dimensions.
+- Cropping does not modify the source image or create a PDF/report.
 
 ### 3.11 Missing / Corrupt Image
 
