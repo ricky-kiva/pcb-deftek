@@ -34,6 +34,8 @@ public class NavigationServiceTests
         services.AddSingleton(new Mock<IBatchInspectionEngine>().Object);
         services.AddSingleton(new Mock<INotificationService>().Object);
         services.AddSingleton(new Mock<IUserSettingsService>().Object);
+        services.AddSingleton(new Mock<IDashboardRepository>().Object);
+        services.AddSingleton(new Mock<IDashboardProgressService>().Object);
         services.AddSingleton(new Mock<IInspectionRepository>().Object);
         services.AddSingleton(new Mock<IHistoryThumbnailService>().Object);
         services.AddSingleton(new Mock<IViewportCropService>().Object);
@@ -123,7 +125,7 @@ public class NavigationServiceTests
     [Fact]
     public void PageViewModels_HaveExpectedTitles()
     {
-        var dashboard = new DashboardViewModel();
+        var dashboard = _serviceProvider.GetRequiredService<DashboardViewModel>();
         var live = _serviceProvider.GetRequiredService<LiveDetectionViewModel>();
         var file = _serviceProvider.GetRequiredService<FileDetectionViewModel>();
         var history = _serviceProvider.GetRequiredService<HistoryViewModel>();

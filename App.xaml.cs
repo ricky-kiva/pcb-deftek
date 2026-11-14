@@ -115,6 +115,7 @@ public partial class App : Application
         services.AddSingleton<IDatabaseMigrator, SqliteDatabaseMigrator>();
         services.AddSingleton<IInspectionRepository, SqliteInspectionRepository>();
         services.AddSingleton<IDefectRepository, SqliteDefectRepository>();
+        services.AddSingleton<IDashboardRepository, SqliteDashboardRepository>();
         services.AddSingleton<ISettingsRepository, SqliteSettingsRepository>();
         services.AddSingleton<IUserSettingsService, UserSettingsService>();
         services.AddSingleton<IDatabaseBackupService, SqliteDatabaseBackupService>();
@@ -122,6 +123,7 @@ public partial class App : Application
 
         // Notification & File Ingestion Services
         services.AddSingleton<INotificationService, WindowsNotificationService>();
+        services.AddSingleton<IDashboardProgressService, DashboardProgressService>();
         services.AddSingleton<IFileDiscoveryService, FileDiscoveryService>();
         services.AddSingleton<IFilePickerService, WpfFilePickerService>();
         services.AddSingleton<IBatchInspectionEngine, BatchInspectionEngine>();

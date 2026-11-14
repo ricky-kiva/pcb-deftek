@@ -35,6 +35,8 @@ public class StartupRoutingServiceTests
         services.AddSingleton(new Mock<IBatchInspectionEngine>().Object);
         services.AddSingleton(new Mock<INotificationService>().Object);
         services.AddSingleton(new Mock<IUserSettingsService>().Object);
+        services.AddSingleton(new Mock<IDashboardRepository>().Object);
+        services.AddSingleton(new Mock<IDashboardProgressService>().Object);
         services.AddSingleton(new Mock<IInspectionRepository>().Object);
         services.AddSingleton(new Mock<IHistoryThumbnailService>().Object);
         services.AddSingleton(new Mock<IViewportCropService>().Object);

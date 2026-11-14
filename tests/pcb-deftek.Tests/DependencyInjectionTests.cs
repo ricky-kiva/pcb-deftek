@@ -99,6 +99,7 @@ public class DependencyInjectionTests
     [InlineData(typeof(IDatabaseMigrator))]
     [InlineData(typeof(IInspectionRepository))]
     [InlineData(typeof(IDefectRepository))]
+    [InlineData(typeof(IDashboardRepository))]
     [InlineData(typeof(ISettingsRepository))]
     [InlineData(typeof(IDatabaseBackupService))]
     [InlineData(typeof(IDatabaseExportService))]
@@ -130,6 +131,7 @@ public class DependencyInjectionTests
         provider.GetRequiredService<IDatabaseMigrator>().Should().NotBeNull();
         provider.GetRequiredService<IInspectionRepository>().Should().NotBeNull();
         provider.GetRequiredService<IDefectRepository>().Should().NotBeNull();
+        provider.GetRequiredService<IDashboardRepository>().Should().NotBeNull();
         provider.GetRequiredService<ISettingsRepository>().Should().NotBeNull();
         provider.GetRequiredService<IDatabaseBackupService>().Should().NotBeNull();
         provider.GetRequiredService<IDatabaseExportService>().Should().NotBeNull();
@@ -175,6 +177,7 @@ public class DependencyInjectionTests
     [InlineData(typeof(INotificationService))]
     [InlineData(typeof(INavigationService))]
     [InlineData(typeof(IStartupRoutingService))]
+    [InlineData(typeof(IDashboardProgressService))]
     [InlineData(typeof(MainViewModel))]
     [InlineData(typeof(SettingsViewModel))]
     public void ConfigureServices_WhenCalled_RegistersPresentationServicesAsSingletons(Type serviceType)
@@ -240,6 +243,17 @@ public class DependencyInjectionTests
         provider.GetRequiredService<IConfirmationService>().Should().NotBeNull();
         provider.GetRequiredService<InspectionViewerViewModel>().Should().NotBeNull();
         provider.GetRequiredService<HistoryViewModel>().Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ConfigureServices_WhenProviderBuilt_ResolvesDashboardViewModelWithAllDependencies()
+    {
+        var services = new ServiceCollection();
+        App.ConfigureServices(services);
+        using var provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<DashboardViewModel>().Should().NotBeNull();
+        provider.GetRequiredService<IDashboardProgressService>().Should().NotBeNull();
     }
 
     [Theory]
