@@ -106,7 +106,7 @@ public class DashboardExportContractTests
             "Defect Distribution",
             "2",
             "All nine defect classes",
-            NineClassCounts());
+            DashboardStatistics.Empty.ClassCounts);
 
         passFail.PassFailSeries.Should().ContainSingle();
         passFail.TimeSeries.Should().BeEmpty();
@@ -230,6 +230,29 @@ public class DashboardExportContractTests
         duplicateKeys.Should().Throw<ArgumentException>();
     }
 
+    [Fact]
+    public void Document_RejectsDuplicateInspectionIdentifiers()
+    {
+        Guid id = Guid.NewGuid();
+        var inspection = new DashboardReportInspection(
+            id,
+            "Board A",
+            DateTime.Today,
+            DetectionMode.SingleFile,
+            InspectionStatus.Pass,
+            "staged/board-a.png",
+            Array.Empty<DashboardReportDefect>());
+        Action act = () => new DashboardReportDocument(
+            "Report",
+            "PCB Deftek",
+            DateTime.Today,
+            new DashboardReportFilterSummary("All time", "All nine classes", "All severities"),
+            CreateMetrics(),
+            new[] { inspection, inspection });
+
+        act.Should().Throw<ArgumentException>();
+    }
+
     private static IReadOnlyList<DashboardReportMetric> CreateMetrics() =>
         new[]
         {
@@ -256,12 +279,6 @@ public class DashboardExportContractTests
                 "Defect Distribution",
                 "2",
                 "All nine defect classes",
-                NineClassCounts())
+                DashboardStatistics.Empty.ClassCounts)
         };
-
-    private static IReadOnlyList<DashboardClassCount> NineClassCounts() =>
-        DefectKnowledgeBase.GetAll()
-            .OrderBy(info => info.ClassId)
-            .Select(info => new DashboardClassCount(info.Class, info.Abbreviation, 0))
-            .ToArray();
 }

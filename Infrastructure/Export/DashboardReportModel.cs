@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using pcb_deftek.Domain.Contracts;
 using pcb_deftek.Domain.Models;
@@ -321,7 +322,7 @@ public sealed record DashboardReportInspection
         CreatedAtLocal = createdAtLocal;
         Mode = mode;
         Status = status;
-        StagedImagePath = System.IO.Path.GetFullPath(stagedImagePath.Trim());
+        StagedImagePath = Path.GetFullPath(stagedImagePath.Trim());
         Defects = Array.AsReadOnly(copiedDefects);
     }
 
