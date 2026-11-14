@@ -338,14 +338,14 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Make the defect color table a single source usable by both OpenCV annotation and WPF overlays.
 - **Acceptance criteria:**
-  - [ ] `DefectClassInfo.ColorHex` returns the established color for all nine classes (e.g. `SH` blue, `OP` fern, `SC` white).
-  - [ ] `ImageAnnotationService.GetDefectColor` derives its BGR `Scalar` from `ColorHex`; rendered output is unchanged and the existing exact-BGR color theory in `ImageAnnotationServiceTests` passes without modification.
-  - [ ] A WPF converter turns `ColorHex` into a frozen `SolidColorBrush` with no WPF types in Domain/Infrastructure.
-  - [ ] All nine classes produce distinct, valid `#RRGGBB` values.
+  - [x] `DefectClassInfo.ColorHex` returns the established color for all nine classes (e.g. `SH` blue, `OP` fern, `SC` white).
+  - [x] `ImageAnnotationService.GetDefectColor` derives its BGR `Scalar` from `ColorHex`; rendered output is unchanged and the existing exact-BGR color theory in `ImageAnnotationServiceTests` passes without modification.
+  - [x] A WPF converter turns `ColorHex` into a frozen `SolidColorBrush` with no WPF types in Domain/Infrastructure.
+  - [x] All nine classes produce distinct, valid `#RRGGBB` values.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DefectPaletteTests`
-  - [ ] Existing `ImageAnnotationServiceTests` pass unchanged
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DefectPaletteTests`
+  - [x] Existing `ImageAnnotationServiceTests` pass unchanged
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** None
 - **Files:**
   - `Domain/Models/DefectClassInfo.cs`
@@ -358,56 +358,59 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Extract all zoom/pan/focus/crop geometry into a pure, testable model used by the viewer control and view model.
 - **Acceptance criteria:**
-  - [ ] Computes fit scale/offset from image and viewport sizes (letterboxed, centered).
-  - [ ] `ZoomAt(point, factor)` keeps the image point under the cursor stationary and clamps to `0.5×–10×` of fit.
-  - [ ] `Pan(dx, dy)` clamps so no viewport edge exposes empty space beyond the image.
-  - [ ] `FocusOn(normalizedRect, padding)` returns a transform that centers the defect at a bounded zoom.
-  - [ ] `GetVisibleNormalizedRect()` returns the visible image region clamped to `[0,1]`, suitable for cropping.
-  - [ ] Reset returns the exact fit transform.
+  - [x] Computes fit scale/offset from image and viewport sizes (letterboxed, centered).
+  - [x] `ZoomAt(point, factor)` keeps the image point under the cursor stationary and clamps to `0.5×–10×` of fit.
+  - [x] `Pan(dx, dy)` clamps so no viewport edge exposes empty space beyond the image.
+  - [x] `FocusOn(normalizedRect, padding)` returns a transform that centers the defect at a bounded zoom.
+  - [x] `GetVisibleNormalizedRect()` returns the visible image region clamped to `[0,1]`, suitable for cropping.
+  - [x] Reset returns the exact fit transform.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter ViewportTransformTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter ViewportTransformTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** None
 - **Files:**
+  - `Domain/Models/NormalizedRect.cs`
   - `Presentation/Models/ViewportTransform.cs`
   - `tests/pcb-deftek.Tests/ViewportTransformTests.cs`
-- **Estimated scope:** M (2 files)
+- **Estimated scope:** M (3 files)
 
 #### Task 4.3: `InspectionViewerViewModel`
 
 - **Description:** Viewer state: record loading, markers, sidebar states, rename, crop command, sidebar deletion, and close.
 - **Acceptance criteria:**
-  - [ ] Loads the full record with defects via `IInspectionRepository.GetByIdAsync` and raises an unavailable state when the image cannot be decoded.
-  - [ ] Exposes `ImageSource`, `DefectMarkers` (normalized + pixel rects), `SelectedMarker`, `IsDefectFocused`, `ClassSummaries`, `FormattedTimestamp`, `CurrentName`, `IsLoading`, and `IsDeleting`.
-  - [ ] Focus state exposes class name, confidence, severity, root cause, impact, and recommended action from `DetectedDefect`.
-  - [ ] Default state summary groups defects by class with count and highest confidence, ordered deterministically.
-  - [ ] `CropViewportCommand(NormalizedRect)` calls `IViewportCropService`, emits a completion toast with the full path, and reports failures without crashing.
-  - [ ] `DeleteImageCommand` asks `IConfirmationService` (count = 1, policy message), then calls `IInspectionDeletionService.DeleteAsync(Id)`; on success it raises a `Deleted` event with the record ID, closes/clears state, and emits a toast; on failure it keeps state and reports the error.
-  - [ ] Delete is disabled while loading, while already deleting, or when no record is loaded.
-  - [ ] `CloseCommand` clears selection and record state.
-  - [ ] Rename reuses `InspectionNameEditor` from Task 2.1 (no duplicated edit/validate/revert logic).
+  - [x] Loads the full record with defects via `IInspectionRepository.GetByIdAsync` and raises an unavailable state when the image cannot be decoded.
+  - [x] Exposes `ImageSource`, `DefectMarkers` (normalized + pixel rects), `SelectedMarker`, `IsDefectFocused`, `ClassSummaries`, `FormattedTimestamp`, `CurrentName`, `IsLoading`, and `IsDeleting`.
+  - [x] Focus state exposes class name, confidence, severity, root cause, impact, and recommended action from `DetectedDefect`.
+  - [x] Default state summary groups defects by class with count and highest confidence, ordered deterministically.
+  - [x] `CropViewportCommand(NormalizedRect)` calls `IViewportCropService`, emits a completion toast with the full path, and reports failures without crashing.
+  - [x] `DeleteImageCommand` asks `IConfirmationService` (count = 1, policy message), then calls `IInspectionDeletionService.DeleteAsync(Id)`; on success it raises a `Deleted` event with the record ID, closes/clears state, and emits a toast; on failure it keeps state and reports the error.
+  - [x] Delete is disabled while loading, while already deleting, or when no record is loaded.
+  - [x] `CloseCommand` clears selection and record state.
+  - [x] Rename reuses `InspectionNameEditor` from Task 2.1 (no duplicated edit/validate/revert logic).
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionViewerViewModelTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter InspectionViewerViewModelTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Tasks 1.4, 1.5, 4.1, 4.2, plus rename logic from Task 2.1
 - **Files:**
   - `Presentation/ViewModels/InspectionViewerViewModel.cs`
+  - `Presentation/ViewModels/DefectMarkerViewModel.cs`
+  - `Presentation/ViewModels/DefectClassSummaryViewModel.cs`
   - `tests/pcb-deftek.Tests/InspectionViewerViewModelTests.cs`
-- **Estimated scope:** M (2 files)
+- **Estimated scope:** M (4 files)
 
 #### Task 4.4: `IViewportCropService` & Shared Downloads Path
 
 - **Description:** Crop the currently visible normalized region from the source image at native resolution and export it as PNG.
 - **Acceptance criteria:**
-  - [ ] `KnownFolderPaths.GetDownloadsDirectory()` contains the existing Downloads resolution/fallback; `SqliteDatabaseExportService` delegates to it with unchanged behavior.
-  - [ ] Crop clamps the normalized rect to `[0,1]`, converts to native pixels, rejects empty results, and writes a PNG.
-  - [ ] Output name is sanitized `{recordName}_crop_{yyyyMMdd-HHmmss}.png` with a numeric suffix on collision; no overwrites.
-  - [ ] Honors an optional directory override for tests; defaults to Downloads.
-  - [ ] Throws/returns a typed failure (e.g. `ImageProcessingException`) for unreadable sources; never swallows silently.
+  - [x] `KnownFolderPaths.GetDownloadsDirectory()` contains the existing Downloads resolution/fallback; `SqliteDatabaseExportService` delegates to it with unchanged behavior.
+  - [x] Crop clamps the normalized rect to `[0,1]`, converts to native pixels, rejects empty results, and writes a PNG.
+  - [x] Output name is sanitized `{recordName}_crop_{yyyyMMdd-HHmmss}.png` with a numeric suffix on collision; no overwrites.
+  - [x] Honors an optional directory override for tests; defaults to Downloads.
+  - [x] Throws/returns a typed failure (e.g. `ImageProcessingException`) for unreadable sources; never swallows silently.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter ViewportCropServiceTests`
-  - [ ] Existing `SqliteDatabaseExportServiceTests` pass unchanged
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter ViewportCropServiceTests`
+  - [x] Existing `SqliteDatabaseExportServiceTests` pass unchanged
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** None
 - **Files:**
   - `Common/Storage/KnownFolderPaths.cs`
@@ -420,9 +423,9 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 ---
 
 ### Checkpoint 4: Viewer Logic Complete
-- [ ] All viewer state transitions are unit-tested without WPF.
-- [ ] Crop output dimensions match the visible region at native resolution.
-- [ ] Palette is single-sourced; annotation output unchanged.
+- [x] All viewer state transitions are unit-tested without WPF.
+- [x] Crop output dimensions match the visible region at native resolution.
+- [x] Palette is single-sourced; annotation output unchanged.
 
 ---
 
