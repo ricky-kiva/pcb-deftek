@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using pcb_deftek.Domain.Contracts;
 using pcb_deftek.Domain.Models;
+using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Presentation.Services;
 
@@ -28,6 +29,7 @@ public sealed partial class DashboardViewModel : ViewModelBase
     private readonly IDashboardRepository _repository;
     private readonly IUserSettingsService _settingsService;
     private readonly ILogger<DashboardViewModel> _logger;
+    private readonly INotificationService? _notificationService;
     private readonly SemaphoreSlim _settingsSaveGate = new(1, 1);
     private readonly SynchronizationContext? _uiContext;
     private CancellationTokenSource? _loadCts;
@@ -93,12 +95,14 @@ public sealed partial class DashboardViewModel : ViewModelBase
         IDashboardRepository repository,
         IUserSettingsService settingsService,
         IDashboardProgressService progressService,
-        ILogger<DashboardViewModel>? logger = null)
+        ILogger<DashboardViewModel>? logger = null,
+        INotificationService? notificationService = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         Progress = progressService ?? throw new ArgumentNullException(nameof(progressService));
         _logger = logger ?? NullLogger<DashboardViewModel>.Instance;
+        _notificationService = notificationService;
         _uiContext = SynchronizationContext.Current;
 
         Filters = new DashboardFilterViewModel();
@@ -485,18 +489,55 @@ public sealed partial class DashboardViewModel : ViewModelBase
         try
         {
             UserSettings current = await _settingsService.LoadSettingsAsync().ConfigureAwait(false);
-            _settings = current with
+            UserSettings next = current with
             {
                 DashboardCardOrder = _cardOrder.ToArray(),
                 DashboardColumnLayout = ColumnLayout,
                 SkipDashboardOnStartup = SkipDashboardOnStartup
             };
 
-            await _settingsService.SaveSettingsAsync(_settings).ConfigureAwait(false);
+            await _settingsService.SaveSettingsAsync(next).ConfigureAwait(false);
+            _settings = next;
         }
         catch (Exception ex)
         {
+            UserSettings persisted = _settings;
+            try
+            {
+                persisted = await _settingsService.LoadSettingsAsync().ConfigureAwait(false);
+            }
+            catch (Exception reloadException)
+            {
+                _logger.LogWarning(reloadException, "Failed to re-read dashboard settings after a save failure.");
+            }
+
+            _settings = persisted;
+            bool revertStartup = SkipDashboardOnStartup != persisted.SkipDashboardOnStartup;
+            if (revertStartup)
+            {
+                RunOnUi(() =>
+                {
+                    _suppressPreferenceSave = true;
+                    try
+                    {
+                        SkipDashboardOnStartup = persisted.SkipDashboardOnStartup;
+                    }
+                    finally
+                    {
+                        _suppressPreferenceSave = false;
+                    }
+                });
+            }
+
             _logger.LogWarning(ex, "Failed to persist dashboard preferences.");
+            if (_notificationService is not null)
+            {
+                _ = _notificationService.ShowToastAsync(
+                    "Dashboard settings not saved",
+                    revertStartup
+                        ? "The startup preference could not be saved. The previous value was restored."
+                        : "Card layout changes could not be saved.");
+            }
         }
         finally
         {

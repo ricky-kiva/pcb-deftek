@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using pcb_deftek.Domain.Contracts;
 using pcb_deftek.Domain.Models;
+using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Presentation.Models;
 using pcb_deftek.Presentation.Services;
@@ -19,6 +21,7 @@ public class DashboardViewModelTests
     private readonly FakeDashboardRepository _repository = new();
     private readonly FakeUserSettingsService _settings = new();
     private readonly DashboardProgressService _progress = new();
+    private readonly FakeNotificationService _notification = new();
 
     [Fact]
     public void Constructor_BuildsNineDefectInfoItemsInClassOrderWithAssetPaths()
@@ -197,6 +200,21 @@ public class DashboardViewModelTests
     }
 
     [Fact]
+    public async Task SkipDashboardSetting_WhenPersistenceFails_RevertsAndNotifies()
+    {
+        _settings.SaveException = new IOException("disk unavailable");
+        var sut = CreateSut();
+
+        sut.SkipDashboardOnStartup = true;
+        await WaitUntilAsync(() => _settings.SaveAttempts > 0);
+        await WaitUntilAsync(() => !sut.SkipDashboardOnStartup);
+        await WaitUntilAsync(() => _notification.LastTitle is not null);
+
+        sut.SkipDashboardOnStartup.Should().BeFalse();
+        _notification.LastTitle.Should().Be("Dashboard settings not saved");
+    }
+
+    [Fact]
     public void NotificationModalCommands_ToggleOpenState()
     {
         var sut = CreateSut();
@@ -225,6 +243,24 @@ public class DashboardViewModelTests
         exported!.StartDateUtc.Should().NotBeNull();
         exported.EndDateUtc.Should().NotBeNull();
         exported.DefectClasses.Should().Equal(DefectClass.Open);
+    }
+
+    [Fact]
+    public async Task ExportRequested_RepeatedClicksRaiseConsistentSnapshots()
+    {
+        _repository.Handler = (_, _) => Task.FromResult(SampleStatistics());
+        var sut = CreateSut();
+        await sut.LoadAsync();
+        sut.Filters.ClassOptions.Single(option => option.Value == DefectClass.Short).IsSelected = true;
+        var snapshots = new List<DashboardFilter>();
+        sut.ExportRequested += (_, filter) => snapshots.Add(filter);
+
+        sut.RequestExportCommand.Execute(null);
+        sut.RequestExportCommand.Execute(null);
+
+        snapshots.Should().HaveCount(2);
+        snapshots[0].DefectClasses.Should().Equal(DefectClass.Short);
+        snapshots[1].DefectClasses.Should().Equal(DefectClass.Short);
     }
 
     [Fact]
@@ -270,7 +306,8 @@ public class DashboardViewModelTests
     private DashboardViewModel CreateSut() => new(
         _repository,
         _settings,
-        _progress);
+        _progress,
+        notificationService: _notification);
 
     private static DashboardStatistics SampleStatistics(int totalInspections = 4)
     {
@@ -336,6 +373,17 @@ public class DashboardViewModelTests
         }
     }
 
+    private sealed class FakeNotificationService : INotificationService
+    {
+        public string? LastTitle { get; private set; }
+
+        public Task ShowToastAsync(string title, string message, CancellationToken cancellationToken = default)
+        {
+            LastTitle = title;
+            return Task.CompletedTask;
+        }
+    }
+
     private sealed class FakeUserSettingsService : IUserSettingsService
     {
         public UserSettings Settings { get; set; } = new();
@@ -345,8 +393,17 @@ public class DashboardViewModelTests
         public Task<UserSettings> LoadSettingsAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(Settings);
 
+        public Exception? SaveException { get; set; }
+        public int SaveAttempts { get; private set; }
+
         public Task SaveSettingsAsync(UserSettings settings, CancellationToken cancellationToken = default)
         {
+            SaveAttempts++;
+            if (SaveException is not null)
+            {
+                throw SaveException;
+            }
+
             Settings = settings;
             Saved.Add(settings);
             return Task.CompletedTask;
