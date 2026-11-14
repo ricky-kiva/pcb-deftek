@@ -1,4 +1,5 @@
 using System;
+using pcb_deftek.Common.Storage;
 
 namespace pcb_deftek.Domain.Models;
 
@@ -29,8 +30,9 @@ public record UserSettings
 
     /// <summary>
     /// Gets the directory where PDF audit reports should be exported.
+    /// Defaults to <c>Downloads\PCB Deftek\Report</c>.
     /// </summary>
-    public string ReportExportPath { get; init; } = string.Empty;
+    public string ReportExportPath { get; init; } = KnownFolderPaths.GetReportExportDirectory();
 
     /// <summary>
     /// Gets the directory where SQLite database backups should be exported.
