@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using pcb_deftek.Common.Exceptions;
+using pcb_deftek.Common.Storage;
 using Serilog;
 
 namespace pcb_deftek.Infrastructure.Persistence.DatabaseExport;
@@ -30,7 +31,7 @@ public class SqliteDatabaseExportService : IDatabaseExportService
         _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
 
         DefaultExportDirectory = string.IsNullOrWhiteSpace(defaultExportDirectory)
-            ? ResolveDownloadsDirectory()
+            ? KnownFolderPaths.GetDownloadsDirectory()
             : Path.GetFullPath(defaultExportDirectory);
     }
 
@@ -113,25 +114,6 @@ public class SqliteDatabaseExportService : IDatabaseExportService
             TryDeleteFile(targetFilePath);
             throw new ExportException($"Failed to export database to '{targetFilePath}': {ex.Message}", targetFilePath, ex);
         }
-    }
-
-    private static string ResolveDownloadsDirectory()
-    {
-        try
-        {
-            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            if (!string.IsNullOrWhiteSpace(userProfile))
-            {
-                var downloads = Path.Combine(userProfile, "Downloads");
-                return downloads;
-            }
-        }
-        catch
-        {
-            // Fallback below
-        }
-
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Downloads");
     }
 
     private static void TryDeleteFile(string path)
