@@ -1,0 +1,477 @@
+# Implementation Plan: Phase 8 — Defect Statistics Dashboard
+
+## Overview
+
+Replace the placeholder Dashboard with a filterable analytics page: four metric cards, custom WPF line/column/bar charts, a defect knowledge accordion, layout/reorder controls, export and progress seams, and the startup preference. This plan follows the repository convention of tracking tasks in `plan.md` (AGENTS.md §1); no separate `tasks/` directory is used.
+
+## Architecture & Dependency Graph
+
+```
+Domain contracts (filter, statistics, chart points)
+        │
+        ▼
+IDashboardRepository / SQLite aggregate query
+        │
+        ├── DashboardFilterViewModel (date/class/severity)
+        │
+        └── DashboardViewModel (metrics, cards, actions)
+                    │
+        ┌───────────┴────────────┐
+        ▼                        ▼
+Chart controls              DashboardView.xaml
+(line/bar geometry)         (cards, filters, accordion, modals)
+        │                        │
+        └───────────┬────────────┘
+                    ▼
+        DI registration + BDD + gates
+```
+
+Data flow: filters → local date bounds converted to UTC → dashboard SQL aggregates → view-model projections → chart controls/cards. The `DefectKnowledgeBase` supplies taxonomy, severity, colors, and diagnostic text; `Assets/Images` supplies the nine knowledge images.
+
+## Task Breakdown
+
+### Task Group 1: Dashboard Data Contract & Aggregate Query
+
+#### Task 1.1: Dashboard Contracts
+
+- **Description:** Add immutable contracts for the dashboard query and its results, independent of WPF and SQL.
+- **Acceptance criteria:**
+  - [ ] `DashboardFilter` carries inclusive UTC start/end bounds, selected `DefectClass` set, selected `DefectSeverity` set, and preset metadata needed for labels.
+  - [ ] `DashboardStatistics` exposes total inspections, total matching defects, total pass/fail counts, a per-local-day series containing inspection count, matching-defect count, and pass/fail counts, and per-class defect counts.
+  - [ ] Daily points are ordered oldest→newest and each point carries scans, defects, passes, and fails; class counts are ordered by `DefectClassInfo.ClassId` and include all nine classes with zero defaults.
+  - [ ] Contracts are pure records/read-only types with no WPF or repository dependencies.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardStatisticsTests`
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** None
+- **Files:**
+  - `Domain/Contracts/DashboardFilter.cs`
+  - `Domain/Contracts/DashboardStatistics.cs`
+  - `tests/pcb-deftek.Tests/DashboardStatisticsTests.cs`
+- **Estimated scope:** S (3 files)
+
+#### Task 1.2: SQLite Dashboard Aggregate Query
+
+- **Description:** Implement `IDashboardRepository` / `SqliteDashboardRepository` with filtered aggregate SQL for metric and chart data.
+- **Acceptance criteria:**
+  - [ ] Interface exposes one async `GetStatisticsAsync(DashboardFilter, CancellationToken)` method.
+  - [ ] Query applies inclusive `CreatedAtUtc` bounds and optional class/severity filters; severity maps to class codes through `DefectKnowledgeBase` (no schema change).
+  - [ ] When class/severity filters are active, only inspections with at least one matching defect are included; PASS inspections are excluded.
+  - [ ] Total defects and distribution count only defects matching the active filters; distribution includes all nine classes.
+  - [ ] Daily buckets use local calendar dates derived from `CreatedAtUtc`; each bucket contains inspections, matching defects, passes, and fails; ordering is stable.
+  - [ ] Empty result returns zeroed metrics and nine zero class buckets without exceptions.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardRepositoryTests`
+  - [ ] Seed ≥100 records covering date/class/severity combinations and assert totals, buckets, ordering, and no N+1 access
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 1.1
+- **Files:**
+  - `Infrastructure/Persistence/Repositories/IDashboardRepository.cs`
+  - `Infrastructure/Persistence/Repositories/SqliteDashboardRepository.cs`
+  - `tests/pcb-deftek.Tests/DashboardRepositoryTests.cs`
+- **Estimated scope:** M (3 files)
+
+#### Task 1.3: Query Integration & Edge Cases
+
+- **Description:** Prove dashboard aggregates against the real SQLite schema, including boundary dates and combined filters.
+- **Acceptance criteria:**
+  - [ ] Date bounds include records exactly at local start/end converted to UTC.
+  - [ ] Class-only, severity-only, and class+severity filters compose correctly.
+  - [ ] Duplicate defect classes count individually while distribution groups by class.
+  - [ ] Records with no defects never appear when a class/severity filter is active.
+  - [ ] All nine selected classes with no severity filter behave like the unfiltered class set.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardRepositoryTests`
+  - [ ] Existing persistence integration tests still pass
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 1.2
+- **Files:**
+  - `tests/pcb-deftek.Tests/DashboardRepositoryTests.cs`
+- **Estimated scope:** S (1 file)
+
+---
+
+### Checkpoint 1: Dashboard Data Correct
+- [ ] Contract and SQL tests pass.
+- [ ] Totals and chart buckets match seeded data.
+- [ ] No new schema migration or NuGet package.
+- [ ] Review with human before UI work.
+
+---
+
+### Task Group 2: Dashboard Filter & View-Model State
+
+#### Task 2.1: Shared Date-Range Preset Resolver
+
+- **Description:** Extract the local→UTC preset/custom-range calculation shared by History and Dashboard so filter semantics cannot drift.
+- **Acceptance criteria:**
+  - [ ] Resolver returns inclusive local start/end bounds for Day/Week/Month/None, honoring the current culture's first day of week.
+  - [ ] Custom range validates start ≤ end and converts inclusive dates to UTC bounds.
+  - [ ] History filter tests continue to pass without behavior changes.
+  - [ ] Dashboard uses the same resolver rather than a duplicate calculation.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryFilterViewModelTests`
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardFilterViewModelTests`
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 1.1
+- **Files:**
+  - `Presentation/Models/DateRangePresetResolver.cs`
+  - `Presentation/ViewModels/HistoryFilterViewModel.cs`
+  - `Presentation/ViewModels/DashboardFilterViewModel.cs`
+  - `tests/pcb-deftek.Tests/DashboardFilterViewModelTests.cs`
+  - `tests/pcb-deftek.Tests/HistoryFilterViewModelTests.cs`
+- **Estimated scope:** M (5 files)
+
+#### Task 2.2: `DashboardFilterViewModel`
+
+- **Description:** Dashboard-specific filter state for date presets, custom range, defect types, severities, labels, and clear/reset behavior.
+- **Acceptance criteria:**
+  - [ ] Exposes date preset, custom start/end, custom validation, selected classes, selected severities, and active-filter state.
+  - [ ] Provides multi-select options for all nine classes and five severities with display labels.
+  - [ ] Produces `DashboardFilter` with the same inclusive bounds and filter semantics as the repository contract.
+  - [ ] Raises a single filters-changed notification per user-visible change; `ClearAll` raises once.
+  - [ ] Invalid custom ranges do not produce a query filter.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardFilterViewModelTests`
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 2.1
+- **Files:**
+  - `Presentation/ViewModels/DashboardFilterViewModel.cs`
+  - `tests/pcb-deftek.Tests/DashboardFilterViewModelTests.cs`
+- **Estimated scope:** S (2 files)
+
+#### Task 2.3: `DashboardViewModel` Metrics & Refresh
+
+- **Description:** Orchestrate loading, cancellation, metrics, chart projections, layout state, card order, and defect information items.
+- **Acceptance criteria:**
+  - [ ] Constructor depends only on interfaces and exposes `Statistics`, `MetricCards`, `DefectInfoItems`, `IsLoading`, `ErrorMessage`, `HasData`, and filter state.
+  - [ ] Initial navigation loads all-time statistics; filter changes cancel the prior load and reload from scratch without stale updates.
+  - [ ] Metric card projections expose display values, per-day time series (scans, defects, or pass/fail), and class distribution from the aggregate result.
+  - [ ] Layout defaults to two columns; toggle exposes one/two-column state and notifies the view.
+  - [ ] Card order is a stable observable list; move left/right and drag reorder mutate only that list.
+  - [ ] Defect info items come from `DefectKnowledgeBase.GetAll()` with the asset path contract from requirements §5.
+  - [ ] `ExportRequested` is raised with a snapshot of the active filter; no PDF is generated.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Tasks 1.2, 2.2
+- **Files:**
+  - `Presentation/ViewModels/DashboardViewModel.cs`
+  - `Presentation/ViewModels/DashboardMetricCardViewModel.cs`
+  - `Presentation/ViewModels/DefectInfoItemViewModel.cs`
+  - `tests/pcb-deftek.Tests/DashboardViewModelTests.cs`
+- **Estimated scope:** M (4 files)
+
+#### Task 2.4: Startup Preference & Tile Progress State
+
+- **Description:** Wire the Dashboard startup checkbox and the notification progress modal state.
+- **Acceptance criteria:**
+  - [ ] `SkipDashboardOnStartup` loads from `IUserSettingsService` and persists on change without blocking the UI.
+  - [ ] `IDashboardProgressService` exposes observable inference/export progress, status, and messages.
+  - [ ] Progress updates marshal to the UI thread and are safe when no data exists.
+  - [ ] `DashboardViewModel` exposes notification modal state and close command; idle state shows 0% without running animations.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardProgressServiceTests`
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 2.3
+- **Files:**
+  - `Presentation/Services/IDashboardProgressService.cs`
+  - `Presentation/Services/DashboardProgressService.cs`
+  - `Presentation/ViewModels/DashboardViewModel.cs`
+  - `tests/pcb-deftek.Tests/DashboardProgressServiceTests.cs`
+- **Estimated scope:** S (4 files)
+
+---
+
+### Checkpoint 2: Dashboard State Correct
+- [ ] All dashboard filter/state tests pass.
+- [ ] History filter tests remain green after the shared resolver extraction.
+- [ ] Startup checkbox and progress service behave deterministically in tests.
+- [ ] Review with human before chart/UI work.
+
+---
+
+### Task Group 3: Chart Primitives
+
+#### Task 3.1: PASS/FAIL Line Chart
+
+- **Description:** Lightweight WPF chart control for the daily dual-series PASS/FAIL rate.
+- **Acceptance criteria:**
+  - [ ] Dependency properties for points; renders green PASS and red FAIL series using theme/status brushes.
+  - [ ] Handles zero, one, and many points without divide-by-zero or clipped axes.
+  - [ ] Hovering a point exposes a tooltip with day and both counts; accessible summary names both series.
+  - [ ] Click raises a chart-activated event for the enlarged modal.
+  - [ ] Label thinning prevents overlap at narrow widths.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter PassFailChartTests`
+  - [ ] Offscreen render check at 1-column and 2-column widths
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 1.1
+- **Files:**
+  - `Presentation/Controls/PassFailLineChart.xaml`
+  - `Presentation/Controls/PassFailLineChart.xaml.cs`
+  - `tests/pcb-deftek.Tests/PassFailChartTests.cs`
+- **Estimated scope:** M (3 files)
+
+#### Task 3.2: Total PCBs / Total Defects Time-Series Chart
+
+- **Description:** Lightweight single-series WPF chart for scan and defect volume per local day.
+- **Acceptance criteria:**
+  - [ ] Dependency properties for per-day points, series brush, and accessible series name.
+  - [ ] Renders inspections-per-day for Total PCBs and matching-defects-per-day for Total Defects using their card accent colors.
+  - [ ] Handles zero, one, and many days without divide-by-zero or clipped axes.
+  - [ ] Hover shows the day and count; click raises the chart-activated event; labels thin at narrow widths.
+  - [ ] Empty series renders a clear no-data baseline rather than a broken glyph.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter MetricTimeSeriesChartTests`
+  - [ ] Offscreen render check at 1-column and 2-column widths
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 1.1
+- **Files:**
+  - `Presentation/Controls/MetricTimeSeriesChart.xaml`
+  - `Presentation/Controls/MetricTimeSeriesChart.xaml.cs`
+  - `tests/pcb-deftek.Tests/MetricTimeSeriesChartTests.cs`
+- **Estimated scope:** M (3 files)
+
+#### Task 3.3: Defect Distribution Bar Chart
+
+- **Description:** Lightweight WPF vertical bar chart for all nine defect classes.
+- **Acceptance criteria:**
+  - [ ] Renders nine bars in `ClassId` order with abbreviated labels and `ColorHex` fills.
+  - [ ] Bars scale to the maximum non-zero count; zero counts render a visible baseline.
+  - [ ] Hovering a bar shows class name and count; accessible summary lists all nine values.
+  - [ ] Click raises a chart-activated event; labels remain readable at narrow widths.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DefectBarChartTests`
+  - [ ] Offscreen render check in Light/Dark
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 1.1
+- **Files:**
+  - `Presentation/Controls/DefectBarChart.xaml`
+  - `Presentation/Controls/DefectBarChart.xaml.cs`
+  - `tests/pcb-deftek.Tests/DefectBarChartTests.cs`
+- **Estimated scope:** M (3 files)
+
+#### Task 3.4: Chart Modal Projection
+
+- **Description:** Reuse all chart controls in a larger modal without duplicating data projection.
+- **Acceptance criteria:**
+  - [ ] Card chart and enlarged chart bind to the same data.
+  - [ ] Modal opens from any chart click, closes via `Esc`/close, and restores focus.
+  - [ ] Modal has an accessible title and no new chart rendering path.
+- **Verification:**
+  - [ ] Offscreen render of card grid and each enlarged chart
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Tasks 3.1, 3.2, 3.3
+- **Files:**
+  - `Presentation/Views/DashboardView.xaml`
+  - `Presentation/Views/DashboardView.xaml.cs`
+- **Estimated scope:** S (2 files)
+
+---
+
+### Checkpoint 3: Charts Render Correctly
+- [ ] All chart controls render boundary cases.
+- [ ] Hover/click/accessibility behavior is verified.
+- [ ] Light/dark chart contrast is acceptable.
+- [ ] Review with human before page composition.
+
+---
+
+### Task Group 4: Dashboard Page Composition
+
+#### Task 4.1: Filter Bar, Card Grid & Layout Toggle
+
+- **Description:** Compose Row 1 and Row 2 with the shared History filter-bar visual language and 1/2-column card grid.
+- **Acceptance criteria:**
+  - [ ] Date presets/custom flyout, class/severity multi-selects, clear filters, count/status summary, export/notification controls, and layout toggle render correctly.
+  - [ ] All four metric cards render their value and supporting chart (PCBs/defects time series, PASS/FAIL line, distribution bars).
+  - [ ] Metric cards switch between 1-column and 2-column grids without clipping or losing chart state.
+  - [ ] Loading, no-data, error/retry, and filtered-empty states are distinct.
+  - [ ] All controls are keyboard reachable and use existing Fluent tokens.
+- **Verification:**
+  - [ ] Offscreen render at 1100×720 and narrow width, Light/Dark
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Tasks 2.3, 3.4
+- **Files:**
+  - `Presentation/Views/DashboardView.xaml`
+  - `Presentation/Views/DashboardView.xaml.cs`
+  - `Presentation/Styles/Controls.xaml`
+- **Estimated scope:** M (3 files)
+
+#### Task 4.2: Drag-and-Drop, Hover & Chart Modal Interaction
+
+- **Description:** Wire card reorder, chart hover/click, layout toggle, and filter flyout interactions.
+- **Acceptance criteria:**
+  - [ ] Dragging a card handle reorders the four cards and updates the grid; dropping outside restores order.
+  - [ ] Keyboard Move Left/Right commands provide a non-pointer reorder path.
+  - [ ] Chart hover shows values; clicking opens the enlarged modal and focus returns on close.
+  - [ ] Filter flyouts close on selection/outside click and never leave stale popup state.
+- **Verification:**
+  - [ ] Manual interaction: drag all four cards, toggle layout, hover/click all four charts
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 4.1
+- **Files:**
+  - `Presentation/Views/DashboardView.xaml`
+  - `Presentation/Views/DashboardView.xaml.cs`
+- **Estimated scope:** S (2 files)
+
+#### Task 4.3: Defect Information Accordion & Assets
+
+- **Description:** Render the single accordion with nine defect cards using the knowledge base and `Assets/Images` assets.
+- **Acceptance criteria:**
+  - [ ] Items ordered by `ClassId`; each shows name, severity, 1:1 image, explanation, root cause, impact, and recommended action.
+  - [ ] Images resolve from `Assets/Images/dashb-info-{abbreviation}.png` with lowercase abbreviations; all nine paths exist.
+  - [ ] Missing/corrupt images show the placeholder and log a warning without crashing.
+  - [ ] Accordion is keyboard accessible and preserves text selection.
+  - [ ] No hardcoded absolute asset paths.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DefectInfoAssetTests`
+  - [ ] Offscreen render of expanded/collapsed accordion
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 4.1
+- **Files:**
+  - `Presentation/Views/DashboardView.xaml`
+  - `Presentation/Converters/DefectAbbreviationToImagePathConverter.cs`
+  - `tests/pcb-deftek.Tests/DefectInfoAssetTests.cs`
+- **Estimated scope:** S (3 files)
+
+#### Task 4.4: Notification Modal & Progress Presentation
+
+- **Description:** Compose the notification modal bound to `IDashboardProgressService`.
+- **Acceptance criteria:**
+  - [ ] Modal shows inference and data-export bars with Idle/Running/Completed/Failed status.
+  - [ ] Opens from the notification action; closes via `Esc`/close; no fake timers.
+  - [ ] Bars expose accessible names and valid 0–100 ranges.
+  - [ ] Layout remains readable at narrow widths and in both themes.
+- **Verification:**
+  - [ ] Offscreen render of idle/running/completed states
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Tasks 2.4, 4.1
+- **Files:**
+  - `Presentation/Views/DashboardView.xaml`
+  - `Presentation/Views/DashboardView.xaml.cs`
+- **Estimated scope:** S (2 files)
+
+---
+
+### Checkpoint 4: Dashboard Page Usable
+- [ ] Filters, cards, charts, accordion, modals, and layout toggle render correctly.
+- [ ] Keyboard and pointer paths are verified.
+- [ ] Light/dark and narrow-width layouts have no clipped content.
+- [ ] Review with human before integration work.
+
+---
+
+### Task Group 5: Actions, Startup & Integration
+
+#### Task 5.1: Export Event & Startup Persistence
+
+- **Description:** Complete the action seams for Phase 9 PDF export and the existing startup preference.
+- **Acceptance criteria:**
+  - [ ] Export Data command raises `ExportRequested` with an immutable filter snapshot; repeated clicks are safe.
+  - [ ] Startup checkbox loads/persists through `IUserSettingsService` and reports failures without crashing.
+  - [ ] No placeholder PDF file or fake completion toast is produced.
+  - [ ] Notification action opens the progress modal regardless of operation state.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Tasks 2.4, 4.4
+- **Files:**
+  - `Presentation/ViewModels/DashboardViewModel.cs`
+  - `tests/pcb-deftek.Tests/DashboardViewModelTests.cs`
+- **Estimated scope:** S (2 files)
+
+#### Task 5.2: DI Registration & Resolution
+
+- **Description:** Register dashboard repository, view model, progress service, and chart dependencies; assert lifetimes.
+- **Acceptance criteria:**
+  - [ ] `IDashboardRepository` and `IDashboardProgressService` are singletons; `DashboardViewModel` is transient.
+  - [ ] `DashboardViewModel` resolves with all dependencies.
+  - [ ] Existing DI tests remain green.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DependencyInjectionTests`
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Tasks 1.2, 2.4
+- **Files:**
+  - `App.xaml.cs`
+  - `tests/pcb-deftek.Tests/DependencyInjectionTests.cs`
+- **Estimated scope:** S (2 files)
+
+---
+
+### Checkpoint 5: Actions & Integration Complete
+- [ ] Export seam and startup persistence pass tests.
+- [ ] DI resolves the dashboard in the real provider.
+- [ ] No production stub or fake export remains.
+- [ ] Review with human before BDD.
+
+---
+
+### Task Group 6: BDD, Documentation & Final Gates
+
+#### Task 6.1: Dashboard BDD Scenarios
+
+- **Description:** Add Reqnroll acceptance coverage for filters, metrics, layout/reorder, accordion assets, progress modal, and startup preference.
+- **Acceptance criteria:**
+  - [ ] Isolated SQLite database with seeded inspections/defects across dates, classes, and severities.
+  - [ ] Scenarios assert totals, chart buckets, filter composition, layout toggle/reorder, all nine accordion assets, progress idle state, and persisted startup preference.
+  - [ ] No dependency on the developer's real app data or asset downloads.
+- **Verification:**
+  - [ ] `dotnet test tests/pcb-deftek.Bdd/ --filter DashboardFeature`
+  - [ ] Full suite passes: `dotnet test pcb-deftek.slnx`
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task Group 5
+- **Files:**
+  - `tests/pcb-deftek.Bdd/Features/DefectStatisticsDashboard.feature`
+  - `tests/pcb-deftek.Bdd/StepDefinitions/DashboardStepDefinitions.cs`
+- **Estimated scope:** M (2 files)
+
+#### Task 6.2: Documentation & Plan Status
+
+- **Description:** Record completion, deviations, and final verification.
+- **Acceptance criteria:**
+  - [ ] Plan checkboxes reflect actual state; deferred items remain in requirements.
+  - [ ] Validation captures manual Light/Dark, DPI, drag/hover checks.
+  - [ ] No unchecked task is silently skipped.
+- **Verification:**
+  - [ ] `git diff` shows only status/documentation edits in this file
+  - [ ] Build succeeds with 0 warnings
+- **Dependencies:** Task 6.1
+- **Files:**
+  - `specs/2026-11-14-defect-statistics-dashboard/plan.md`
+  - `specs/2026-11-14-defect-statistics-dashboard/validation.md`
+- **Estimated scope:** XS (2 files)
+
+---
+
+### Checkpoint 6: Merge Readiness
+- [ ] All six task groups complete.
+- [ ] Solution builds with 0 warnings.
+- [ ] All unit, integration, and BDD tests pass (`dotnet test pcb-deftek.slnx`).
+- [ ] PR linked to its issue and passes the 4-step Feature Review and Quality Improvement pipeline.
+- [ ] Human review approved; PR not merged without approval.
+
+---
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Severity is metadata, not a SQL column | High | Map selected severities to class codes through `DefectKnowledgeBase`; test all five severities |
+| Filter semantics silently diverge from History | High | Shared date-range resolver + parity tests |
+| Chart axes divide by zero on empty/single-point data | Medium | Chart projection tests for 0/1/many points |
+| No chart library leads to fragile custom drawing | Medium | Small focused controls with pure projection tests and offscreen renders |
+| Drag/drop conflicts with click-to-open chart | Medium | Drag handle only; click threshold; keyboard move commands |
+| Defect image assets missing/renamed | Medium | Asset-path contract test for all nine files; placeholder fallback |
+| Class/severity filters zero out PASS series | Low | Documented metric definition; no misleading normalization |
+| Progress modal becomes fake UI | Medium | `IDashboardProgressService` with idle/running/completed/failed test states |
+| PDF button implies export exists | Medium | Event seam documented as Phase 9; no fake files/toasts |
+| Layout selected state not notified | Low | View-model notification tests for both grid modes |
+
+## Open Questions
+
+1. Card order persistence: session-only in Phase 8; revisit if users expect restart persistence.
+2. Startup checkbox placement: follows roadmap on Dashboard; confirm long-term.
+3. Large all-time chart range: Phase 8 uses actual inspection days; revisit bucketing if histories exceed practical chart width.
