@@ -116,6 +116,20 @@ public class DashboardExportContractTests
     }
 
     [Fact]
+    public void TimeSeriesMetric_RejectsInvalidSeriesColors()
+    {
+        Action act = () => DashboardReportMetric.CreateTimeSeries(
+            "pcbs",
+            "PCBs",
+            "1",
+            "Daily",
+            new[] { new DashboardReportTimeSeriesPoint("Mon", 1) },
+            "#GGGGGG");
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
     public void Metric_RejectsNegativeSeriesValuesAndEmptyIdentity()
     {
         Action negative = () => DashboardReportMetric.CreateTimeSeries(

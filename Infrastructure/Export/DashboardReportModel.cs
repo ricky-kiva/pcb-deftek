@@ -118,7 +118,8 @@ public sealed record DashboardReportMetric
         DashboardReportMetricKind kind,
         IReadOnlyList<DashboardReportTimeSeriesPoint> timeSeries,
         IReadOnlyList<DashboardReportPassFailPoint> passFailSeries,
-        IReadOnlyList<DashboardClassCount> classCounts)
+        IReadOnlyList<DashboardClassCount> classCounts,
+        string? seriesColorHex)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -128,6 +129,14 @@ public sealed record DashboardReportMetric
         ArgumentNullException.ThrowIfNull(passFailSeries);
         ArgumentNullException.ThrowIfNull(classCounts);
 
+        string? normalizedColor = string.IsNullOrWhiteSpace(seriesColorHex)
+            ? null
+            : seriesColorHex.Trim();
+        if (normalizedColor is not null && !IsValidHexColor(normalizedColor))
+        {
+            throw new ArgumentException("Series color must use the #RRGGBB format.", nameof(seriesColorHex));
+        }
+
         Key = key.Trim();
         Title = title.Trim();
         DisplayValue = displayValue.Trim();
@@ -136,6 +145,7 @@ public sealed record DashboardReportMetric
         TimeSeries = Array.AsReadOnly(timeSeries.ToArray());
         PassFailSeries = Array.AsReadOnly(passFailSeries.ToArray());
         ClassCounts = Array.AsReadOnly(classCounts.ToArray());
+        SeriesColorHex = normalizedColor;
     }
 
     /// <summary>Gets the stable metric key.</summary>
@@ -162,19 +172,24 @@ public sealed record DashboardReportMetric
     /// <summary>Gets class distribution counts; empty unless <see cref="Kind"/> is distribution.</summary>
     public IReadOnlyList<DashboardClassCount> ClassCounts { get; }
 
+    /// <summary>Gets the optional single-series accent color in <c>#RRGGBB</c> form.</summary>
+    public string? SeriesColorHex { get; }
+
     /// <summary>Creates a single-series time metric.</summary>
     /// <param name="key">Stable metric key.</param>
     /// <param name="title">Metric title.</param>
     /// <param name="displayValue">Formatted primary value.</param>
     /// <param name="caption">Supporting caption.</param>
     /// <param name="timeSeries">Adaptive points; required.</param>
+    /// <param name="seriesColorHex">Optional single-series accent color in <c>#RRGGBB</c> form.</param>
     /// <returns>The metric block.</returns>
     public static DashboardReportMetric CreateTimeSeries(
         string key,
         string title,
         string displayValue,
         string caption,
-        IReadOnlyList<DashboardReportTimeSeriesPoint> timeSeries)
+        IReadOnlyList<DashboardReportTimeSeriesPoint> timeSeries,
+        string? seriesColorHex = null)
     {
         ArgumentNullException.ThrowIfNull(timeSeries);
 
@@ -186,7 +201,8 @@ public sealed record DashboardReportMetric
             DashboardReportMetricKind.TimeSeries,
             timeSeries,
             Array.Empty<DashboardReportPassFailPoint>(),
-            Array.Empty<DashboardClassCount>());
+            Array.Empty<DashboardClassCount>(),
+            seriesColorHex);
     }
 
     /// <summary>Creates a dual PASS/FAIL metric.</summary>
@@ -213,7 +229,8 @@ public sealed record DashboardReportMetric
             DashboardReportMetricKind.PassFail,
             Array.Empty<DashboardReportTimeSeriesPoint>(),
             passFailSeries,
-            Array.Empty<DashboardClassCount>());
+            Array.Empty<DashboardClassCount>(),
+            null);
     }
 
     /// <summary>Creates a defect-distribution metric.</summary>
@@ -240,7 +257,26 @@ public sealed record DashboardReportMetric
             DashboardReportMetricKind.Distribution,
             Array.Empty<DashboardReportTimeSeriesPoint>(),
             Array.Empty<DashboardReportPassFailPoint>(),
-            classCounts);
+            classCounts,
+            null);
+    }
+
+    private static bool IsValidHexColor(string value)
+    {
+        if (value.Length != 7 || value[0] != '#')
+        {
+            return false;
+        }
+
+        for (int i = 1; i < value.Length; i++)
+        {
+            if (!Uri.IsHexDigit(value[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 
@@ -349,6 +385,18 @@ public sealed record DashboardReportInspection
 
     /// <summary>Gets the number of defect rows.</summary>
     public int DefectCount => Defects.Count;
+
+    /// <summary>Gets the display label for the detection mode.</summary>
+    public string ModeLabel => Mode switch
+    {
+        DetectionMode.SingleFile => "Single file",
+        DetectionMode.BatchFolder => "Batch folder",
+        DetectionMode.LiveCamera => "Live camera",
+        _ => Mode.ToString()
+    };
+
+    /// <summary>Gets the PASS/FAIL display label.</summary>
+    public string StatusLabel => Status == InspectionStatus.Pass ? "PASS" : "FAIL";
 }
 
 /// <summary>
