@@ -10,7 +10,8 @@ namespace pcb_deftek.Infrastructure.Persistence.DatabaseExport;
 public interface IDatabaseExportService
 {
     /// <summary>
-    /// Gets the default directory path used when no destination is specified (typically the Windows Downloads folder).
+    /// Gets the default directory path used when no destination is specified
+    /// (<c>Downloads\PCB Deftek\Backup</c>).
     /// </summary>
     string DefaultExportDirectory { get; }
 

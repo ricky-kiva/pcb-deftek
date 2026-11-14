@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using pcb_deftek.Common.Exceptions;
+using pcb_deftek.Common.Storage;
 using Serilog;
 
 namespace pcb_deftek.Infrastructure.Persistence.DatabaseBackup;
@@ -26,9 +27,7 @@ public class SqliteDatabaseBackupService : IDatabaseBackupService
 
         if (string.IsNullOrWhiteSpace(backupDirectory))
         {
-            string dbDir = Path.GetDirectoryName(_connectionFactory.DatabasePath)
-                ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            BackupDirectory = Path.Combine(dbDir, "backups");
+            BackupDirectory = KnownFolderPaths.GetDatabaseBackupDirectory();
         }
         else
         {

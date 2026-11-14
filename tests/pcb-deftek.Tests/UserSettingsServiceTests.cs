@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Messaging;
 using FluentAssertions;
+using pcb_deftek.Common.Storage;
 using pcb_deftek.Domain.Models;
 using pcb_deftek.Domain.Models.Messages;
 using pcb_deftek.Infrastructure.Persistence.DatabaseExport;
@@ -58,8 +59,9 @@ public class UserSettingsServiceTests : IDisposable
         settings.PreferredDevice.Should().Be("Cpu");
         settings.DefaultStartupPage.Should().Be("Dashboard");
         settings.SkipDashboardOnStartup.Should().BeFalse();
-        settings.ReportExportPath.Should().Be(_defaultDownloadsPath);
+        settings.ReportExportPath.Should().Be(KnownFolderPaths.GetReportExportDirectory());
         settings.DatabaseExportPath.Should().Be(_defaultDownloadsPath);
+        settings.CropOutputDirectory.Should().Be(KnownFolderPaths.GetCropImagesDirectory());
     }
 
     [Fact]
@@ -68,6 +70,7 @@ public class UserSettingsServiceTests : IDisposable
         // Arrange
         var customReportPath = Path.Combine(_defaultDownloadsPath, "Reports");
         var customDatabasePath = Path.Combine(_defaultDownloadsPath, "Backups");
+        var customCropPath = Path.Combine(_defaultDownloadsPath, "Crops");
 
         var updated = new UserSettings
         {
@@ -76,7 +79,8 @@ public class UserSettingsServiceTests : IDisposable
             DefaultStartupPage = "Live Detection",
             SkipDashboardOnStartup = true,
             ReportExportPath = customReportPath,
-            DatabaseExportPath = customDatabasePath
+            DatabaseExportPath = customDatabasePath,
+            CropOutputDirectory = customCropPath
         };
 
         // Act
@@ -91,6 +95,7 @@ public class UserSettingsServiceTests : IDisposable
         loaded.SkipDashboardOnStartup.Should().BeTrue();
         loaded.ReportExportPath.Should().Be(customReportPath);
         loaded.DatabaseExportPath.Should().Be(customDatabasePath);
+        loaded.CropOutputDirectory.Should().Be(customCropPath);
     }
 
     [Fact]

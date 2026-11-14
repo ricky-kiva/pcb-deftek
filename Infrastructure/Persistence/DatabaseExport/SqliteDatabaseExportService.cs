@@ -25,13 +25,13 @@ public class SqliteDatabaseExportService : IDatabaseExportService
     /// Initializes a new instance of <see cref="SqliteDatabaseExportService"/>.
     /// </summary>
     /// <param name="connectionFactory">The SQLite connection factory providing access to the active database.</param>
-    /// <param name="defaultExportDirectory">Optional override for the default export directory; if omitted, defaults to the user's Downloads folder.</param>
+    /// <param name="defaultExportDirectory">Optional override for the default export directory; if omitted, defaults to <c>Downloads\PCB Deftek\Backup</c>.</param>
     public SqliteDatabaseExportService(ISqliteConnectionFactory connectionFactory, string? defaultExportDirectory = null)
     {
         _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
 
         DefaultExportDirectory = string.IsNullOrWhiteSpace(defaultExportDirectory)
-            ? KnownFolderPaths.GetDownloadsDirectory()
+            ? KnownFolderPaths.GetDatabaseBackupDirectory()
             : Path.GetFullPath(defaultExportDirectory);
     }
 
