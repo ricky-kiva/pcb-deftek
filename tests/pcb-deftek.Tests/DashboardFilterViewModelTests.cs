@@ -79,6 +79,18 @@ public class DashboardFilterViewModelTests
     }
 
     [Fact]
+    public void MonthlyPreset_ProducesRollingThirtyDayWindow()
+    {
+        var sut = new DashboardFilterViewModel { SelectedPreset = DateRangePreset.Monthly };
+
+        sut.TryCreateFilter(out var filter).Should().BeTrue();
+
+        filter!.StartDateUtc.Should().Be(LocalStartOfDayUtc(DateTime.Today.AddDays(-29)));
+        filter.EndDateUtc.Should().Be(LocalEndOfDayUtc(DateTime.Today));
+        sut.DateRangeLabel.Should().Be("Monthly");
+    }
+
+    [Fact]
     public void CustomRange_WithValidDates_ProducesInclusiveBounds()
     {
         var start = new DateTime(2026, 11, 1);

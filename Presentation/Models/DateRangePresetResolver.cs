@@ -85,6 +85,11 @@ public static class DateRangePresetResolver
                 end = start.AddMonths(1).AddDays(-1);
                 break;
 
+            case DateRangePreset.Monthly:
+                start = today.Date.AddDays(-29);
+                end = today.Date;
+                break;
+
             default:
                 return DateRangeBounds.AllTime;
         }

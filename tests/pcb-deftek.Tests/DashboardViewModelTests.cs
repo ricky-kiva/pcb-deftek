@@ -61,8 +61,15 @@ public class DashboardViewModelTests
             DashboardCardOrderPolicy.TotalDefects,
             DashboardCardOrderPolicy.PassFail,
             DashboardCardOrderPolicy.Distribution);
+        sut.MetricCards[0].Title.Should().Be("PCBs Inspected");
+        sut.MetricCards[1].Title.Should().Be("Defects Detected");
+        sut.MetricCards[2].Title.Should().Be("Inspection Rate");
+        sut.MetricCards[3].Title.Should().Be("Defect Distribution");
         sut.MetricCards[0].DisplayValue.Should().Be("4");
         sut.MetricCards[1].DisplayValue.Should().Be("2");
+        sut.MetricCards[2].PassCount.Should().Be(2);
+        sut.MetricCards[2].FailCount.Should().Be(2);
+        sut.MetricCards[3].ShowsPrimaryValue.Should().BeFalse();
         sut.MetricCards[2].PassFailSeries.Should().HaveCount(2);
         sut.MetricCards[3].ClassCounts.Should().HaveCount(9);
         sut.ColumnLayout.Should().Be(DashboardColumnLayout.TwoColumns);
@@ -171,7 +178,7 @@ public class DashboardViewModelTests
         var sut = CreateSut();
         await sut.LoadAsync();
 
-        sut.ToggleLayoutCommand.Execute(null);
+        sut.SetOneColumnLayoutCommand.Execute(null);
         await WaitUntilAsync(() => _settings.Saved.Count > 0);
 
         sut.ColumnLayout.Should().Be(DashboardColumnLayout.OneColumn);
@@ -218,17 +225,6 @@ public class DashboardViewModelTests
         exported!.StartDateUtc.Should().NotBeNull();
         exported.EndDateUtc.Should().NotBeNull();
         exported.DefectClasses.Should().Equal(DefectClass.Open);
-    }
-
-    [Fact]
-    public void SummaryText_ReportsLoadingThenUnavailableOnError()
-    {
-        var sut = CreateSut();
-        sut.SummaryText.Should().Be("Loading dashboard");
-
-        sut.ErrorMessage = "Failed to load dashboard statistics.";
-
-        sut.SummaryText.Should().Be("Summary unavailable");
     }
 
     [Fact]

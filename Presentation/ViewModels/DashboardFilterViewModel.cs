@@ -98,6 +98,7 @@ public sealed partial class DashboardFilterViewModel : ObservableObject
         DateRangePreset.Day => "Today",
         DateRangePreset.Week => "This week",
         DateRangePreset.Month => "This month",
+        DateRangePreset.Monthly => "Monthly",
         DateRangePreset.Custom when CustomStartDate.HasValue && CustomEndDate.HasValue =>
             $"{CustomStartDate.Value.ToString("d", CultureInfo.CurrentCulture)} – {CustomEndDate.Value.ToString("d", CultureInfo.CurrentCulture)}",
         _ => "Custom range"

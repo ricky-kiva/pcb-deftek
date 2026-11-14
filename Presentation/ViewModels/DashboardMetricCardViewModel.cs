@@ -39,7 +39,9 @@ public sealed class DashboardMetricCardViewModel
         IReadOnlyList<DashboardClassCount>? classCounts = null,
         string? seriesColorHex = null,
         string? accessibleSummary = null,
-        string? granularityLabel = null)
+        string? granularityLabel = null,
+        int passCount = 0,
+        int failCount = 0)
     {
         Key = key ?? throw new ArgumentNullException(nameof(key));
         Title = title ?? throw new ArgumentNullException(nameof(title));
@@ -52,6 +54,8 @@ public sealed class DashboardMetricCardViewModel
         SeriesColorHex = seriesColorHex;
         AccessibleSummary = accessibleSummary ?? $"{title}: {displayValue}. {caption}";
         GranularityLabel = granularityLabel ?? string.Empty;
+        PassCount = passCount;
+        FailCount = failCount;
     }
 
     /// <summary>Gets the stable card key used for persistence.</summary>
@@ -62,6 +66,15 @@ public sealed class DashboardMetricCardViewModel
 
     /// <summary>Gets the formatted primary value.</summary>
     public string DisplayValue { get; }
+
+    /// <summary>Gets the PASS count for the inspection-rate card.</summary>
+    public int PassCount { get; }
+
+    /// <summary>Gets the FAIL count for the inspection-rate card.</summary>
+    public int FailCount { get; }
+
+    /// <summary>Gets a value indicating whether the distribution card should show a primary count.</summary>
+    public bool ShowsPrimaryValue => Kind != DashboardMetricCardKind.Distribution;
 
     /// <summary>Gets the supporting caption.</summary>
     public string Caption { get; }

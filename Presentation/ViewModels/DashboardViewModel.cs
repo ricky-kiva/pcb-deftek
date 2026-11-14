@@ -61,7 +61,6 @@ public sealed partial class DashboardViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(HasData))]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
     [NotifyPropertyChangedFor(nameof(HasNoMatches))]
-    [NotifyPropertyChangedFor(nameof(SummaryText))]
     private DashboardStatistics? _statistics;
 
     [ObservableProperty]
@@ -72,7 +71,6 @@ public sealed partial class DashboardViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
     [NotifyPropertyChangedFor(nameof(HasNoMatches))]
-    [NotifyPropertyChangedFor(nameof(SummaryText))]
     private string? _errorMessage;
 
     [ObservableProperty]
@@ -125,18 +123,8 @@ public sealed partial class DashboardViewModel : ViewModelBase
     /// <summary>Gets a value indicating whether the saved layout is two columns.</summary>
     public bool IsTwoColumnLayout => ColumnLayout == DashboardColumnLayout.TwoColumns;
 
-    /// <summary>Gets the current metric summary shown beside the filters.</summary>
-    public string SummaryText => ErrorMessage is not null
-        ? "Summary unavailable"
-        : Statistics switch
-        {
-            null => "Loading dashboard",
-            { HasData: false } => "No inspections in this range",
-            _ => $"{Statistics.TotalInspections:N0} inspections · {Statistics.TotalDefects:N0} defects"
-        };
-
-    /// <summary>Gets the label for the layout toggle.</summary>
-    public string LayoutToggleLabel => IsTwoColumnLayout ? "2 col" : "1 col";
+    /// <summary>Gets a value indicating whether the saved layout is one column.</summary>
+    public bool IsOneColumnLayout => ColumnLayout == DashboardColumnLayout.OneColumn;
 
     /// <summary>Gets a value indicating whether the enlarged chart modal is open.</summary>
     public bool IsChartModalOpen => ActiveChartCard is not null;
@@ -229,12 +217,10 @@ public sealed partial class DashboardViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ToggleLayout()
-    {
-        ColumnLayout = ColumnLayout == DashboardColumnLayout.TwoColumns
-            ? DashboardColumnLayout.OneColumn
-            : DashboardColumnLayout.TwoColumns;
-    }
+    private void SetOneColumnLayout() => ColumnLayout = DashboardColumnLayout.OneColumn;
+
+    [RelayCommand]
+    private void SetTwoColumnLayout() => ColumnLayout = DashboardColumnLayout.TwoColumns;
 
     [RelayCommand]
     private void RequestExport()
@@ -272,7 +258,7 @@ public sealed partial class DashboardViewModel : ViewModelBase
     partial void OnColumnLayoutChanged(DashboardColumnLayout value)
     {
         OnPropertyChanged(nameof(IsTwoColumnLayout));
-        OnPropertyChanged(nameof(LayoutToggleLabel));
+        OnPropertyChanged(nameof(IsOneColumnLayout));
         if (!_suppressPreferenceSave)
         {
             _ = PersistPreferencesAsync();
@@ -418,7 +404,7 @@ public sealed partial class DashboardViewModel : ViewModelBase
         {
             DashboardCardOrderPolicy.TotalPcbs => new DashboardMetricCardViewModel(
                 key,
-                "Total PCBs Inspected",
+                "PCBs Inspected",
                 statistics.TotalInspections.ToString("N0", culture),
                 caption,
                 DashboardMetricCardKind.TimeSeries,
@@ -432,7 +418,7 @@ public sealed partial class DashboardViewModel : ViewModelBase
 
             DashboardCardOrderPolicy.TotalDefects => new DashboardMetricCardViewModel(
                 key,
-                "Total Defects Detected",
+                "Defects Detected",
                 statistics.TotalDefects.ToString("N0", culture),
                 caption,
                 DashboardMetricCardKind.TimeSeries,
@@ -446,7 +432,7 @@ public sealed partial class DashboardViewModel : ViewModelBase
 
             DashboardCardOrderPolicy.PassFail => new DashboardMetricCardViewModel(
                 key,
-                "PASS/FAIL Inspection Rate",
+                "Inspection Rate",
                 $"{statistics.PassCount.ToString("N0", culture)} PASS / {statistics.FailCount.ToString("N0", culture)} FAIL",
                 caption,
                 DashboardMetricCardKind.PassFail,
@@ -455,11 +441,13 @@ public sealed partial class DashboardViewModel : ViewModelBase
                     .ToArray(),
                 accessibleSummary:
                     $"{statistics.PassCount} PASS and {statistics.FailCount} FAIL inspections across {statistics.Buckets.Count} {period.ToLowerInvariant()} buckets.",
-                granularityLabel: period),
+                granularityLabel: period,
+                passCount: statistics.PassCount,
+                failCount: statistics.FailCount),
 
             DashboardCardOrderPolicy.Distribution => new DashboardMetricCardViewModel(
                 key,
-                "Defect Distribution Across Defect Classes",
+                "Defect Distribution",
                 statistics.TotalDefects.ToString("N0", culture),
                 "All nine defect classes",
                 DashboardMetricCardKind.Distribution,
