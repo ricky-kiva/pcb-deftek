@@ -93,6 +93,27 @@ public class LiveSnapshotServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CaptureSnapshotAsync_UsesConfiguredImageOutputDirectory()
+    {
+        var settings = new Mock<IUserSettingsService>();
+        settings
+            .Setup(service => service.LoadSettingsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserSettings { ImageOutputDirectory = _capturesDir });
+        var sut = new LiveSnapshotService(
+            _repository,
+            _mockEngine.Object,
+            capturesDirectoryPath: null,
+            NullLogger<LiveSnapshotService>.Instance,
+            settings.Object);
+        using var frameResult = CreateTestFrameResult(defectCount: 1);
+
+        var record = await sut.CaptureSnapshotAsync(frameResult);
+
+        Path.GetDirectoryName(record.ImagePath).Should().Be(_capturesDir);
+        File.Exists(record.ImagePath).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task CaptureSnapshotAsync_SavesRawAndAnnotatedImages_AndPersistsInspectionRecordWithLiveCameraMode()
     {
         // Arrange
