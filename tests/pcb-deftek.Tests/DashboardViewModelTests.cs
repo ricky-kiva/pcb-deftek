@@ -221,6 +221,17 @@ public class DashboardViewModelTests
     }
 
     [Fact]
+    public void SummaryText_ReportsLoadingThenUnavailableOnError()
+    {
+        var sut = CreateSut();
+        sut.SummaryText.Should().Be("Loading dashboard");
+
+        sut.ErrorMessage = "Failed to load dashboard statistics.";
+
+        sut.SummaryText.Should().Be("Summary unavailable");
+    }
+
+    [Fact]
     public async Task LoadAsync_WhenRepositoryFails_SetsErrorAndStopsLoading()
     {
         _repository.Handler = (_, _) => throw new InvalidOperationException("boom");

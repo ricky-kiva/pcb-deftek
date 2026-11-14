@@ -61,6 +61,7 @@ public sealed partial class DashboardViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(HasData))]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
     [NotifyPropertyChangedFor(nameof(HasNoMatches))]
+    [NotifyPropertyChangedFor(nameof(SummaryText))]
     private DashboardStatistics? _statistics;
 
     [ObservableProperty]
@@ -71,6 +72,7 @@ public sealed partial class DashboardViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
     [NotifyPropertyChangedFor(nameof(HasNoMatches))]
+    [NotifyPropertyChangedFor(nameof(SummaryText))]
     private string? _errorMessage;
 
     [ObservableProperty]
@@ -122,6 +124,19 @@ public sealed partial class DashboardViewModel : ViewModelBase
 
     /// <summary>Gets a value indicating whether the saved layout is two columns.</summary>
     public bool IsTwoColumnLayout => ColumnLayout == DashboardColumnLayout.TwoColumns;
+
+    /// <summary>Gets the current metric summary shown beside the filters.</summary>
+    public string SummaryText => ErrorMessage is not null
+        ? "Summary unavailable"
+        : Statistics switch
+        {
+            null => "Loading dashboard",
+            { HasData: false } => "No inspections in this range",
+            _ => $"{Statistics.TotalInspections:N0} inspections · {Statistics.TotalDefects:N0} defects"
+        };
+
+    /// <summary>Gets the label for the layout toggle.</summary>
+    public string LayoutToggleLabel => IsTwoColumnLayout ? "2 col" : "1 col";
 
     /// <summary>Gets a value indicating whether the enlarged chart modal is open.</summary>
     public bool IsChartModalOpen => ActiveChartCard is not null;
@@ -248,9 +263,16 @@ public sealed partial class DashboardViewModel : ViewModelBase
     [RelayCommand]
     private void CloseChart() => ActiveChartCard = null;
 
+    [RelayCommand]
+    private void ClearFilters() => Filters.ClearAll();
+
+    [RelayCommand]
+    private Task RetryAsync() => LoadAsync();
+
     partial void OnColumnLayoutChanged(DashboardColumnLayout value)
     {
         OnPropertyChanged(nameof(IsTwoColumnLayout));
+        OnPropertyChanged(nameof(LayoutToggleLabel));
         if (!_suppressPreferenceSave)
         {
             _ = PersistPreferencesAsync();
@@ -267,6 +289,9 @@ public sealed partial class DashboardViewModel : ViewModelBase
 
     private void OnFiltersChanged(object? sender, EventArgs e)
     {
+        OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(HasNoMatches));
+
         if (!Filters.TryCreateFilter(out _))
         {
             _loadCts?.Cancel();
