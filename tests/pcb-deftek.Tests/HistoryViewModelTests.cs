@@ -16,6 +16,7 @@ using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
 using pcb_deftek.Presentation.Services;
 using pcb_deftek.Presentation.ViewModels;
+using pcb_deftek.Presentation.Models;
 using Xunit;
 
 namespace pcb_deftek.Tests;
@@ -242,7 +243,7 @@ public class HistoryViewModelTests
         sut.SelectLoadedCommand.Execute(null);
         sut.SelectedCount.Should().Be(1);
 
-        sut.Filters.SelectedPreset = HistoryDatePreset.Day;
+        sut.Filters.SelectedPreset = DateRangePreset.Day;
 
         await reloaded.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await WaitUntilAsync(() => !sut.IsLoading);

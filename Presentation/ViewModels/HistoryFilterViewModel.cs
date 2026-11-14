@@ -1,50 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using pcb_deftek.Domain.Contracts;
 using pcb_deftek.Domain.Models;
+using pcb_deftek.Presentation.Models;
 
 namespace pcb_deftek.Presentation.ViewModels;
-
-/// <summary>
-/// Available date-range presets for the history filter bar.
-/// </summary>
-public enum HistoryDatePreset
-{
-    None = 0,
-    Day = 1,
-    Week = 2,
-    Month = 3,
-    Custom = 4
-}
-
-/// <summary>
-/// Selectable filter option used by multi-select status and defect-class filters.
-/// </summary>
-/// <typeparam name="T">Filtered value type.</typeparam>
-public sealed partial class HistoryFilterOption<T> : ObservableObject
-{
-    /// <summary>Gets the value represented by this option.</summary>
-    public T Value { get; }
-
-    /// <summary>Gets the display label.</summary>
-    public string Label { get; }
-
-    [ObservableProperty]
-    private bool _isSelected;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="HistoryFilterOption{T}"/> class.
-    /// </summary>
-    public HistoryFilterOption(T value, string label)
-    {
-        Value = value;
-        Label = label ?? throw new ArgumentNullException(nameof(label));
-    }
-}
 
 /// <summary>
 /// State and validation for the history filter bar. Raises <see cref="FiltersChanged"/>
@@ -60,13 +23,13 @@ public sealed partial class HistoryFilterViewModel : ObservableObject
     public event EventHandler? FiltersChanged;
 
     /// <summary>Gets the multi-select status options.</summary>
-    public ObservableCollection<HistoryFilterOption<InspectionStatus>> StatusOptions { get; }
+    public ObservableCollection<FilterOption<InspectionStatus>> StatusOptions { get; }
 
     /// <summary>Gets the multi-select defect-class options.</summary>
-    public ObservableCollection<HistoryFilterOption<DefectClass>> ClassOptions { get; }
+    public ObservableCollection<FilterOption<DefectClass>> ClassOptions { get; }
 
     [ObservableProperty]
-    private HistoryDatePreset _selectedPreset;
+    private DateRangePreset _selectedPreset;
 
     [ObservableProperty]
     private DateTime? _customStartDate;
@@ -85,16 +48,16 @@ public sealed partial class HistoryFilterViewModel : ObservableObject
     /// </summary>
     public HistoryFilterViewModel()
     {
-        StatusOptions = new ObservableCollection<HistoryFilterOption<InspectionStatus>>
+        StatusOptions = new ObservableCollection<FilterOption<InspectionStatus>>
         {
             new(InspectionStatus.Pass, "PASS"),
             new(InspectionStatus.Fail, "FAIL")
         };
 
-        ClassOptions = new ObservableCollection<HistoryFilterOption<DefectClass>>(
+        ClassOptions = new ObservableCollection<FilterOption<DefectClass>>(
             DefectKnowledgeBase.GetAll()
                 .OrderBy(info => info.ClassId)
-                .Select(info => new HistoryFilterOption<DefectClass>(
+                .Select(info => new FilterOption<DefectClass>(
                     info.Class,
                     $"{info.DisplayName} ({info.Abbreviation})")));
 
@@ -125,7 +88,7 @@ public sealed partial class HistoryFilterViewModel : ObservableObject
     /// Gets a value indicating whether any filter is active.
     /// </summary>
     public bool HasActiveFilters =>
-        SelectedPreset != HistoryDatePreset.None ||
+        SelectedPreset != DateRangePreset.None ||
         StatusOptions.Any(option => option.IsSelected) ||
         ClassOptions.Any(option => option.IsSelected);
 
@@ -171,7 +134,7 @@ public sealed partial class HistoryFilterViewModel : ObservableObject
         _suppressNotifications = true;
         try
         {
-            SelectedPreset = HistoryDatePreset.None;
+            SelectedPreset = DateRangePreset.None;
             CustomStartDate = null;
             CustomEndDate = null;
 
@@ -213,7 +176,7 @@ public sealed partial class HistoryFilterViewModel : ObservableObject
         };
     }
 
-    partial void OnSelectedPresetChanged(HistoryDatePreset value)
+    partial void OnSelectedPresetChanged(DateRangePreset value)
     {
         UpdateCustomRangeValidation();
         NotifyFiltersChanged();
@@ -233,7 +196,7 @@ public sealed partial class HistoryFilterViewModel : ObservableObject
 
     private void OnOptionPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(HistoryFilterOption<InspectionStatus>.IsSelected))
+        if (e.PropertyName == nameof(FilterOption<InspectionStatus>.IsSelected))
         {
             NotifyFiltersChanged();
         }
@@ -256,65 +219,20 @@ public sealed partial class HistoryFilterViewModel : ObservableObject
 
     private void UpdateCustomRangeValidation()
     {
-        bool hasBoth = CustomStartDate.HasValue && CustomEndDate.HasValue;
-        bool invalid = hasBoth && CustomStartDate!.Value.Date > CustomEndDate!.Value.Date;
-
-        IsCustomRangeValid = !invalid;
-        CustomRangeError = invalid ? "Start date must be on or before the end date." : null;
+        IsCustomRangeValid = DateRangePresetResolver.TryValidateCustomRange(
+            CustomStartDate,
+            CustomEndDate,
+            out string? error);
+        CustomRangeError = error;
     }
 
     private (DateTime? StartUtc, DateTime? EndUtc) ResolveDateBounds()
     {
-        if (SelectedPreset == HistoryDatePreset.None)
-        {
-            return (null, null);
-        }
-
-        if (SelectedPreset == HistoryDatePreset.Custom)
-        {
-            if (!IsCustomRangeValid || !CustomStartDate.HasValue || !CustomEndDate.HasValue)
-            {
-                return (null, null);
-            }
-
-            return (
-                LocalStartOfDayUtc(CustomStartDate.Value),
-                LocalEndOfDayUtc(CustomEndDate.Value));
-        }
-
-        var today = DateTime.Today;
-        DateTime start;
-        DateTime end;
-
-        switch (SelectedPreset)
-        {
-            case HistoryDatePreset.Day:
-                start = today;
-                end = today;
-                break;
-
-            case HistoryDatePreset.Week:
-                int firstDay = (int)CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
-                int offset = ((int)today.DayOfWeek - firstDay + 7) % 7;
-                start = today.AddDays(-offset);
-                end = start.AddDays(6);
-                break;
-
-            case HistoryDatePreset.Month:
-                start = new DateTime(today.Year, today.Month, 1);
-                end = start.AddMonths(1).AddDays(-1);
-                break;
-
-            default:
-                return (null, null);
-        }
-
-        return (LocalStartOfDayUtc(start), LocalEndOfDayUtc(end));
+        DateRangeBounds bounds = DateRangePresetResolver.Resolve(
+            SelectedPreset,
+            CustomStartDate,
+            CustomEndDate,
+            DateTime.Today);
+        return (bounds.StartUtc, bounds.EndUtc);
     }
-
-    private static DateTime LocalStartOfDayUtc(DateTime date) =>
-        DateTime.SpecifyKind(date.Date, DateTimeKind.Local).ToUniversalTime();
-
-    private static DateTime LocalEndOfDayUtc(DateTime date) =>
-        DateTime.SpecifyKind(date.Date.AddDays(1).AddTicks(-1), DateTimeKind.Local).ToUniversalTime();
 }
