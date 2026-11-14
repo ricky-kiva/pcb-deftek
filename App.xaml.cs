@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using pcb_deftek.Infrastructure.Logging;
+using pcb_deftek.Infrastructure.Export;
 using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence;
 using pcb_deftek.Infrastructure.Persistence.DatabaseBackup;
@@ -49,6 +50,7 @@ public partial class App : Application
         base.OnStartup(e);
 
         LoggingBootstrapper.Initialize();
+        QuestPdfConfiguration.EnsureConfigured();
         RegisterGlobalExceptionHandlers();
 
         Log.Information("pcb-deftek application initialized. OS: {OSVersion}, Architecture: {Architecture}",
