@@ -193,24 +193,10 @@
                                           Height="32"
                                           VerticalAlignment="Center" />
                             </Grid>
-
-                            <!-- Skip Dashboard Checkbox -->
-                            <CheckBox IsChecked="{Binding SkipDashboardOnStartup, Mode=TwoWay}"
-                                      Margin="0,4,0,0">
-                                <StackPanel Margin="6,0,0,0">
-                                    <TextBlock Text="Skip dashboard on startup"
-                                               FontSize="13"
-                                               FontWeight="Medium"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                    <TextBlock Text="Open directly on the Live Detection page the next time the app launches."
-                                               FontSize="11"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                </StackPanel>
-                            </CheckBox>
                         </StackPanel>
                     </Border>
 
-                    <!-- Section 3: Export & Crop Directories -->
+                    <!-- Section 3: Export & Image Directories -->
                     <Border Background="{DynamicResource LayerFillColorDefaultBrush}"
                             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"
@@ -218,7 +204,7 @@
                             Padding="16,14"
                             Margin="0,0,0,16">
                         <StackPanel>
-                            <TextBlock Text="Export &amp; Crop Directories"
+                            <TextBlock Text="Export &amp; Image Directories"
                                        FontSize="14"
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
@@ -257,16 +243,16 @@
                                           Stretch="Uniform"
                                           Margin="0,0,6,0"
                                           VerticalAlignment="Center" />
-                                    <TextBlock Text="Crop Output Directory"
+                                    <TextBlock Text="Image Output Directory"
                                                FontSize="13"
                                                FontWeight="Medium"
                                                Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                 </StackPanel>
-                                <TextBlock Text="Cropped inspection images are written here and added to History."
+                                <TextBlock Text="Cropped and live-captured inspection images are written here."
                                            FontSize="11"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            Margin="0,0,0,6" />
-                                <TextBox Text="{Binding CropOutputDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                <TextBox Text="{Binding ImageOutputDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          Height="30"
                                          VerticalContentAlignment="Center"
                                          Padding="6,2" />

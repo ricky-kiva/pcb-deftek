@@ -77,7 +77,7 @@ public partial class FileDetectionViewModel : ViewModelBase
     private bool _isProcessing;
 
     [ObservableProperty]
-    private double _confidenceThreshold = 0.25;
+    private double _confidenceThreshold = 0.65;
 
     [ObservableProperty]
     private bool _isPreviewModalOpen;

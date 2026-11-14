@@ -166,7 +166,7 @@ public class ViewportCropServiceTests : IDisposable
         var settings = new Mock<IUserSettingsService>();
         settings
             .Setup(service => service.LoadSettingsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new UserSettings { CropOutputDirectory = configured });
+            .ReturnsAsync(new UserSettings { ImageOutputDirectory = configured });
         var sut = new ViewportCropService(settingsService: settings.Object);
 
         ViewportCropResult result = await sut.CropAsync(source, "configured", NormalizedRect.Full);

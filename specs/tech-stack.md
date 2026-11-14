@@ -23,7 +23,7 @@
 - **Data Persistence:**
   - `Microsoft.Data.Sqlite` for local SQLite database management
   - Automated schema migration runner, database backup routine, and user-initiated database export service
-  - Path: `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\app.db` (default export path: Windows Downloads folder)
+  - Path: `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\app.db` (default exports: `Downloads\PCB Deftek\Report`, `Downloads\PCB Deftek\Backup`, and `Downloads\PCB Deftek\Images`)
 - **PDF Report Generation:**
   - `QuestPDF` for structured, code-first document layouts (single-column metric card summaries + annotated inspection images)
 - **Logging & Diagnostics:**

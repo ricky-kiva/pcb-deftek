@@ -35,7 +35,7 @@ public class LiveInspectionEngine : ILiveInspectionEngine
     private Mat? _pendingFrame;
     private CancellationTokenSource? _workerCts;
     private Task? _workerTask;
-    private double _confidenceThreshold = 0.25;
+    private double _confidenceThreshold = 0.65;
     private LiveFrameResult? _latestResult;
     private bool _disposed;
 

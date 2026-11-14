@@ -48,7 +48,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ConfidencePercentageText))]
-    private double _confidenceThreshold = 0.25;
+    private double _confidenceThreshold = 0.65;
 
     public string ConfidencePercentageText => $"{Math.Round(ConfidenceThreshold * 100):F0}%";
 
@@ -68,7 +68,7 @@ public partial class SettingsViewModel : ViewModelBase
     private string _databaseExportPath = string.Empty;
 
     [ObservableProperty]
-    private string _cropOutputDirectory = string.Empty;
+    private string _imageOutputDirectory = string.Empty;
 
     [ObservableProperty]
     private bool _isExportingDatabase;
@@ -128,7 +128,7 @@ public partial class SettingsViewModel : ViewModelBase
         SkipDashboardOnStartup = settings.SkipDashboardOnStartup;
         ReportExportPath = settings.ReportExportPath;
         DatabaseExportPath = settings.DatabaseExportPath;
-        CropOutputDirectory = settings.CropOutputDirectory;
+        ImageOutputDirectory = settings.ImageOutputDirectory;
         ExportStatusMessage = string.Empty;
     }
 
@@ -150,9 +150,9 @@ public partial class SettingsViewModel : ViewModelBase
             DatabaseExportPath = string.IsNullOrWhiteSpace(DatabaseExportPath)
                 ? KnownFolderPaths.GetDatabaseBackupDirectory()
                 : DatabaseExportPath,
-            CropOutputDirectory = string.IsNullOrWhiteSpace(CropOutputDirectory)
+            ImageOutputDirectory = string.IsNullOrWhiteSpace(ImageOutputDirectory)
                 ? KnownFolderPaths.GetCropImagesDirectory()
-                : CropOutputDirectory
+                : ImageOutputDirectory
         };
 
         await _settingsService.SaveSettingsAsync(settings).ConfigureAwait(false);

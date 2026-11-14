@@ -87,7 +87,7 @@ public partial class LiveDetectionViewModel : ViewModelBase
     private bool _isControlsAutoHidden;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ConfidencePercentageText))]
-    private double _confidenceThreshold = 0.25;
+    private double _confidenceThreshold = 0.65;
 
     [ObservableProperty]
     private InspectionRecord? _lastCapturedRecord;
