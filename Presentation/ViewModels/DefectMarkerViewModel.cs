@@ -1,20 +1,25 @@
 using System;
 using System.Globalization;
 using System.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
 using pcb_deftek.Domain.Models;
 
 namespace pcb_deftek.Presentation.ViewModels;
 
 /// <summary>
-/// Immutable view model for one defect bounding box in the interactive viewer.
+/// View model for one defect bounding box in the interactive viewer.
 /// </summary>
-public sealed class DefectMarkerViewModel
+public sealed partial class DefectMarkerViewModel : ObservableObject
 {
     public DefectMarkerViewModel(DetectedDefect defect, Rect pixelBounds)
     {
         Defect = defect ?? throw new ArgumentNullException(nameof(defect));
         PixelBounds = pixelBounds;
     }
+
+    /// <summary>Gets or sets a value indicating whether this marker is focused.</summary>
+    [ObservableProperty]
+    private bool _isSelected;
 
     /// <summary>Gets the underlying defect.</summary>
     public DetectedDefect Defect { get; }

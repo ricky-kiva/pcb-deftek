@@ -1,0 +1,81 @@
+<UserControl x:Class="pcb_deftek.Presentation.Controls.DefectImageViewer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:pcb_deftek.Presentation.Controls"
+             xmlns:converters="clr-namespace:pcb_deftek.Presentation.Converters"
+             x:Name="Root"
+             Background="Transparent"
+             ClipToBounds="True"
+             Focusable="True"
+             FocusVisualStyle="{x:Null}"
+             SnapsToDevicePixels="True"
+             SizeChanged="OnViewerSizeChanged"
+             Loaded="OnViewerLoaded"
+             MouseWheel="OnViewerMouseWheel"
+             MouseLeftButtonDown="OnViewerMouseLeftButtonDown"
+             MouseMove="OnViewerMouseMove"
+             MouseLeftButtonUp="OnViewerMouseLeftButtonUp"
+             LostMouseCapture="OnViewerLostMouseCapture"
+             MouseLeave="OnViewerMouseLeave">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:HexColorToBrushConverter x:Key="HexColorToBrushConverter" />
+
+        <Style x:Key="MarkerContainerStyle" TargetType="ContentPresenter">
+            <Setter Property="Canvas.Left" Value="{Binding PixelBounds.X}" />
+            <Setter Property="Canvas.Top" Value="{Binding PixelBounds.Y}" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid x:Name="ViewportSurface" Background="Transparent" ClipToBounds="True">
+        <Grid x:Name="Scene"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Top"
+              RenderTransformOrigin="0,0"
+              IsHitTestVisible="False">
+            <Grid.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="SceneScale" />
+                    <TranslateTransform x:Name="SceneTranslate" />
+                </TransformGroup>
+            </Grid.RenderTransform>
+
+            <Image x:Name="BoardImage"
+                   Stretch="Fill"
+                   RenderOptions.BitmapScalingMode="HighQuality"
+                   SnapsToDevicePixels="True" />
+
+            <ItemsControl x:Name="MarkerLayer"
+                          ItemsSource="{Binding Markers, ElementName=Root}"
+                          IsHitTestVisible="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter" BasedOn="{StaticResource MarkerContainerStyle}" />
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Width="{Binding PixelBounds.Width}"
+                              Height="{Binding PixelBounds.Height}"
+                              ClipToBounds="False">
+                            <Border BorderBrush="{Binding ColorHex, Converter={StaticResource HexColorToBrushConverter}}"
+                                    BorderThickness="2"
+                                    Background="#12000000"
+                                    CornerRadius="1" />
+                            <Border BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                                    BorderThickness="2"
+                                    Margin="-4"
+                                    CornerRadius="2"
+                                    Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
+    </Grid>
+</UserControl>

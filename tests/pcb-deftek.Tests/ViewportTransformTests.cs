@@ -142,6 +142,46 @@ public class ViewportTransformTests
         sut.OffsetY.Should().BeApproximately(25, 0.0001);
     }
 
+    [Fact]
+    public void Resize_PreservesZoomAndImageCenter()
+    {
+        var sut = new ViewportTransform(1000, 1000, 1000, 1000);
+        sut.ZoomAt(500, 500, 2.0);
+
+        sut.Resize(1200, 800);
+
+        sut.ZoomFactor.Should().BeApproximately(2.0, 0.0001);
+        var visible = sut.GetVisibleNormalizedRect();
+        (visible.X + (visible.Width / 2)).Should().BeApproximately(0.5, 0.0001);
+        (visible.Y + (visible.Height / 2)).Should().BeApproximately(0.5, 0.0001);
+        visible.Width.Should().BeApproximately(0.75, 0.0001);
+        visible.Height.Should().BeApproximately(0.5, 0.0001);
+    }
+
+    [Fact]
+    public void Resize_AtFit_RemainsCentered()
+    {
+        var sut = new ViewportTransform(800, 600, 1000, 800);
+
+        sut.Resize(900, 900);
+
+        sut.ZoomFactor.Should().BeApproximately(1.0, 0.0001);
+        sut.OffsetX.Should().BeApproximately((900 - 800 * sut.Scale) / 2, 0.0001);
+        sut.OffsetY.Should().BeApproximately((900 - 600 * sut.Scale) / 2, 0.0001);
+    }
+
+    [Fact]
+    public void SetView_ClampsScaleAndOffsets()
+    {
+        var sut = new ViewportTransform(1000, 1000, 1000, 1000);
+
+        sut.SetView(sut.FitScale * 100, -20000, -20000);
+
+        sut.ZoomFactor.Should().BeApproximately(ViewportTransform.MaxZoom, 0.0001);
+        sut.OffsetX.Should().BeApproximately(1000 - 1000 * sut.Scale, 0.0001);
+        sut.OffsetY.Should().BeApproximately(1000 - 1000 * sut.Scale, 0.0001);
+    }
+
     [Theory]
     [InlineData(0, 600, 1000, 800)]
     [InlineData(800, 0, 1000, 800)]
