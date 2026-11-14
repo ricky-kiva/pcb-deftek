@@ -41,7 +41,8 @@ dotnet test tests/pcb-deftek.Bdd/ --filter DashboardFeature
 - **Contracts:** zero/empty results, all nine class buckets, stable ordering, inclusive boundaries.
 - **Repository:** date only; class only; severity only; class+severity; all classes selected; defectless records excluded by defect filters; totals and buckets consistent; no N+1.
 - **Filter VM:** presets, week culture boundary, custom range, invalid range, class/severity sets, clear-all single notification.
-- **Dashboard VM:** initial all-time load, reload on filter change, cancellation/stale guard, loading/empty/error states, metric projections, layout toggle, reorder commands, export event snapshot, startup persistence, progress state.
+- **Dashboard VM:** initial all-time load, reload on filter change, cancellation/stale guard, loading/empty/error states, adaptive metric projections, layout toggle, reorder commands, order/layout persistence across reloads, export event snapshot, startup persistence, progress state.
+- **Bucket policy:** 2-day, 90-day, and 2-year boundaries; all-time data extent; empty data; local labels for hour/day/week/month.
 - **Charts:** 0/1/many points; max scaling; zero bars; label thinning; hover point resolution; click event.
 - **Assets:** all nine expected paths; lowercase abbreviations; missing image fallback.
 - **Progress service:** idle/running/completed/failed transitions, 0–100 clamp, UI-thread dispatch safety.
@@ -50,8 +51,8 @@ dotnet test tests/pcb-deftek.Bdd/ --filter DashboardFeature
 
 `tests/pcb-deftek.Bdd/Features/DefectStatisticsDashboard.feature`:
 
-1. Filters compose and update all four metric cards, including per-day PCBs/defects volume charts.
-2. Layout toggle switches 1/2 columns and card reorder changes display order.
+1. Filters compose and update all four metric cards, including adaptive PCBs/defects volume charts.
+2. Layout toggle switches 1/2 columns and card reorder changes display order; both persist after navigation/reload.
 3. All nine defect information cards load the correct `dashb-info-{abbreviation}.png` asset.
 4. Chart hover/click opens the enlarged modal and closes with `Esc`.
 5. Notification modal shows idle/running/completed progress states.
@@ -78,9 +79,9 @@ Scenarios must use an isolated SQLite database and temporary data; no dependency
 
 ### 3.2 Metric Cards
 
-- **Total PCBs:** count matches base inspections; chart points match daily inspection counts for the active range.
-- **Total Defects:** count matches matching defects; chart points match daily matching-defect counts.
-- **PASS/FAIL Rate:** daily points match base inspection outcomes; green/red series are distinguishable by line and legend, not color alone.
+- **Total PCBs:** count matches base inspections; chart points match per-bucket inspection counts at the resolved granularity.
+- **Total Defects:** count matches matching defects; chart points match per-bucket matching-defect counts.
+- **PASS/FAIL Rate:** per-bucket points match base inspection outcomes; green/red series are distinguishable by line and legend, not color alone.
 - **Defect Distribution:** nine bars in class order, zero counts visible, class colors match `ColorHex`.
 - Hover exposes exact values; card values update after filter changes.
 - Card drag handle reorders only the cards; dropping outside restores the current order.
@@ -139,19 +140,19 @@ Scenarios must use an isolated SQLite database and temporary data; no dependency
 | Large history | All-time chart remains readable and does not clip | Seeded 1,000 records |
 | Memory | Repeated filter cycles and modal open/close show no unbounded growth | Task Manager over 10 cycles |
 
-Stability: filter repeatedly, toggle layout, reorder cards, open/close both modals 20 times, expand every accordion item, switch Light/Dark — no crash, stale data, or leaked timers.
+Stability: filter repeatedly, toggle layout, reorder cards, navigate away/back, restart, open/close all chart modals 20 times, expand every accordion item, switch Light/Dark — no crash, stale data, or leaked timers.
 
 ---
 
 ## 5. Manual Verification Script
 
 1. Seed records across today, this week, this month, and older; include PASS and FAIL records and all nine classes with mixed severities.
-2. Open Dashboard; verify four cards, default two-column layout, and all-time metrics.
+2. Open Dashboard; verify four cards, saved/default layout, and all-time metrics with the resolved adaptive granularity.
 3. Apply Day, Week, Month presets; toggle each off; verify bounds and metrics.
 4. Apply a custom range; verify validation and result counts.
 5. Select multiple classes and severities; verify AND/OR composition, totals, all four charts, and no-match state.
-6. Toggle 1-column/2-column; verify no clipping and charts reflow.
-7. Drag each card by its handle; verify order changes; drop outside and verify recovery.
+6. Toggle 1-column/2-column; navigate away/back and restart; verify layout and order persist, with no clipping and charts reflowing.
+7. Drag each card by its handle; verify order changes and persists after restart; drop outside and verify recovery.
 8. Use keyboard Move Left/Right; verify accessible reorder.
 9. Hover every chart point/bar; verify values.
 10. Open each chart modal; resize the window; close with `Esc`; verify focus returns.
@@ -204,9 +205,9 @@ Phase 8 may merge into `main` only when:
 | Totals don't match filters | Dashboard filter → UTC bounds → SQL predicate composition |
 | Severity filter returns nothing | Severity→class-code mapping from `DefectKnowledgeBase` |
 | PASS series zero with defect filter | Expected by metric definition; verify filter scope |
-| Charts blank | `HasData`/projection and zero-point rendering path |
+| Charts blank | `HasData`/projection, resolved bucket granularity, and zero-point rendering path |
 | Chart labels overlap | Label-thinning threshold at current width |
-| Card order resets after toggle | Reorder mutates the observable card list, not a template copy |
+| Card order/layout resets after navigation/restart | Persisted settings keys, normalization fallback, and load-before-first-render |
 | Accordion images missing | Asset file names, lowercase abbreviation converter, pack URI |
 | Image crashes app | Converter must return placeholder/null, not throw |
 | Startup checkbox doesn't persist | `IUserSettingsService` save path and reload |
