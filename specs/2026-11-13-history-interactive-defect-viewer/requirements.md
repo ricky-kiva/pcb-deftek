@@ -61,6 +61,7 @@ This phase builds directly on:
      - **Focused:** class name, confidence, severity, root cause, impact, recommended action.
    - Sidebar `Delete Image` action, available in both states, with confirmation (deletes the inspection under the same policy).
    - Missing/corrupt image produces a clear unavailable state, not a crash.
+   - Cropping writes the visible viewport to the configured crop directory and inserts a new inspection record containing the defects intersecting that viewport, with boxes re-normalized to the crop.
 3. **Enablers**
    - `InspectionSummary` read projection so the gallery gets accurate defect counts without loading defect rows.
    - Query-filter extension for date presets, multi-status, and defect-class matching.
@@ -76,11 +77,9 @@ This phase builds directly on:
 - Filtering by detection mode or by individual defect severity in the History UI (SQL supports mode; not requested).
 - "Select all matching filters" across unloaded pages; selection is limited to loaded cards.
 - Copying or relocating source images; Phase 7 never modifies user-owned originals.
-- Creating a new inspection record from a cropped image.
 - Dashboard metrics/charts (Phase 8) and PDF export (Phase 9).
 - Large-video handling, custom capture paths, and branding (future enhancements).
 - Persisting thumbnails to disk; thumbnails are in-memory only.
-- Custom crop export location; the crop uses the standard Downloads default.
 
 ---
 
@@ -94,8 +93,8 @@ This phase builds directly on:
 | D4 | Square previews use `Stretch="UniformToFill"` inside a clipped square container | Delivers the 1:1 requirement without a second crop pass; deterministic and cheap. |
 | D5 | Viewer draws bounding boxes as WPF elements over the **raw** image, using normalized coordinates | Avoids double-drawing on `_annotated.png` and enables hit-testing/focus per defect. |
 | D6 | One shared defect palette: add `DefectClassInfo.ColorHex` and make `ImageAnnotationService` derive its OpenCV scalar from it | Hyrum's Law / single source of truth: two independent color tables would drift. |
-| D7 | Crop uses the **normalized** visible rectangle and crops the source image at **native** resolution into the Windows Downloads folder | Decouples crop correctness from display decode size, preserves quality, and matches the project's existing export-location convention. No new DB record. |
-| D8 | Extract `KnownFolderPaths.GetDownloadsDirectory()` and reuse it in `SqliteDatabaseExportService` and the crop service | Avoids duplicating the current Downloads-resolution fallback logic. |
+| D7 | Crop uses the **normalized** visible rectangle and crops the source image at **native** resolution into the configured crop directory (default `Downloads/PCB Deftek/Images`). The exported crop is inserted into History as a new inspection whose bounding boxes are clipped to the crop and re-normalized against the cropped dimensions. | Decouples crop correctness from display decode size, preserves quality, and makes the crop directly inspectable from History. The inserted record keeps the diagnostic context instead of producing an orphan image. |
+| D8 | Add `KnownFolderPaths` helpers for the app-owned `Downloads/PCB Deftek/{Images,Report,Backup}` roots and reuse the Downloads resolver in the export, backup, and crop services | One path convention for all generated artifacts; avoids duplicating the Downloads fallback logic. Settings can override the crop, report, and database paths. |
 | D9 | Group by `CreatedAtUtc.ToLocalTime().Date`; storage stays UTC | "Date-grouped" for a user means the local date they saw on the day of inspection. |
 | D10 | Paging: page size 60, append on "Load more", stable order `CreatedAtUtc DESC, Id DESC` | Prevents duplicates when multiple records share a timestamp; avoids loading the entire history. |
 | D11 | Viewer is an in-page overlay within `HistoryView`, not a separate WPF `Window` | Keeps navigation, theming, and lifecycle consistent with the shell; no extra window chrome. |
@@ -205,7 +204,7 @@ All nine classes (`SH`, `OP`, `MB`, `SP`, `SC`, `HB`, `CS`, `CFO`, `BMFO`) are s
 
 ## 7. Open Questions (non-blocking defaults chosen)
 
-1. **Crop destination** — not specified. Default chosen: Windows Downloads (D7/D8), toast with the full path. Revisit if users want "next to source".
+1. **Crop destination** — configured in Settings, defaulting to `Downloads/PCB Deftek/Images`; completion toast reports the path and confirms the History entry.
 2. **Gallery preview annotations** — not specified. Default chosen: raw preview (D2). Revisit if QA asks to see boxes in the gallery.
 3. **Confirmation surface** — default chosen: native WPF modal dialog via `IConfirmationService` (D24). Revisit if a fully themed in-app dialog is required.
 

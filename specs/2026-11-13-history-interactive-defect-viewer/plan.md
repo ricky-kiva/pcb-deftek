@@ -602,6 +602,6 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 ## Open Questions
 
-1. Crop destination defaults to Windows Downloads (D7/D8); confirm if users expect the source folder instead.
+1. Crop destination is configured in Settings and defaults to `Downloads/PCB Deftek/Images`; crops are added to History (D7/D8).
 2. Gallery previews intentionally omit bounding boxes (D2); confirm QA does not require annotated thumbnails.
 3. Confirmation UI defaults to a native modal dialog (D24); confirm if a fully themed in-app dialog is required.
