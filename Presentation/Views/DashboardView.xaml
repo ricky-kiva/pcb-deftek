@@ -494,11 +494,21 @@
                                         </DockPanel>
                                     </Expander.Header>
                                     <Grid Margin="4,8,0,4">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="190" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,18,0">
+
+                                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                                   Text="Explanation"
+                                                   Style="{StaticResource SectionLabelStyle}"
+                                                   Margin="0,0,0,3" />
+
+                                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,18,0">
                                             <Border Width="170" Height="170"
                                                     CornerRadius="6"
                                                     Background="{DynamicResource SubtleFillColorSecondaryBrush}"
@@ -525,8 +535,8 @@
                                                 </Grid>
                                             </Border>
                                         </StackPanel>
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock Text="Explanation" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,3" />
+
+                                        <StackPanel Grid.Row="1" Grid.Column="1">
                                             <TextBox Text="{Binding Explanation, Mode=OneWay}" Style="{StaticResource ReadOnlyBodyTextBoxStyle}" />
                                             <TextBlock Text="Root cause" Style="{StaticResource SectionLabelStyle}" />
                                             <TextBox Text="{Binding RootCause, Mode=OneWay}" Style="{StaticResource ReadOnlyBodyTextBoxStyle}" />
