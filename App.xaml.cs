@@ -129,6 +129,7 @@ public partial class App : Application
         services.AddSingleton<ILiveInspectionEngine, LiveInspectionEngine>();
         services.AddSingleton<ILiveSnapshotService, LiveSnapshotService>();
         services.AddSingleton<IHistoryThumbnailService, HistoryThumbnailService>();
+        services.AddSingleton<IViewportCropService, ViewportCropService>();
         services.AddSingleton<IInspectionDeletionService, InspectionDeletionService>();
         services.AddSingleton<IConfirmationService, WpfConfirmationService>();
 
@@ -149,6 +150,7 @@ public partial class App : Application
         services.AddTransient<LiveDetectionViewModel>();
         services.AddTransient<FileDetectionViewModel>();
         services.AddTransient<HistoryViewModel>();
+        services.AddTransient<InspectionViewerViewModel>();
         services.AddSingleton<MainWindow>();
     }
 

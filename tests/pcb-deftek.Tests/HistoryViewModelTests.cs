@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using System.Windows.Media.Imaging;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using OpenCvSharp;
 using pcb_deftek.Domain.Contracts;
 using pcb_deftek.Domain.Models;
 using pcb_deftek.Infrastructure.Notifications;
@@ -25,6 +27,7 @@ public class HistoryViewModelTests
     private readonly Mock<INotificationService> _notificationService = new();
     private readonly Mock<IInspectionDeletionService> _deletionService = new();
     private readonly Mock<IConfirmationService> _confirmationService = new();
+    private readonly InspectionViewerViewModel _viewer;
 
     public HistoryViewModelTests()
     {
@@ -40,6 +43,10 @@ public class HistoryViewModelTests
             .Setup(service => service.DeleteManyAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new InspectionDeletionResult(0, 0, Array.Empty<string>()));
 
+        _deletionService
+            .Setup(service => service.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InspectionDeletionResult(1, 0, Array.Empty<string>()));
+
         _confirmationService
             .Setup(service => service.ConfirmAsync(
                 It.IsAny<string>(),
@@ -47,6 +54,14 @@ public class HistoryViewModelTests
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+
+        _viewer = new InspectionViewerViewModel(
+            _repository.Object,
+            new Mock<IViewportCropService>().Object,
+            _deletionService.Object,
+            _confirmationService.Object,
+            _notificationService.Object,
+            NullLogger<InspectionViewerViewModel>.Instance);
     }
 
     private HistoryViewModel CreateSut()
@@ -57,6 +72,7 @@ public class HistoryViewModelTests
             _notificationService.Object,
             _deletionService.Object,
             _confirmationService.Object,
+            _viewer,
             NullLogger<HistoryViewModel>.Instance);
     }
 
@@ -414,18 +430,65 @@ public class HistoryViewModelTests
     }
 
     [Fact]
-    public async Task ActivateItem_RaisesRecordActivated()
+    public async Task OpenViewerAsync_LoadsRecordAndOpensOverlay()
     {
-        SetupPages(new[] { CreateSummary("a", LocalNoonUtc()) });
+        var summary = CreateSummary("viewer-record", LocalNoonUtc());
+        SetupPages(new[] { summary });
+        _repository
+            .Setup(repo => repo.GetByIdAsync(summary.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InspectionRecord(
+                summary.Id,
+                summary.Name,
+                summary.CreatedAtUtc,
+                summary.UpdatedAtUtc,
+                summary.Mode,
+                summary.ImagePath));
         var sut = CreateSut();
         await sut.LoadFirstPageAsync();
-        HistoryItemViewModel? activated = null;
-        sut.RecordActivated += (_, item) => activated = item;
 
-        var card = sut.Items.Single();
-        sut.ActivateItem(card);
+        await sut.OpenViewerAsync(sut.Items.Single());
 
-        activated.Should().BeSameAs(card);
+        sut.IsViewerOpen.Should().BeTrue();
+        sut.Viewer.CurrentRecordId.Should().Be(summary.Id);
+        sut.Viewer.CurrentName.Should().Be(summary.Name);
+    }
+
+    [Fact]
+    public async Task ViewerDeletion_RemovesCardAndClosesOverlay()
+    {
+        var summary = CreateSummary("deleted-from-viewer", LocalNoonUtc());
+        SetupPages(new[] { summary });
+        string imagePath = Path.Combine(Path.GetTempPath(), $"pcb-viewer-{Guid.NewGuid():N}.png");
+        using (var mat = new Mat(80, 120, MatType.CV_8UC3, Scalar.All(160)))
+        {
+            Cv2.ImWrite(imagePath, mat).Should().BeTrue();
+        }
+
+        try
+        {
+            _repository
+                .Setup(repo => repo.GetByIdAsync(summary.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new InspectionRecord(
+                    summary.Id,
+                    summary.Name,
+                    summary.CreatedAtUtc,
+                    summary.UpdatedAtUtc,
+                    summary.Mode,
+                    imagePath));
+            var sut = CreateSut();
+            await sut.LoadFirstPageAsync();
+            await sut.OpenViewerAsync(sut.Items.Single());
+
+            await sut.Viewer.DeleteImageCommand.ExecuteAsync(null);
+
+            sut.Items.Should().BeEmpty();
+            sut.TotalCount.Should().Be(0);
+            sut.IsViewerOpen.Should().BeFalse();
+        }
+        finally
+        {
+            File.Delete(imagePath);
+        }
     }
 
     [Fact]

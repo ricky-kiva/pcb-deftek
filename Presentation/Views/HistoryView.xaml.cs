@@ -11,9 +11,13 @@ namespace pcb_deftek.Presentation.Views;
 
 public partial class HistoryView : UserControl
 {
+    private Border? _viewerOrigin;
+    private HistoryViewModel? _subscribedViewModel;
+
     public HistoryView()
     {
         InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
     }
 
     private HistoryViewModel? ViewModel => DataContext as HistoryViewModel;
@@ -87,7 +91,11 @@ public partial class HistoryView : UserControl
         }
 
         ((Border)sender).Focus();
-        ViewModel?.ActivateItem(item);
+        _viewerOrigin = (Border)sender;
+        if (ViewModel is { } viewModel)
+        {
+            _ = viewModel.OpenViewerAsync(item);
+        }
     }
 
     private void OnCardKeyDown(object sender, KeyEventArgs e)
@@ -101,7 +109,12 @@ public partial class HistoryView : UserControl
         {
             case Key.Enter:
             case Key.Space:
-                ViewModel?.ActivateItem(item);
+                _viewerOrigin = sender as Border;
+                if (ViewModel is { } viewModel)
+                {
+                    _ = viewModel.OpenViewerAsync(item);
+                }
+
                 e.Handled = true;
                 break;
 
@@ -164,6 +177,33 @@ public partial class HistoryView : UserControl
             !item.IsSavingName)
         {
             _ = item.CommitRenameAsync();
+        }
+    }
+
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (_subscribedViewModel is not null)
+        {
+            _subscribedViewModel.Viewer.Closed -= OnViewerClosed;
+        }
+
+        _subscribedViewModel = e.NewValue as HistoryViewModel;
+
+        if (_subscribedViewModel is not null)
+        {
+            _subscribedViewModel.Viewer.Closed += OnViewerClosed;
+        }
+    }
+
+    private void OnViewerClosed(object? sender, EventArgs e)
+    {
+        if (_viewerOrigin is { IsLoaded: true, IsVisible: true } origin)
+        {
+            origin.Focus();
+        }
+        else
+        {
+            Focus();
         }
     }
 

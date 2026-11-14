@@ -36,9 +36,11 @@ public class NavigationServiceTests
         services.AddSingleton(new Mock<IUserSettingsService>().Object);
         services.AddSingleton(new Mock<IInspectionRepository>().Object);
         services.AddSingleton(new Mock<IHistoryThumbnailService>().Object);
+        services.AddSingleton(new Mock<IViewportCropService>().Object);
         services.AddSingleton(new Mock<IInspectionDeletionService>().Object);
         services.AddSingleton(new Mock<IConfirmationService>().Object);
         services.AddTransient<FileDetectionViewModel>();
+        services.AddTransient<InspectionViewerViewModel>();
         services.AddTransient<HistoryViewModel>();
 
         _serviceProvider = services.BuildServiceProvider();
