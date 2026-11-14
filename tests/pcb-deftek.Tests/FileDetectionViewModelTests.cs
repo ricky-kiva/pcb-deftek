@@ -13,6 +13,7 @@ using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
 using pcb_deftek.Infrastructure.Vision;
+using pcb_deftek.Presentation.Services;
 using pcb_deftek.Presentation.ViewModels;
 using Xunit;
 
@@ -26,6 +27,7 @@ public class FileDetectionViewModelTests
     private readonly Mock<INotificationService> _mockNotification;
     private readonly Mock<IUserSettingsService> _mockSettings;
     private readonly Mock<IImageAnnotationService> _mockAnnotation;
+    private readonly DashboardProgressService _dashboardProgress = new();
 
     public FileDetectionViewModelTests()
     {
@@ -50,7 +52,8 @@ public class FileDetectionViewModelTests
             _mockNotification.Object,
             _mockSettings.Object,
             _mockAnnotation.Object,
-            NullLogger<FileDetectionViewModel>.Instance);
+            NullLogger<FileDetectionViewModel>.Instance,
+            _dashboardProgress);
     }
 
     [Fact]
@@ -319,6 +322,88 @@ public class FileDetectionViewModelTests
         // Assert
         sut.IsProcessing.Should().BeFalse();
         sut.StatusText.Should().Contain("Cancelled");
+        _dashboardProgress.Inference.Status.Should().Be(DashboardProgressStatus.Cancelled);
+    }
+
+    [Fact]
+    public async Task StartBatch_PublishesInferenceProgressAndCompletes()
+    {
+        var files = new[] { @"C:\pcb\b1.jpg" };
+        _mockDiscovery
+            .Setup(d => d.DiscoverImageFilesAsync(files, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(files);
+        var tcs = new TaskCompletionSource<BatchInspectionSummary>();
+        _mockEngine
+            .Setup(e => e.ExecuteBatchAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<IProgress<BatchProgressReport>?>(),
+                It.IsAny<float?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(tcs.Task);
+        var sut = CreateSut();
+        await sut.DropFilesCommand.ExecuteAsync(files);
+
+        Task start = sut.StartBatchCommand.ExecuteAsync(null);
+
+        _dashboardProgress.Inference.Status.Should().Be(DashboardProgressStatus.Running);
+        _dashboardProgress.HasActiveProcesses.Should().BeTrue();
+
+        tcs.SetResult(new BatchInspectionSummary(
+            Status: BatchStatus.Completed,
+            TotalCount: 1,
+            ProcessedCount: 1,
+            PassCount: 1,
+            FailCount: 0,
+            ErrorCount: 0,
+            TotalDuration: TimeSpan.FromMilliseconds(5),
+            Items: Array.Empty<BatchInspectionItem>()));
+        await start;
+
+        _dashboardProgress.Inference.Status.Should().Be(DashboardProgressStatus.Completed);
+        _dashboardProgress.Inference.Percentage.Should().Be(100);
+        _dashboardProgress.HasActiveProcesses.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CancelFromDashboard_CancelsTheEngineTokenAndReportsCancelled()
+    {
+        var files = new[] { @"C:\pcb\b1.jpg" };
+        _mockDiscovery
+            .Setup(d => d.DiscoverImageFilesAsync(files, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(files);
+        var tcs = new TaskCompletionSource<BatchInspectionSummary>();
+        CancellationToken engineToken = default;
+        _mockEngine
+            .Setup(e => e.ExecuteBatchAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<IProgress<BatchProgressReport>?>(),
+                It.IsAny<float?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IReadOnlyList<string>, IProgress<BatchProgressReport>?, float?, CancellationToken>(
+                (_, _, _, token) => engineToken = token)
+            .Returns(tcs.Task);
+        var sut = CreateSut();
+        await sut.DropFilesCommand.ExecuteAsync(files);
+        Task start = sut.StartBatchCommand.ExecuteAsync(null);
+
+        _dashboardProgress.Cancel(DashboardProcess.Inference);
+
+        engineToken.IsCancellationRequested.Should().BeTrue();
+        _dashboardProgress.Inference.Status.Should().Be(DashboardProgressStatus.Cancelled);
+
+        tcs.SetResult(new BatchInspectionSummary(
+            Status: BatchStatus.Cancelled,
+            TotalCount: 1,
+            ProcessedCount: 0,
+            PassCount: 0,
+            FailCount: 0,
+            ErrorCount: 0,
+            TotalDuration: TimeSpan.FromMilliseconds(5),
+            Items: Array.Empty<BatchInspectionItem>()));
+        await start;
+
+        _dashboardProgress.Inference.Status.Should().Be(DashboardProgressStatus.Cancelled);
+        _dashboardProgress.HasActiveProcesses.Should().BeFalse();
     }
 
     [Fact]

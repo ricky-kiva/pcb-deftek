@@ -14,6 +14,7 @@ using pcb_deftek.Infrastructure.Inference;
 using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
+using pcb_deftek.Presentation.Services;
 
 namespace pcb_deftek.Presentation.ViewModels;
 
@@ -30,6 +31,7 @@ public partial class FileDetectionViewModel : ViewModelBase
     private readonly INotificationService _notificationService;
     private readonly IUserSettingsService _userSettingsService;
     private readonly pcb_deftek.Infrastructure.Vision.IImageAnnotationService _imageAnnotationService;
+    private readonly IDashboardProgressService? _dashboardProgressService;
     private readonly ILogger<FileDetectionViewModel> _logger;
 
     private readonly object _queueLock = new();
@@ -107,7 +109,8 @@ public partial class FileDetectionViewModel : ViewModelBase
         INotificationService notificationService,
         IUserSettingsService userSettingsService,
         pcb_deftek.Infrastructure.Vision.IImageAnnotationService? imageAnnotationService = null,
-        ILogger<FileDetectionViewModel>? logger = null)
+        ILogger<FileDetectionViewModel>? logger = null,
+        IDashboardProgressService? dashboardProgressService = null)
     {
         ArgumentNullException.ThrowIfNull(fileDiscoveryService);
         ArgumentNullException.ThrowIfNull(filePickerService);
@@ -121,6 +124,7 @@ public partial class FileDetectionViewModel : ViewModelBase
         _notificationService = notificationService;
         _userSettingsService = userSettingsService;
         _imageAnnotationService = imageAnnotationService ?? new pcb_deftek.Infrastructure.Vision.ImageAnnotationService();
+        _dashboardProgressService = dashboardProgressService;
         _logger = logger ?? NullLogger<FileDetectionViewModel>.Instance;
 
         System.Windows.Data.BindingOperations.EnableCollectionSynchronization(QueueItems, _queueLock);
@@ -329,7 +333,10 @@ public partial class FileDetectionViewModel : ViewModelBase
 
         IsProcessing = true;
         _cancellationRequested = false;
-        _cancellationTokenSource = new CancellationTokenSource();
+        CancellationToken progressToken = _dashboardProgressService?.GetCancellationToken(DashboardProcess.Inference)
+            ?? CancellationToken.None;
+        _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(progressToken);
+        ReportInferenceProgress(DashboardProgressStatus.Running, 0, "Starting batch inspection.");
 
         ProcessedCount = 0;
         PassCount = 0;
@@ -387,6 +394,13 @@ public partial class FileDetectionViewModel : ViewModelBase
 
                 queueItem.UpdateFrom(report.LatestCompletedItem, thumbnail);
             }
+
+            ReportInferenceProgress(
+                DashboardProgressStatus.Running,
+                report.PercentComplete,
+                report.TotalCount > 0
+                    ? $"{report.ProcessedCount} of {report.TotalCount} boards inspected."
+                    : null);
         });
 
         try
@@ -422,10 +436,18 @@ public partial class FileDetectionViewModel : ViewModelBase
             if (summary.Status == BatchStatus.Cancelled)
             {
                 StatusText = $"Cancelled: {summary.ProcessedCount} of {summary.TotalCount} processed.";
+                ReportInferenceProgress(
+                    DashboardProgressStatus.Cancelled,
+                    PercentComplete,
+                    "Batch inspection cancelled.");
             }
             else
             {
                 StatusText = $"Completed: {summary.TotalDuration.TotalMilliseconds:N0} ms";
+                ReportInferenceProgress(
+                    DashboardProgressStatus.Completed,
+                    100,
+                    $"Processed {summary.TotalCount} boards.");
 
                 try
                 {
@@ -442,11 +464,19 @@ public partial class FileDetectionViewModel : ViewModelBase
         catch (OperationCanceledException)
         {
             StatusText = "Batch processing cancelled.";
+            ReportInferenceProgress(
+                DashboardProgressStatus.Cancelled,
+                PercentComplete,
+                "Batch inspection cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected exception during batch inspection execution.");
             StatusText = $"Batch inspection error: {ex.Message}";
+            ReportInferenceProgress(
+                DashboardProgressStatus.Failed,
+                PercentComplete,
+                "Batch inspection failed.");
         }
         finally
         {
@@ -474,6 +504,7 @@ public partial class FileDetectionViewModel : ViewModelBase
         _cancellationRequested = true;
         OnPropertyChanged(nameof(CanCancel));
         StatusText = "Cancelling processing remaining boards...";
+        _dashboardProgressService?.Cancel(DashboardProcess.Inference);
 
         try
         {
@@ -484,6 +515,12 @@ public partial class FileDetectionViewModel : ViewModelBase
             _logger.LogWarning(ex, "Error while signalling batch cancellation.");
         }
     }
+
+    private void ReportInferenceProgress(
+        DashboardProgressStatus status,
+        double percentage,
+        string? message = null) =>
+        _dashboardProgressService?.ReportInference(status, percentage, message);
 
     /// <summary>
     /// Opens the enlarged modal dialog displaying the annotated PCB image with bounding boxes.
