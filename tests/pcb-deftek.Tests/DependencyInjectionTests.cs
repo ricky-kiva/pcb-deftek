@@ -15,6 +15,7 @@ using pcb_deftek.Infrastructure.Persistence.Migrations;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
 using pcb_deftek.Presentation.Navigation;
+using pcb_deftek.Presentation.Services;
 using pcb_deftek.Presentation.ViewModels;
 using Xunit;
 
@@ -195,6 +196,7 @@ public class DependencyInjectionTests
     [InlineData(typeof(LiveDetectionViewModel))]
     [InlineData(typeof(FileDetectionViewModel))]
     [InlineData(typeof(HistoryViewModel))]
+    [InlineData(typeof(InspectionViewerViewModel))]
     public void ConfigureServices_WhenCalled_RegistersPageViewModelsAsTransient(Type serviceType)
     {
         // Arrange
@@ -207,6 +209,37 @@ public class DependencyInjectionTests
         // Assert
         descriptor.Should().NotBeNull($"Service {serviceType.Name} must be registered");
         descriptor!.Lifetime.Should().Be(ServiceLifetime.Transient);
+    }
+
+    [Theory]
+    [InlineData(typeof(IHistoryThumbnailService))]
+    [InlineData(typeof(IViewportCropService))]
+    [InlineData(typeof(IInspectionDeletionService))]
+    [InlineData(typeof(IConfirmationService))]
+    public void ConfigureServices_WhenCalled_RegistersViewerServicesAsSingletons(Type serviceType)
+    {
+        var services = new ServiceCollection();
+
+        App.ConfigureServices(services);
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == serviceType);
+
+        descriptor.Should().NotBeNull($"Service {serviceType.Name} must be registered");
+        descriptor!.Lifetime.Should().Be(ServiceLifetime.Singleton);
+    }
+
+    [Fact]
+    public void ConfigureServices_WhenProviderBuilt_ResolvesHistoryAndViewerSuccessfully()
+    {
+        var services = new ServiceCollection();
+        App.ConfigureServices(services);
+        using var provider = services.BuildServiceProvider();
+
+        provider.GetRequiredService<IHistoryThumbnailService>().Should().NotBeNull();
+        provider.GetRequiredService<IViewportCropService>().Should().NotBeNull();
+        provider.GetRequiredService<IInspectionDeletionService>().Should().NotBeNull();
+        provider.GetRequiredService<IConfirmationService>().Should().NotBeNull();
+        provider.GetRequiredService<InspectionViewerViewModel>().Should().NotBeNull();
+        provider.GetRequiredService<HistoryViewModel>().Should().NotBeNull();
     }
 
     [Theory]
