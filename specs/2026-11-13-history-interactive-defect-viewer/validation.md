@@ -36,7 +36,7 @@ dotnet test tests/pcb-deftek.Tests/ --filter ViewportTransformTests
 dotnet test tests/pcb-deftek.Tests/ --filter InspectionViewerViewModelTests
 dotnet test tests/pcb-deftek.Tests/ --filter ViewportCropServiceTests
 dotnet test tests/pcb-deftek.Tests/ --filter DependencyInjectionTests
-dotnet test tests/pcb-deftek.Bdd/ --filter HistoryAndDefectViewer
+dotnet test tests/pcb-deftek.Bdd/ --filter HistoryAndInteractiveDefectViewerFeature
 ```
 
 ### 2.1 Required Unit Coverage
