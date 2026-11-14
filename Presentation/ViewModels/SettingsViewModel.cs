@@ -138,7 +138,8 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     public async Task SaveAsync()
     {
-        var settings = new UserSettings
+        UserSettings persisted = await _settingsService.LoadSettingsAsync().ConfigureAwait(false);
+        UserSettings settings = persisted with
         {
             ConfidenceThreshold = Math.Clamp(Math.Round(ConfidenceThreshold, 2), 0.05, 1.00),
             PreferredDevice = SelectedDevice,

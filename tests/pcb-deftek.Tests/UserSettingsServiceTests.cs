@@ -62,6 +62,12 @@ public class UserSettingsServiceTests : IDisposable
         settings.ReportExportPath.Should().Be(KnownFolderPaths.GetReportExportDirectory());
         settings.DatabaseExportPath.Should().Be(_defaultDownloadsPath);
         settings.ImageOutputDirectory.Should().Be(KnownFolderPaths.GetCropImagesDirectory());
+        settings.DashboardCardOrder.Should().Equal(
+            DashboardCardOrderPolicy.TotalPcbs,
+            DashboardCardOrderPolicy.TotalDefects,
+            DashboardCardOrderPolicy.PassFail,
+            DashboardCardOrderPolicy.Distribution);
+        settings.DashboardColumnLayout.Should().Be(DashboardColumnLayout.TwoColumns);
     }
 
     [Fact]
@@ -80,7 +86,15 @@ public class UserSettingsServiceTests : IDisposable
             SkipDashboardOnStartup = true,
             ReportExportPath = customReportPath,
             DatabaseExportPath = customDatabasePath,
-            ImageOutputDirectory = customCropPath
+            ImageOutputDirectory = customCropPath,
+            DashboardCardOrder = new[]
+            {
+                DashboardCardOrderPolicy.Distribution,
+                DashboardCardOrderPolicy.PassFail,
+                DashboardCardOrderPolicy.TotalPcbs,
+                DashboardCardOrderPolicy.TotalDefects
+            },
+            DashboardColumnLayout = DashboardColumnLayout.OneColumn
         };
 
         // Act
@@ -96,6 +110,39 @@ public class UserSettingsServiceTests : IDisposable
         loaded.ReportExportPath.Should().Be(customReportPath);
         loaded.DatabaseExportPath.Should().Be(customDatabasePath);
         loaded.ImageOutputDirectory.Should().Be(customCropPath);
+        loaded.DashboardCardOrder.Should().Equal(
+            DashboardCardOrderPolicy.Distribution,
+            DashboardCardOrderPolicy.PassFail,
+            DashboardCardOrderPolicy.TotalPcbs,
+            DashboardCardOrderPolicy.TotalDefects);
+        loaded.DashboardColumnLayout.Should().Be(DashboardColumnLayout.OneColumn);
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_WithInvalidDashboardPreferences_NormalizesToDefaults()
+    {
+        await _settingsRepository.SetSettingAsync(UserSettingsService.KeyDashboardCardOrder, "bogus,distribution,bogus");
+        await _settingsRepository.SetSettingAsync(UserSettingsService.KeyDashboardColumnLayout, "ThreeColumns");
+
+        var settings = await _settingsService.LoadSettingsAsync();
+
+        settings.DashboardCardOrder.Should().Equal(
+            DashboardCardOrderPolicy.Distribution,
+            DashboardCardOrderPolicy.TotalPcbs,
+            DashboardCardOrderPolicy.TotalDefects,
+            DashboardCardOrderPolicy.PassFail);
+        settings.DashboardColumnLayout.Should().Be(DashboardColumnLayout.TwoColumns);
+    }
+
+    [Fact]
+    public void DashboardCardOrderPolicy_HandlesCaseAndDuplicates()
+    {
+        DashboardCardOrderPolicy.Parse(" DISTRIBUTION, pass-fail,distribution,unknown ")
+            .Should().Equal(
+                DashboardCardOrderPolicy.Distribution,
+                DashboardCardOrderPolicy.PassFail,
+                DashboardCardOrderPolicy.TotalPcbs,
+                DashboardCardOrderPolicy.TotalDefects);
     }
 
     [Fact]

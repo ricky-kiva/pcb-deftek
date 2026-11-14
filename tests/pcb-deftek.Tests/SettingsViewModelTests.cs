@@ -96,6 +96,33 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task SaveAsync_PreservesDashboardPreferencesFromPersistedSettings()
+    {
+        _settingsService.CurrentSettings = _settingsService.CurrentSettings with
+        {
+            DashboardCardOrder = new[]
+            {
+                DashboardCardOrderPolicy.Distribution,
+                DashboardCardOrderPolicy.TotalPcbs,
+                DashboardCardOrderPolicy.TotalDefects,
+                DashboardCardOrderPolicy.PassFail
+            },
+            DashboardColumnLayout = DashboardColumnLayout.OneColumn
+        };
+        var vm = new SettingsViewModel(_settingsService, _exportService, _notificationService, _modelRunner);
+        await vm.LoadAsync();
+
+        await vm.SaveAsync();
+
+        _settingsService.CurrentSettings.DashboardCardOrder.Should().Equal(
+            DashboardCardOrderPolicy.Distribution,
+            DashboardCardOrderPolicy.TotalPcbs,
+            DashboardCardOrderPolicy.TotalDefects,
+            DashboardCardOrderPolicy.PassFail);
+        _settingsService.CurrentSettings.DashboardColumnLayout.Should().Be(DashboardColumnLayout.OneColumn);
+    }
+
+    [Fact]
     public async Task ExportDatabaseCommand_ExecutesExportAndSendsToastNotification()
     {
         // Arrange
@@ -143,7 +170,7 @@ public class SettingsViewModelTests
 
     private class StubUserSettingsService : IUserSettingsService
     {
-        public UserSettings CurrentSettings { get; private set; }
+        public UserSettings CurrentSettings { get; set; }
 
         public StubUserSettingsService(UserSettings initial)
         {
