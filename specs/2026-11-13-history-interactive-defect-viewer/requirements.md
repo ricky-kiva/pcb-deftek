@@ -60,7 +60,7 @@ This phase builds directly on:
      - **Default:** editable record name, detection timestamp, defect-class summary with confidence.
      - **Focused:** class name, confidence, severity, root cause, impact, recommended action.
    - Sidebar `Delete Image` action, available in both states, with confirmation (deletes the inspection under the same policy).
-   - Missing/corrupt image produces a clear unavailable state, not a crash.
+   - Missing/corrupt image produces a clear unavailable state, not a crash. **Revised by Phase 9:** unreadable records are removed from History and the database instead of remaining as placeholders (see `specs/2026-11-14-audit-ready-pdf-export-engine/requirements.md`, D18).
    - Cropping writes the visible viewport to the configured crop directory and inserts a new inspection record containing the defects intersecting that viewport, with boxes re-normalized to the crop.
 3. **Enablers**
    - `InspectionSummary` read projection so the gallery gets accurate defect counts without loading defect rows.
