@@ -128,7 +128,7 @@ public class DashboardChartHostTests
 
     private static DashboardMetricCardViewModel BuildCard() => new(
         DashboardCardOrderPolicy.TotalPcbs,
-        "Total PCBs Inspected",
+        "PCBs Inspected",
         "12",
         "Daily · 3 buckets",
         DashboardMetricCardKind.TimeSeries,

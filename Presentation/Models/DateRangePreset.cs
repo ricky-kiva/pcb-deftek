@@ -9,5 +9,6 @@ public enum DateRangePreset
     Day = 1,
     Week = 2,
     Month = 3,
-    Custom = 4
+    Custom = 4,
+    Monthly = 5
 }
