@@ -16,9 +16,11 @@ public sealed class DashboardFilter
         DateTime? startDateUtc = null,
         DateTime? endDateUtc = null,
         IEnumerable<DefectClass>? defectClasses = null,
-        IEnumerable<DefectSeverity>? severities = null)
+        IEnumerable<DefectSeverity>? severities = null,
+        DashboardBucketGranularity? bucketGranularityOverride = null)
     {
         StartDateUtc = startDateUtc?.ToUniversalTime();
+        BucketGranularityOverride = bucketGranularityOverride;
         EndDateUtc = endDateUtc?.ToUniversalTime();
 
         if (StartDateUtc is { } start && EndDateUtc is { } end && start > end)
@@ -41,6 +43,9 @@ public sealed class DashboardFilter
 
     /// <summary>Gets the selected defect severities.</summary>
     public IReadOnlyList<DefectSeverity> Severities { get; }
+
+    /// <summary>Gets an optional bucket granularity imposed by the caller.</summary>
+    public DashboardBucketGranularity? BucketGranularityOverride { get; }
 
     /// <summary>Gets a value indicating whether a class or severity restriction is active.</summary>
     public bool HasDefectFilters => Severities.Count > 0 ||
@@ -112,8 +117,14 @@ public static class DashboardBucketPolicy
         DateTime? startUtc,
         DateTime? endUtc,
         DateTime? firstInspectionUtc,
-        DateTime? lastInspectionUtc)
+        DateTime? lastInspectionUtc,
+        DashboardBucketGranularity? granularityOverride = null)
     {
+        if (granularityOverride is { } overridden)
+        {
+            return overridden;
+        }
+
         DateTime? start = startUtc ?? firstInspectionUtc;
         DateTime? end = endUtc ?? lastInspectionUtc;
 

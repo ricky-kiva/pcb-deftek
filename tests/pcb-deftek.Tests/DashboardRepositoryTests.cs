@@ -140,6 +140,23 @@ public class DashboardRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task ExplicitMonthlyOverride_GroupsEvenAShortDataSpanByMonth()
+    {
+        DateTime start = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        await Insert(start.AddDays(10), new[] { DefectClass.Open });
+        await Insert(start.AddDays(20), new[] { DefectClass.Short });
+
+        var result = await _dashboardRepository.GetStatisticsAsync(
+            new DashboardFilter(
+                start,
+                start.AddDays(30),
+                bucketGranularityOverride: DashboardBucketGranularity.Month));
+
+        result.BucketGranularity.Should().Be(DashboardBucketGranularity.Month);
+        result.TotalInspections.Should().Be(2);
+    }
+
+    [Fact]
     public async Task DateBounds_AreInclusive()
     {
         DateTime start = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
