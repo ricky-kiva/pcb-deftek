@@ -115,6 +115,11 @@ public sealed partial class HistoryItemViewModel : ObservableObject
     /// <summary>Gets the persisted inspection name.</summary>
     public string Name => _nameEditor.Name;
 
+    /// <summary>
+    /// Applies a name that was persisted elsewhere without writing to the repository again.
+    /// </summary>
+    public void ApplyPersistedName(string name) => _nameEditor.ApplyPersistedName(name);
+
     /// <summary>Gets or sets the in-progress name while editing.</summary>
     public string EditedName
     {

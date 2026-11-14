@@ -60,6 +60,17 @@ public sealed partial class InspectionNameEditor : ObservableObject
     private bool _isSaving;
 
     /// <summary>
+    /// Applies a name that was persisted elsewhere without another repository write.
+    /// </summary>
+    public void ApplyPersistedName(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        Name = name.Trim();
+        EditedName = Name;
+        IsEditing = false;
+    }
+
+    /// <summary>
     /// Starts inline editing and seeds the edited value with the persisted name.
     /// </summary>
     /// <returns>True when edit mode was entered; false when already editing.</returns>

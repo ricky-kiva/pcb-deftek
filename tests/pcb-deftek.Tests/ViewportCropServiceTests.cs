@@ -4,10 +4,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Moq;
 using OpenCvSharp;
 using pcb_deftek.Common.Exceptions;
 using pcb_deftek.Common.Storage;
 using pcb_deftek.Domain.Models;
+using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
 using Xunit;
 
@@ -53,14 +55,17 @@ public class ViewportCropServiceTests : IDisposable
         string outputDir = Path.Combine(_testRoot, "out");
         var sut = new ViewportCropService();
 
-        string result = await sut.CropAsync(
+        ViewportCropResult result = await sut.CropAsync(
             source,
             "Board 1",
             new NormalizedRect(0.25, 0.25, 0.5, 0.5),
             outputDir);
 
-        File.Exists(result).Should().BeTrue();
-        using var cropped = Cv2.ImRead(result, ImreadModes.Unchanged);
+        File.Exists(result.FilePath).Should().BeTrue();
+        result.PixelWidth.Should().Be(200);
+        result.PixelHeight.Should().Be(100);
+        result.SourceRegion.Should().Be(new NormalizedRect(0.25, 0.25, 0.5, 0.5));
+        using var cropped = Cv2.ImRead(result.FilePath, ImreadModes.Unchanged);
         cropped.Width.Should().Be(200);
         cropped.Height.Should().Be(100);
     }
@@ -73,9 +78,9 @@ public class ViewportCropServiceTests : IDisposable
         var sut = new ViewportCropService();
         var clamped = NormalizedRect.Clamp(0.9, 0.9, 0.5, 0.5);
 
-        string result = await sut.CropAsync(source, "edge", clamped, outputDir);
+        ViewportCropResult result = await sut.CropAsync(source, "edge", clamped, outputDir);
 
-        using var cropped = Cv2.ImRead(result, ImreadModes.Unchanged);
+        using var cropped = Cv2.ImRead(result.FilePath, ImreadModes.Unchanged);
         cropped.Width.Should().Be(20);
         cropped.Height.Should().Be(10);
     }
@@ -116,23 +121,23 @@ public class ViewportCropServiceTests : IDisposable
         string outputDir = Path.Combine(_testRoot, "out");
         var sut = new ViewportCropService();
 
-        string first = await sut.CropAsync(
+        ViewportCropResult first = await sut.CropAsync(
             source,
             "Board: 1/2?",
             NormalizedRect.Full,
             outputDir);
-        string second = await sut.CropAsync(
+        ViewportCropResult second = await sut.CropAsync(
             source,
             "Board: 1/2?",
             NormalizedRect.Full,
             outputDir);
 
-        string firstName = Path.GetFileName(first);
+        string firstName = Path.GetFileName(first.FilePath);
         firstName.Should().NotContainAny(":", "/", "?", "\\");
         firstName.Should().StartWith("Board");
-        Path.GetFileNameWithoutExtension(second).Should().NotBe(Path.GetFileNameWithoutExtension(first));
-        File.Exists(first).Should().BeTrue();
-        File.Exists(second).Should().BeTrue();
+        Path.GetFileNameWithoutExtension(second.FilePath).Should().NotBe(Path.GetFileNameWithoutExtension(first.FilePath));
+        File.Exists(first.FilePath).Should().BeTrue();
+        File.Exists(second.FilePath).Should().BeTrue();
     }
 
     [Fact]
@@ -151,6 +156,36 @@ public class ViewportCropServiceTests : IDisposable
             cts.Token);
 
         await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task CropAsync_WithoutOverride_UsesConfiguredCropDirectory()
+    {
+        string source = CreateSourceImage(200, 100);
+        string configured = Path.Combine(_testRoot, "configured");
+        var settings = new Mock<IUserSettingsService>();
+        settings
+            .Setup(service => service.LoadSettingsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserSettings { CropOutputDirectory = configured });
+        var sut = new ViewportCropService(settingsService: settings.Object);
+
+        ViewportCropResult result = await sut.CropAsync(source, "configured", NormalizedRect.Full);
+
+        Path.GetDirectoryName(result.FilePath).Should().Be(configured);
+        File.Exists(result.FilePath).Should().BeTrue();
+    }
+
+    [Fact]
+    public void ApplicationDirectories_UseTheExpectedDownloadsSubtrees()
+    {
+        string downloads = KnownFolderPaths.GetDownloadsDirectory();
+
+        KnownFolderPaths.GetCropImagesDirectory().Should()
+            .Be(Path.Combine(downloads, "PCB Deftek", "Images"));
+        KnownFolderPaths.GetReportExportDirectory().Should()
+            .Be(Path.Combine(downloads, "PCB Deftek", "Report"));
+        KnownFolderPaths.GetDatabaseBackupDirectory().Should()
+            .Be(Path.Combine(downloads, "PCB Deftek", "Backup"));
     }
 
     [Fact]

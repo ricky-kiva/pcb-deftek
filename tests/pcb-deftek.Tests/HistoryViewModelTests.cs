@@ -27,6 +27,7 @@ public class HistoryViewModelTests
     private readonly Mock<INotificationService> _notificationService = new();
     private readonly Mock<IInspectionDeletionService> _deletionService = new();
     private readonly Mock<IConfirmationService> _confirmationService = new();
+    private readonly Mock<IViewportCropService> _cropService = new();
     private readonly InspectionViewerViewModel _viewer;
 
     public HistoryViewModelTests()
@@ -57,7 +58,7 @@ public class HistoryViewModelTests
 
         _viewer = new InspectionViewerViewModel(
             _repository.Object,
-            new Mock<IViewportCropService>().Object,
+            _cropService.Object,
             _deletionService.Object,
             _confirmationService.Object,
             _notificationService.Object,
@@ -451,6 +452,86 @@ public class HistoryViewModelTests
         sut.IsViewerOpen.Should().BeTrue();
         sut.Viewer.CurrentRecordId.Should().Be(summary.Id);
         sut.Viewer.CurrentName.Should().Be(summary.Name);
+    }
+
+    [Fact]
+    public async Task ViewerRename_UpdatesGalleryCardName()
+    {
+        var summary = CreateSummary("old-name", LocalNoonUtc());
+        SetupPages(new[] { summary });
+        _repository
+            .Setup(repo => repo.GetByIdAsync(summary.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InspectionRecord(
+                summary.Id,
+                summary.Name,
+                summary.CreatedAtUtc,
+                summary.UpdatedAtUtc,
+                summary.Mode,
+                summary.ImagePath));
+        _repository
+            .Setup(repo => repo.UpdateNameAsync(summary.Id, "renamed-board", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var sut = CreateSut();
+        await sut.LoadFirstPageAsync();
+        await sut.OpenViewerAsync(sut.Items.Single());
+
+        sut.Viewer.BeginRenameCommand.Execute(null);
+        sut.Viewer.EditedName = "renamed-board";
+        await sut.Viewer.CommitRenameCommand.ExecuteAsync(null);
+
+        sut.Items.Single().Name.Should().Be("renamed-board");
+    }
+
+    [Fact]
+    public async Task ViewerCrop_RefreshesGallery()
+    {
+        var summary = CreateSummary("crop-source", LocalNoonUtc());
+        int pageCalls = 0;
+        SetupPages(new[] { summary }, _ => pageCalls++);
+        string imagePath = Path.Combine(Path.GetTempPath(), $"pcb-crop-source-{Guid.NewGuid():N}.png");
+        string cropPath = Path.Combine(Path.GetTempPath(), $"pcb-crop-output-{Guid.NewGuid():N}.png");
+        using (var mat = new Mat(80, 120, MatType.CV_8UC3, Scalar.All(160)))
+        {
+            Cv2.ImWrite(imagePath, mat).Should().BeTrue();
+        }
+
+        try
+        {
+            _repository
+                .Setup(repo => repo.GetByIdAsync(summary.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new InspectionRecord(
+                    summary.Id,
+                    summary.Name,
+                    summary.CreatedAtUtc,
+                    summary.UpdatedAtUtc,
+                    summary.Mode,
+                    imagePath));
+            _cropService
+                .Setup(service => service.CropAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<NormalizedRect>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ViewportCropResult(cropPath, NormalizedRect.Full, 120, 80));
+            _repository
+                .Setup(repo => repo.InsertAsync(It.IsAny<InspectionRecord>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((InspectionRecord record, CancellationToken _) => record.Id);
+
+            var sut = CreateSut();
+            await sut.LoadFirstPageAsync();
+            await sut.OpenViewerAsync(sut.Items.Single());
+            int callsBeforeCrop = pageCalls;
+
+            await sut.Viewer.CropViewportCommand.ExecuteAsync(NormalizedRect.Full);
+
+            await WaitUntilAsync(() => pageCalls > callsBeforeCrop);
+            pageCalls.Should().BeGreaterThan(callsBeforeCrop);
+        }
+        finally
+        {
+            File.Delete(imagePath);
+        }
     }
 
     [Fact]
