@@ -113,6 +113,21 @@
         </Setter>
     </Style>
 
+    <!-- Chart keyboard focus ring -->
+    <Style x:Key="ChartFocusVisualStyle" TargetType="Control">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                            BorderThickness="2"
+                            CornerRadius="4"
+                            Margin="1"
+                            IsHitTestVisible="False" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- PASS / FAIL Status Badge Container Style -->
     <Style x:Key="StatusBadgeStyle" TargetType="Border">
         <Setter Property="CornerRadius" Value="12" />

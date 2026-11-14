@@ -85,5 +85,6 @@ public class PresentationResourceDictionaryTests
         dictionary.Contains("FloatingHudCardStyle").Should().BeTrue();
         dictionary.Contains("StatusBadgeStyle").Should().BeTrue();
         dictionary.Contains("SeverityBadgeStyle").Should().BeTrue();
+        dictionary.Contains("ChartFocusVisualStyle").Should().BeTrue();
     }
 }

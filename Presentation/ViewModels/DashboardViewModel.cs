@@ -82,6 +82,10 @@ public sealed partial class DashboardViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isNotificationModalOpen;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsChartModalOpen))]
+    private DashboardMetricCardViewModel? _activeChartCard;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DashboardViewModel"/> class.
     /// </summary>
@@ -118,6 +122,9 @@ public sealed partial class DashboardViewModel : ViewModelBase
 
     /// <summary>Gets a value indicating whether the saved layout is two columns.</summary>
     public bool IsTwoColumnLayout => ColumnLayout == DashboardColumnLayout.TwoColumns;
+
+    /// <summary>Gets a value indicating whether the enlarged chart modal is open.</summary>
+    public bool IsChartModalOpen => ActiveChartCard is not null;
 
     /// <inheritdoc />
     public override Task OnNavigatedToAsync() => LoadAsync();
@@ -228,6 +235,18 @@ public sealed partial class DashboardViewModel : ViewModelBase
 
     [RelayCommand]
     private void CloseNotifications() => IsNotificationModalOpen = false;
+
+    [RelayCommand]
+    private void OpenChart(DashboardMetricCardViewModel? card)
+    {
+        if (card is not null)
+        {
+            ActiveChartCard = card;
+        }
+    }
+
+    [RelayCommand]
+    private void CloseChart() => ActiveChartCard = null;
 
     partial void OnColumnLayoutChanged(DashboardColumnLayout value)
     {
@@ -383,7 +402,8 @@ public sealed partial class DashboardViewModel : ViewModelBase
                     .ToArray(),
                 seriesColorHex: TotalPcbsColor,
                 accessibleSummary:
-                    $"{statistics.TotalInspections} PCBs scanned across {statistics.Buckets.Count} {period.ToLowerInvariant()} buckets."),
+                    $"{statistics.TotalInspections} PCBs scanned across {statistics.Buckets.Count} {period.ToLowerInvariant()} buckets.",
+                granularityLabel: period),
 
             DashboardCardOrderPolicy.TotalDefects => new DashboardMetricCardViewModel(
                 key,
@@ -396,7 +416,8 @@ public sealed partial class DashboardViewModel : ViewModelBase
                     .ToArray(),
                 seriesColorHex: TotalDefectsColor,
                 accessibleSummary:
-                    $"{statistics.TotalDefects} defects detected across {statistics.Buckets.Count} {period.ToLowerInvariant()} buckets."),
+                    $"{statistics.TotalDefects} defects detected across {statistics.Buckets.Count} {period.ToLowerInvariant()} buckets.",
+                granularityLabel: period),
 
             DashboardCardOrderPolicy.PassFail => new DashboardMetricCardViewModel(
                 key,
@@ -408,7 +429,8 @@ public sealed partial class DashboardViewModel : ViewModelBase
                     .Select(bucket => new DashboardPassFailPoint(bucket.Label, bucket.Passes, bucket.Fails))
                     .ToArray(),
                 accessibleSummary:
-                    $"{statistics.PassCount} PASS and {statistics.FailCount} FAIL inspections across {statistics.Buckets.Count} {period.ToLowerInvariant()} buckets."),
+                    $"{statistics.PassCount} PASS and {statistics.FailCount} FAIL inspections across {statistics.Buckets.Count} {period.ToLowerInvariant()} buckets.",
+                granularityLabel: period),
 
             DashboardCardOrderPolicy.Distribution => new DashboardMetricCardViewModel(
                 key,
