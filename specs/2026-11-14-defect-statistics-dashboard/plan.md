@@ -108,35 +108,37 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Extract the local→UTC preset/custom-range calculation shared by History and Dashboard so filter semantics cannot drift.
 - **Acceptance criteria:**
-  - [ ] Resolver returns inclusive local start/end bounds for Day/Week/Month/None, honoring the current culture's first day of week.
-  - [ ] Custom range validates start ≤ end and converts inclusive dates to UTC bounds.
-  - [ ] History filter tests continue to pass without behavior changes.
-  - [ ] Dashboard uses the same resolver rather than a duplicate calculation.
+  - [x] Resolver returns inclusive local start/end bounds for Day/Week/Month/None, honoring the current culture's first day of week.
+  - [x] Custom range validates start ≤ end and converts inclusive dates to UTC bounds.
+  - [x] History filter tests continue to pass without behavior changes.
+  - [x] Dashboard uses the same resolver rather than a duplicate calculation.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryFilterViewModelTests`
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardFilterViewModelTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter HistoryFilterViewModelTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardFilterViewModelTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.1
 - **Files:**
+  - `Presentation/Models/DateRangePreset.cs`
   - `Presentation/Models/DateRangePresetResolver.cs`
+  - `Presentation/Models/FilterOption.cs`
   - `Presentation/ViewModels/HistoryFilterViewModel.cs`
   - `Presentation/ViewModels/DashboardFilterViewModel.cs`
   - `tests/pcb-deftek.Tests/DashboardFilterViewModelTests.cs`
   - `tests/pcb-deftek.Tests/HistoryFilterViewModelTests.cs`
-- **Estimated scope:** M (5 files)
+- **Estimated scope:** M (7 files)
 
 #### Task 2.2: `DashboardFilterViewModel`
 
 - **Description:** Dashboard-specific filter state for date presets, custom range, defect types, severities, labels, and clear/reset behavior.
 - **Acceptance criteria:**
-  - [ ] Exposes date preset, custom start/end, custom validation, selected classes, selected severities, and active-filter state.
-  - [ ] Provides multi-select options for all nine classes and five severities with display labels.
-  - [ ] Produces `DashboardFilter` with the same inclusive bounds and filter semantics as the repository contract.
-  - [ ] Raises a single filters-changed notification per user-visible change; `ClearAll` raises once.
-  - [ ] Invalid custom ranges do not produce a query filter.
+  - [x] Exposes date preset, custom start/end, custom validation, selected classes, selected severities, and active-filter state.
+  - [x] Provides multi-select options for all nine classes and five severities with display labels.
+  - [x] Produces `DashboardFilter` with the same inclusive bounds and filter semantics as the repository contract.
+  - [x] Raises a single filters-changed notification per user-visible change; `ClearAll` raises once.
+  - [x] Invalid custom ranges do not produce a query filter.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardFilterViewModelTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardFilterViewModelTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 2.1
 - **Files:**
   - `Presentation/ViewModels/DashboardFilterViewModel.cs`
@@ -147,16 +149,16 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Orchestrate loading, cancellation, metrics, chart projections, layout state, card order, and defect information items.
 - **Acceptance criteria:**
-  - [ ] Constructor depends only on interfaces and exposes `Statistics`, `MetricCards`, `DefectInfoItems`, `IsLoading`, `ErrorMessage`, `HasData`, and filter state.
-  - [ ] Initial navigation loads all-time statistics; filter changes cancel the prior load and reload from scratch without stale updates.
-  - [ ] Metric card projections expose display values, adaptive-bucket time series (scans, defects, or pass/fail), and class distribution from the aggregate result.
-  - [ ] Layout and card order are exposed for the view; default layout is two columns/default order until persisted preferences load.
-  - [ ] Card order is a stable observable list; move left/right and drag reorder mutate that list through the persistence workflow in Task 2.4.
-  - [ ] Defect info items come from `DefectKnowledgeBase.GetAll()` with the asset path contract from requirements §5.
-  - [ ] `ExportRequested` is raised with a snapshot of the active filter; no PDF is generated.
+  - [x] Constructor depends only on interfaces and exposes `Statistics`, `MetricCards`, `DefectInfoItems`, `IsLoading`, `ErrorMessage`, `HasData`, and filter state.
+  - [x] Initial navigation loads all-time statistics; filter changes cancel the prior load and reload from scratch without stale updates.
+  - [x] Metric card projections expose display values, adaptive-bucket time series (scans, defects, or pass/fail), and class distribution from the aggregate result.
+  - [x] Layout and card order are exposed for the view; default layout is two columns/default order until persisted preferences load.
+  - [x] Card order is a stable observable list; move left/right and drag reorder mutate that list through the persistence workflow in Task 2.4.
+  - [x] Defect info items come from `DefectKnowledgeBase.GetAll()` with the asset path contract from requirements §5.
+  - [x] `ExportRequested` is raised with a snapshot of the active filter; no PDF is generated.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Tasks 1.2, 2.2
 - **Files:**
   - `Presentation/ViewModels/DashboardViewModel.cs`
@@ -169,49 +171,51 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Persist metric-card order and column layout in user settings so they survive page changes and restarts.
 - **Acceptance criteria:**
-  - [ ] `UserSettings` gains `DashboardCardOrder` and `DashboardColumnLayout`; missing/default values resolve to the standard four-card order and 2 columns.
-  - [ ] Settings storage persists both values when a card is reordered or the layout toggle changes.
-  - [ ] Dashboard load restores order/layout before the first render; unrecognized card keys or invalid layout values are ignored safely.
-  - [ ] Navigating away/back and restarting preserves the preference.
+  - [x] `UserSettings` gains `DashboardCardOrder` and `DashboardColumnLayout`; missing/default values resolve to the standard four-card order and 2 columns.
+  - [x] Settings storage persists both values when a card is reordered or the layout toggle changes.
+  - [x] Dashboard load restores order/layout before the first render; unrecognized card keys or invalid layout values are ignored safely.
+  - [x] Navigating away/back and restarting preserves the preference.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter UserSettingsServiceTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter UserSettingsServiceTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 2.3
 - **Files:**
+  - `Domain/Models/DashboardPreferences.cs`
   - `Domain/Models/UserSettings.cs`
   - `Infrastructure/Persistence/Repositories/UserSettingsService.cs`
   - `Presentation/ViewModels/DashboardViewModel.cs`
   - `tests/pcb-deftek.Tests/DashboardViewModelTests.cs`
-- **Estimated scope:** S (4 files)
+- **Estimated scope:** S (5 files)
 
 #### Task 2.5: Startup Preference & Tile Progress State
 
 - **Description:** Wire the Dashboard startup checkbox and the notification progress modal state.
 - **Acceptance criteria:**
-  - [ ] `SkipDashboardOnStartup` loads from `IUserSettingsService` and persists on change without blocking the UI.
-  - [ ] `IDashboardProgressService` exposes observable inference/export progress, status, and messages.
-  - [ ] Progress updates marshal to the UI thread and are safe when no data exists.
-  - [ ] `DashboardViewModel` exposes notification modal state and close command; idle state shows 0% without running animations.
+  - [x] `SkipDashboardOnStartup` loads from `IUserSettingsService` and persists on change without blocking the UI.
+  - [x] `IDashboardProgressService` exposes observable inference/export progress, status, and messages.
+  - [x] Progress updates marshal to the UI thread and are safe when no data exists.
+  - [x] `DashboardViewModel` exposes notification modal state and close command; idle state shows 0% without running animations.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardProgressServiceTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardProgressServiceTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 2.3
 - **Files:**
+  - `App.xaml.cs`
   - `Presentation/Services/IDashboardProgressService.cs`
   - `Presentation/Services/DashboardProgressService.cs`
   - `Presentation/ViewModels/DashboardViewModel.cs`
   - `tests/pcb-deftek.Tests/DashboardProgressServiceTests.cs`
-- **Estimated scope:** S (4 files)
+- **Estimated scope:** S (5 files)
 
 ---
 
 ### Checkpoint 2: Dashboard State Correct
-- [ ] All dashboard filter/state tests pass.
-- [ ] History filter tests remain green after the shared resolver extraction.
-- [ ] Startup checkbox and progress service behave deterministically in tests.
-- [ ] Card order/layout persist through a settings reload.
+- [x] All dashboard filter/state tests pass.
+- [x] History filter tests remain green after the shared resolver extraction.
+- [x] Startup checkbox and progress service behave deterministically in tests.
+- [x] Card order/layout persist through a settings reload.
 - [ ] Review with human before chart/UI work.
 
 ---
