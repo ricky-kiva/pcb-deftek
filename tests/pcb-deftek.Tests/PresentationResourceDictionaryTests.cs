@@ -74,6 +74,18 @@ public class PresentationResourceDictionaryTests
     }
 
     [Fact]
+    public void FilterBar_ContainsSharedFilterChromeStyles()
+    {
+        var dictionary = LoadDictionary("FilterBar.xaml");
+
+        dictionary.Contains("FilterBarStyle").Should().BeTrue();
+        dictionary.Contains("FilterChipStyle").Should().BeTrue();
+        dictionary.Contains("QuietButtonStyle").Should().BeTrue();
+        dictionary.Contains("AccentButtonStyle").Should().BeTrue();
+        dictionary.Contains("FilterPopupStyle").Should().BeTrue();
+    }
+
+    [Fact]
     public void Controls_ContainsExpectedSidebarAndFooterStyles()
     {
         // Arrange
