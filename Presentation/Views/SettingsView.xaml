@@ -59,7 +59,7 @@
                 </Button>
 
                 <StackPanel>
-                    <TextBlock Text="Settings &amp; Attribution"
+                    <TextBlock Text="Settings"
                                FontSize="20"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -151,6 +151,8 @@
                                           ItemsSource="{Binding AvailableDevices}"
                                           SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
                                           Height="32"
+                                          MinWidth="144"
+                                          HorizontalAlignment="Right"
                                           VerticalAlignment="Center" />
                             </Grid>
                         </StackPanel>
@@ -191,6 +193,8 @@
                                           ItemsSource="{Binding AvailableStartupPages}"
                                           SelectedItem="{Binding SelectedStartupPage, Mode=TwoWay}"
                                           Height="32"
+                                          MinWidth="144"
+                                          HorizontalAlignment="Right"
                                           VerticalAlignment="Center" />
                             </Grid>
                         </StackPanel>
@@ -367,7 +371,7 @@
 
                             <!-- Social Icons & Ko-fi row -->
                             <StackPanel Orientation="Horizontal"
-                                        HorizontalAlignment="Left"
+                                        HorizontalAlignment="Center"
                                         Margin="0,6,0,0">
                                 <Button Command="{Binding OpenUrlCommand}"
                                         CommandParameter="https://github.com/ricky-kiva"
@@ -401,16 +405,16 @@
                                 <Button Command="{Binding OpenUrlCommand}"
                                         CommandParameter="https://ko-fi.com/rickyslash"
                                         Style="{StaticResource FooterLinkButtonStyle}"
-                                        ToolTip="Buy Me a Coffee on Ko-fi"
-                                        Margin="8,0,0,0">
+                                        ToolTip="Support on Ko-fi"
+                                        Margin="4,0,0,0">
                                     <StackPanel Orientation="Horizontal">
                                         <Path Data="{StaticResource IconCoffee}"
                                               Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
                                               Width="14" Height="14"
                                               Stretch="Uniform"
                                               VerticalAlignment="Center"
-                                              Margin="0,0,4,0" />
-                                        <TextBlock Text="Support on Ko-fi" FontSize="11" VerticalAlignment="Center" />
+                                              Margin="0,0,6,0" />
+                                        <TextBlock Text="Buy me a Coffee" FontSize="11" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
