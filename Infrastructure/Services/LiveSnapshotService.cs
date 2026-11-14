@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenCvSharp;
 using pcb_deftek.Common.Exceptions;
+using pcb_deftek.Common.Storage;
 using pcb_deftek.Domain.Models;
 using pcb_deftek.Infrastructure.Inference;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
@@ -24,41 +25,43 @@ public class LiveSnapshotService : ILiveSnapshotService
     private readonly IInspectionRepository _repository;
     private readonly ILiveInspectionEngine _liveInspectionEngine;
     private readonly ILogger<LiveSnapshotService> _logger;
+    private readonly IUserSettingsService? _settingsService;
+    private readonly string? _capturesDirectoryOverride;
     private int _snapshotSequence;
 
     /// <inheritdoc />
-    public string CapturesDirectoryPath { get; }
+    public string CapturesDirectoryPath =>
+        _capturesDirectoryOverride ?? GetDefaultCapturesDirectoryPath();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LiveSnapshotService"/> class.
     /// </summary>
     /// <param name="repository">The inspection repository for SQLite persistence.</param>
     /// <param name="liveInspectionEngine">The live inspection engine providing active frames.</param>
-    /// <param name="capturesDirectoryPath">Optional custom directory path for saved images.</param>
+    /// <param name="capturesDirectoryPath">Optional custom image output directory (used by tests).</param>
     /// <param name="logger">Optional logger instance.</param>
+    /// <param name="settingsService">Optional settings service supplying the configured image output directory.</param>
     public LiveSnapshotService(
         IInspectionRepository repository,
         ILiveInspectionEngine liveInspectionEngine,
         string? capturesDirectoryPath = null,
-        ILogger<LiveSnapshotService>? logger = null)
+        ILogger<LiveSnapshotService>? logger = null,
+        IUserSettingsService? settingsService = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _liveInspectionEngine = liveInspectionEngine ?? throw new ArgumentNullException(nameof(liveInspectionEngine));
         _logger = logger ?? NullLogger<LiveSnapshotService>.Instance;
-
-        CapturesDirectoryPath = !string.IsNullOrWhiteSpace(capturesDirectoryPath)
-            ? Path.GetFullPath(capturesDirectoryPath)
-            : GetDefaultCapturesDirectoryPath();
+        _settingsService = settingsService;
+        _capturesDirectoryOverride = string.IsNullOrWhiteSpace(capturesDirectoryPath)
+            ? null
+            : Path.GetFullPath(capturesDirectoryPath);
     }
 
     /// <summary>
-    /// Gets the default local application data directory for live camera captures.
+    /// Gets the default image output directory for live camera captures.
     /// </summary>
-    public static string GetDefaultCapturesDirectoryPath()
-    {
-        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return Path.Combine(localAppData, "PcbDeftek", "pcb-deftek", "Captures");
-    }
+    public static string GetDefaultCapturesDirectoryPath() =>
+        KnownFolderPaths.GetCropImagesDirectory();
 
     /// <inheritdoc />
     public Task<InspectionRecord> CaptureLatestAsync(
@@ -97,9 +100,10 @@ public class LiveSnapshotService : ILiveSnapshotService
             ? customName.Trim()
             : $"{createdAtUtc:yyyy-MM-dd}-{seq:D3}";
 
-        Directory.CreateDirectory(CapturesDirectoryPath);
+        string outputDirectory = await ResolveOutputDirectoryAsync(cancellationToken).ConfigureAwait(false);
+        Directory.CreateDirectory(outputDirectory);
 
-        string rawImagePath = Path.Combine(CapturesDirectoryPath, $"{inspectionId:N}_raw.png");
+        string rawImagePath = Path.Combine(outputDirectory, $"{inspectionId:N}_raw.png");
         string annotatedImagePath = GetAnnotatedImagePath(rawImagePath);
         var annotatedBitmap = frameResult.AnnotatedImage;
 
@@ -135,7 +139,8 @@ public class LiveSnapshotService : ILiveSnapshotService
             imagePath: rawImagePath,
             defects: mappedDefects,
             id: inspectionId,
-            createdAtUtc: createdAtUtc);
+            createdAtUtc: createdAtUtc,
+            origin: InspectionOrigin.LiveCapture);
 
         await _repository.InsertAsync(record, cancellationToken).ConfigureAwait(false);
 
@@ -162,5 +167,35 @@ public class LiveSnapshotService : ILiveSnapshotService
         string dir = Path.GetDirectoryName(rawImagePath) ?? CapturesDirectoryPath;
         string nameWithoutExt = Path.GetFileNameWithoutExtension(rawImagePath);
         return Path.Combine(dir, $"{nameWithoutExt}_annotated.png");
+    }
+
+    private async Task<string> ResolveOutputDirectoryAsync(CancellationToken cancellationToken)
+    {
+        if (_capturesDirectoryOverride is not null)
+        {
+            return _capturesDirectoryOverride;
+        }
+
+        if (_settingsService is null)
+        {
+            return GetDefaultCapturesDirectoryPath();
+        }
+
+        try
+        {
+            var settings = await _settingsService.LoadSettingsAsync(cancellationToken).ConfigureAwait(false);
+            return string.IsNullOrWhiteSpace(settings.ImageOutputDirectory)
+                ? GetDefaultCapturesDirectoryPath()
+                : settings.ImageOutputDirectory;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read the configured image output directory; using the default.");
+            return GetDefaultCapturesDirectoryPath();
+        }
     }
 }
