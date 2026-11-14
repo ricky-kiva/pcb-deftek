@@ -309,6 +309,22 @@ public class DashboardViewModelTests
         _progress,
         notificationService: _notification);
 
+    [Fact]
+    public void CancelProcessCommand_CancelsRunningProcessAndRaisesHasActiveProcesses()
+    {
+        var sut = CreateSut();
+        var changed = new List<string?>();
+        sut.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+        _progress.ReportInference(DashboardProgressStatus.Running, 40, "Detecting");
+
+        sut.HasActiveProcesses.Should().BeTrue();
+        sut.CancelProcessCommand.Execute(DashboardProcess.Inference);
+
+        _progress.Inference.Status.Should().Be(DashboardProgressStatus.Cancelled);
+        sut.HasActiveProcesses.Should().BeFalse();
+        changed.Should().Contain(nameof(DashboardViewModel.HasActiveProcesses));
+    }
+
     private static DashboardStatistics SampleStatistics(int totalInspections = 4)
     {
         var buckets = new[]

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -105,6 +106,11 @@ public sealed partial class DashboardViewModel : ViewModelBase
         _notificationService = notificationService;
         _uiContext = SynchronizationContext.Current;
 
+        PropertyChangedEventManager.AddHandler(
+            Progress,
+            OnProgressPropertyChanged,
+            nameof(IDashboardProgressService.HasActiveProcesses));
+
         Filters = new DashboardFilterViewModel();
         Filters.FiltersChanged += OnFiltersChanged;
         DefectInfoItems = DefectKnowledgeBase.GetAll()
@@ -132,6 +138,9 @@ public sealed partial class DashboardViewModel : ViewModelBase
 
     /// <summary>Gets a value indicating whether the enlarged chart modal is open.</summary>
     public bool IsChartModalOpen => ActiveChartCard is not null;
+
+    /// <summary>Gets a value indicating whether at least one background process is running.</summary>
+    public bool HasActiveProcesses => Progress.HasActiveProcesses;
 
     /// <inheritdoc />
     public override Task OnNavigatedToAsync() => LoadAsync();
@@ -240,6 +249,17 @@ public sealed partial class DashboardViewModel : ViewModelBase
 
     [RelayCommand]
     private void CloseNotifications() => IsNotificationModalOpen = false;
+
+    [RelayCommand]
+    private void CancelProcess(DashboardProcess process) => Progress.Cancel(process);
+
+    private void OnProgressPropertyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(IDashboardProgressService.HasActiveProcesses))
+        {
+            OnPropertyChanged(nameof(HasActiveProcesses));
+        }
+    }
 
     [RelayCommand]
     private void OpenChart(DashboardMetricCardViewModel? card)
