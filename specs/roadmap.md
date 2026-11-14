@@ -82,7 +82,7 @@
 
 ### Phase 9: Audit-Ready PDF Export Engine
 - QuestPDF report layout: All 4 metric cards arranged in a single column, followed by annotated PCB detection images with bounding boxes and corresponding diagnostic metadata.
-- Dashboard "Export Data" integration: Asynchronous background PDF generation respecting currently applied filters, defaulting export path to Windows Downloads folder with Windows completion notification.
+- Dashboard "Export Data" integration: Asynchronous background PDF generation respecting currently applied filters, defaulting export path to `Downloads\PCB Deftek\Report` with Windows completion notification.
 
 ### Phase 10: Hardening, BDD Verification & Launch Readiness
 - End-to-end Reqnroll BDD scenarios verification across all critical workflows (including batch ETA, camera auto-hide, viewer sidebar state transitions, dashboard drag-and-drop, and export notifications).
