@@ -18,7 +18,7 @@
 - **Full suite:** `dotnet test pcb-deftek.slnx`
 - **Pass condition:**
   - 100% passing, 0 failed, 0 skipped.
-  - Current baseline of **613 tests** does not regress.
+  - Current Phase 8 baseline of **729 tests** (692 unit + 37 BDD) does not regress.
   - All new dashboard tests execute in the suite.
 - **Focused commands during implementation:**
 
@@ -215,3 +215,24 @@ Phase 8 may merge into `main` only when:
 | Modal timer keeps running | Stop/cancel progress timer when idle/closed |
 | DI resolution fails | Dashboard repository/progress service registration and lifetimes |
 | BDD touches real data | Isolated connection factory and temp asset paths |
+
+
+---
+
+## 9. Phase 8 Implementation Status (2026-11-14)
+
+### Automated gates
+
+- `dotnet build pcb-deftek.slnx`: **0 warnings, 0 errors**.
+- `dotnet test pcb-deftek.slnx`: **729 passed** (692 unit + 37 BDD), 0 failed, 0 skipped.
+- Task Group 6 dashboard feature: 7 isolated-SQLite scenarios covering metrics/filter composition, adaptive buckets, persisted layout/reorder, nine packaged assets, chart modal open/close, progress states, startup persistence, and the no-match state.
+
+### Manual verification status
+
+These checks are documented but not yet marked complete; they require the running desktop UI and human review:
+
+- Light/Dark and 100%/150% DPI inspection of the dashboard, accordion, modals, and narrow widths.
+- Drag all four cards, drop outside the grid, keyboard reorder, layout toggle, chart hover/click, `Esc` close, and focus return.
+- Expand every accordion item and confirm packaged images, rounded clipping, selectable text, and missing-image fallback.
+- Startup checkbox persistence across an application restart.
+- Measure dashboard query and filter-change timings against the §4 budgets with 1,000 seeded inspections.

@@ -406,13 +406,13 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Complete the action seams for Phase 9 PDF export and the existing startup preference.
 - **Acceptance criteria:**
-  - [ ] Export Data command raises `ExportRequested` with an immutable filter snapshot; repeated clicks are safe.
-  - [ ] Startup checkbox loads/persists through `IUserSettingsService` and reports failures without crashing.
-  - [ ] No placeholder PDF file or fake completion toast is produced.
-  - [ ] Notification action opens the progress modal regardless of operation state.
+  - [x] Export Data command raises `ExportRequested` with an immutable filter snapshot; repeated clicks are safe.
+  - [x] Startup checkbox loads/persists through `IUserSettingsService` and reports failures without crashing.
+  - [x] No placeholder PDF file or fake completion toast is produced.
+  - [x] Notification action opens the progress modal regardless of operation state.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardViewModelTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Tasks 2.4, 4.4
 - **Files:**
   - `Presentation/ViewModels/DashboardViewModel.cs`
@@ -423,12 +423,12 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Register dashboard repository, view model, progress service, and chart dependencies; assert lifetimes.
 - **Acceptance criteria:**
-  - [ ] `IDashboardRepository` and `IDashboardProgressService` are singletons; `DashboardViewModel` is transient.
-  - [ ] `DashboardViewModel` resolves with all dependencies.
-  - [ ] Existing DI tests remain green.
+  - [x] `IDashboardRepository` and `IDashboardProgressService` are singletons; `DashboardViewModel` is transient.
+  - [x] `DashboardViewModel` resolves with all dependencies.
+  - [x] Existing DI tests remain green.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DependencyInjectionTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DependencyInjectionTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Tasks 1.2, 2.4
 - **Files:**
   - `App.xaml.cs`
@@ -438,9 +438,9 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 ---
 
 ### Checkpoint 5: Actions & Integration Complete
-- [ ] Export seam and startup persistence pass tests.
-- [ ] DI resolves the dashboard in the real provider.
-- [ ] No production stub or fake export remains.
+- [x] Export seam and startup persistence pass tests.
+- [x] DI resolves the dashboard in the real provider.
+- [x] No production stub or fake export remains.
 - [ ] Review with human before BDD.
 
 ---
@@ -451,13 +451,13 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Add Reqnroll acceptance coverage for filters, metrics, layout/reorder, accordion assets, progress modal, and startup preference.
 - **Acceptance criteria:**
-  - [ ] Isolated SQLite database with seeded inspections/defects across dates, classes, and severities.
-  - [ ] Scenarios assert totals, adaptive chart buckets, filter composition, persisted layout/reorder, all nine accordion assets, progress idle state, and persisted startup preference.
-  - [ ] No dependency on the developer's real app data or asset downloads.
+  - [x] Isolated SQLite database with seeded inspections/defects across dates, classes, and severities.
+  - [x] Scenarios assert totals, adaptive chart buckets, filter composition, persisted layout/reorder, all nine accordion assets, progress idle state, and persisted startup preference.
+  - [x] No dependency on the developer's real app data or asset downloads.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Bdd/ --filter DashboardFeature`
-  - [ ] Full suite passes: `dotnet test pcb-deftek.slnx`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Bdd/ --filter DashboardFeature`
+  - [x] Full suite passes: `dotnet test pcb-deftek.slnx`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task Group 5
 - **Files:**
   - `tests/pcb-deftek.Bdd/Features/DefectStatisticsDashboard.feature`
@@ -468,12 +468,12 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Record completion, deviations, and final verification.
 - **Acceptance criteria:**
-  - [ ] Plan checkboxes reflect actual state; deferred items remain in requirements.
+  - [x] Plan checkboxes reflect actual state; deferred items remain in requirements.
   - [ ] Validation captures manual Light/Dark, DPI, drag/hover checks.
-  - [ ] No unchecked task is silently skipped.
+  - [x] No unchecked task is silently skipped.
 - **Verification:**
-  - [ ] `git diff` shows only status/documentation edits in this file
-  - [ ] Build succeeds with 0 warnings
+  - [x] `git diff` shows only status/documentation edits in this file
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 6.1
 - **Files:**
   - `specs/2026-11-14-defect-statistics-dashboard/plan.md`
@@ -484,8 +484,8 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 ### Checkpoint 6: Merge Readiness
 - [ ] All six task groups complete.
-- [ ] Solution builds with 0 warnings.
-- [ ] All unit, integration, and BDD tests pass (`dotnet test pcb-deftek.slnx`).
+- [x] Solution builds with 0 warnings.
+- [x] All unit, integration, and BDD tests pass (`dotnet test pcb-deftek.slnx`).
 - [ ] PR linked to its issue and passes the 4-step Feature Review and Quality Improvement pipeline.
 - [ ] Human review approved; PR not merged without approval.
 
