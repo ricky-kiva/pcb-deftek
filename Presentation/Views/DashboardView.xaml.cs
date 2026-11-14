@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using pcb_deftek.Presentation.Controls;
 using pcb_deftek.Presentation.Models;
@@ -215,6 +216,17 @@ public partial class DashboardView : UserControl
         if (ViewModel?.Filters.IsCustomRangeValid == true)
         {
             CustomDatePopup.IsOpen = false;
+        }
+    }
+
+    private void OnDefectImageSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (sender is Image image && e.NewSize.Width > 0 && e.NewSize.Height > 0)
+        {
+            image.Clip = new RectangleGeometry(
+                new Rect(0, 0, e.NewSize.Width, e.NewSize.Height),
+                8,
+                8);
         }
     }
 
