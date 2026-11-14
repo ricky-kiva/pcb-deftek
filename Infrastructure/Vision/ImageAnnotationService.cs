@@ -153,20 +153,28 @@ public class ImageAnnotationService : IImageAnnotationService
 
     /// <summary>
     /// Gets the distinct BGR display color for the specified defect class.
+    /// The source RGB value is defined once by <see cref="DefectClassInfo.ColorHex"/>.
     /// </summary>
-    public static Scalar GetDefectColor(DefectClass defectClass) => defectClass switch
+    public static Scalar GetDefectColor(DefectClass defectClass)
     {
-        DefectClass.Short => new Scalar(255, 102, 0),                      // Blue (SH)
-        DefectClass.Spur => new Scalar(220, 220, 0),                       // Cyan (SP)
-        DefectClass.SpuriousCopper => new Scalar(255, 255, 255),           // White (SC)
-        DefectClass.Open => new Scalar(80, 160, 79),                       // Fern Green (OP)
-        DefectClass.MouseBite => new Scalar(140, 48, 0),                   // Dark Blue / Navy (MB)
-        DefectClass.HoleBreakout => new Scalar(180, 105, 255),             // Pink (HB)
-        DefectClass.ConductorScratch => new Scalar(35, 17, 232),            // Red (CS)
-        DefectClass.ConductorForeignObject => new Scalar(0, 215, 255),      // Yellow (CFO)
-        DefectClass.BaseMaterialForeignObject => new Scalar(113, 204, 46),  // Green (BMFO)
-        _ => new Scalar(28, 43, 196)                                       // Default Crimson Red
-    };
+        if (DefectKnowledgeBase.TryGetInfo(defectClass, out var info) &&
+            TryParseHexColor(info.ColorHex, out byte r, out byte g, out byte b))
+        {
+            return new Scalar(b, g, r);
+        }
+
+        return new Scalar(28, 43, 196);
+    }
+
+    private static bool TryParseHexColor(string hex, out byte r, out byte g, out byte b)
+    {
+        r = g = b = 0;
+        return hex.Length == 7 &&
+               hex[0] == '#' &&
+               byte.TryParse(hex.AsSpan(1, 2), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out r) &&
+               byte.TryParse(hex.AsSpan(3, 2), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out g) &&
+               byte.TryParse(hex.AsSpan(5, 2), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out b);
+    }
 
     /// <summary>
     /// Gets the contrasting label text color (dark text for bright backgrounds, white text for dark/vivid backgrounds).
