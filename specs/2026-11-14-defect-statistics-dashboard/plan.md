@@ -317,32 +317,34 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Compose Row 1 and Row 2 with the shared History filter-bar visual language and 1/2-column card grid.
 - **Acceptance criteria:**
-  - [ ] Date presets/custom flyout, class/severity multi-selects, clear filters, count/status summary, export/notification controls, and layout toggle render correctly.
-  - [ ] All four metric cards render their value and supporting chart (PCBs/defects time series, PASS/FAIL line, distribution bars).
-  - [ ] Metric cards switch between 1-column and 2-column grids without clipping or losing chart state; the saved layout is used on first render.
-  - [ ] Loading, no-data, error/retry, and filtered-empty states are distinct.
-  - [ ] All controls are keyboard reachable and use existing Fluent tokens.
+  - [x] Date presets/custom flyout, class/severity multi-selects, clear filters, count/status summary, export/notification controls, and layout toggle render correctly.
+  - [x] All four metric cards render their value and supporting chart (PCBs/defects time series, PASS/FAIL line, distribution bars).
+  - [x] Metric cards switch between 1-column and 2-column grids without clipping or losing chart state; the saved layout is used on first render.
+  - [x] Loading, no-data, error/retry, and filtered-empty states are distinct.
+  - [x] All controls are keyboard reachable and use existing Fluent tokens.
 - **Verification:**
   - [ ] Offscreen render at 1100×720 and narrow width, Light/Dark
-  - [ ] Build succeeds with 0 warnings
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Tasks 2.3, 3.4
 - **Files:**
   - `Presentation/Views/DashboardView.xaml`
   - `Presentation/Views/DashboardView.xaml.cs`
+  - `Presentation/Styles/FilterBar.xaml`
   - `Presentation/Styles/Controls.xaml`
-- **Estimated scope:** M (3 files)
+  - `Presentation/Converters/DashboardColumnLayoutToColumnsConverter.cs`
+- **Estimated scope:** M (5 files)
 
 #### Task 4.2: Drag-and-Drop, Hover & Chart Modal Interaction
 
 - **Description:** Wire card reorder, chart hover/click, layout toggle, and filter flyout interactions.
 - **Acceptance criteria:**
-  - [ ] Dragging a card handle reorders the four cards, updates the grid, and persists the new order; dropping outside restores order.
-  - [ ] Keyboard Move Left/Right commands provide a non-pointer reorder path and also persist the order.
-  - [ ] Chart hover shows values; clicking opens the enlarged modal and focus returns on close.
-  - [ ] Filter flyouts close on selection/outside click and never leave stale popup state.
+  - [x] Dragging a card handle reorders the four cards, updates the grid, and persists the new order; dropping outside restores order.
+  - [x] Keyboard Move Left/Right commands provide a non-pointer reorder path and also persist the order.
+  - [x] Chart hover shows values; clicking opens the enlarged modal and focus returns on close.
+  - [x] Filter flyouts close on selection/outside click and never leave stale popup state.
 - **Verification:**
   - [ ] Manual interaction: drag all four cards, toggle layout, hover/click all four charts
-  - [ ] Build succeeds with 0 warnings
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 4.1
 - **Files:**
   - `Presentation/Views/DashboardView.xaml`
@@ -353,19 +355,21 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Render the single accordion with nine defect cards using the knowledge base and `Assets/Images` assets.
 - **Acceptance criteria:**
-  - [ ] Items ordered by `ClassId`; each shows name, severity, 1:1 image, explanation, root cause, impact, and recommended action.
-  - [ ] Images resolve from `Assets/Images/dashb-info-{abbreviation}.png` with lowercase abbreviations; all nine paths exist.
-  - [ ] Missing/corrupt images show the placeholder and log a warning without crashing.
-  - [ ] Accordion is keyboard accessible and preserves text selection.
-  - [ ] No hardcoded absolute asset paths.
+  - [x] Items ordered by `ClassId`; each shows name, severity, 1:1 image, explanation, root cause, impact, and recommended action.
+  - [x] Images resolve from `Assets/Images/dashb-info-{abbreviation}.png` with lowercase abbreviations; all nine paths exist.
+  - [x] Missing/corrupt images show the placeholder and log a warning without crashing.
+  - [x] Accordion is keyboard accessible and preserves text selection.
+  - [x] No hardcoded absolute asset paths.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DefectInfoAssetTests`
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DefectInfoAssetTests`
   - [ ] Offscreen render of expanded/collapsed accordion
-  - [ ] Build succeeds with 0 warnings
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 4.1
 - **Files:**
   - `Presentation/Views/DashboardView.xaml`
   - `Presentation/Converters/DefectAbbreviationToImagePathConverter.cs`
+  - `Assets/Images/dashb-info-*.png`
+  - `pcb-deftek.csproj`
   - `tests/pcb-deftek.Tests/DefectInfoAssetTests.cs`
 - **Estimated scope:** S (3 files)
 
@@ -373,13 +377,13 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Compose the notification modal bound to `IDashboardProgressService`.
 - **Acceptance criteria:**
-  - [ ] Modal shows inference and data-export bars with Idle/Running/Completed/Failed status.
-  - [ ] Opens from the notification action; closes via `Esc`/close; no fake timers.
-  - [ ] Bars expose accessible names and valid 0–100 ranges.
-  - [ ] Layout remains readable at narrow widths and in both themes.
+  - [x] Modal shows inference and data-export bars with Idle/Running/Completed/Failed status.
+  - [x] Opens from the notification action; closes via `Esc`/close; no fake timers.
+  - [x] Bars expose accessible names and valid 0–100 ranges.
+  - [x] Layout remains readable at narrow widths and in both themes.
 - **Verification:**
-  - [ ] Offscreen render of idle/running/completed states
-  - [ ] Build succeeds with 0 warnings
+  - [x] Offscreen render of idle/running/completed states
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Tasks 2.4, 4.1
 - **Files:**
   - `Presentation/Views/DashboardView.xaml`
@@ -389,7 +393,7 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 ---
 
 ### Checkpoint 4: Dashboard Page Usable
-- [ ] Filters, cards, charts, accordion, modals, and layout toggle render correctly.
+- [x] Filters, cards, charts, accordion, modals, and layout toggle render correctly.
 - [ ] Keyboard and pointer paths are verified.
 - [ ] Light/dark and narrow-width layouts have no clipped content.
 - [ ] Review with human before integration work.
