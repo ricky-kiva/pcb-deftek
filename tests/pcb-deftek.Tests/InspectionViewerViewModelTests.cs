@@ -17,6 +17,7 @@ using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
 using pcb_deftek.Presentation.Services;
+using pcb_deftek.Presentation.Models;
 using pcb_deftek.Presentation.ViewModels;
 using Xunit;
 
@@ -48,7 +49,15 @@ public class InspectionViewerViewModelTests : IDisposable
                 It.IsAny<NormalizedRect>(),
                 It.IsAny<string?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Path.Combine(_testRoot, "crop.png"));
+            .ReturnsAsync(new ViewportCropResult(
+                Path.Combine(_testRoot, "crop.png"),
+                NormalizedRect.Full,
+                100,
+                50));
+
+        _repository
+            .Setup(repo => repo.InsertAsync(It.IsAny<InspectionRecord>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((InspectionRecord record, CancellationToken _) => record.Id);
 
         _notificationService
             .Setup(service => service.ShowToastAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -236,14 +245,34 @@ public class InspectionViewerViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task CropViewportCommand_WhenImageLoaded_CropsAndShowsToast()
+    public async Task CropViewportCommand_WhenImageLoaded_CropsAndAddsHistoryRecord()
     {
         var id = Guid.NewGuid();
-        var record = CreateRecord(id, "Crop board", _imagePath);
+        var record = CreateRecord(
+            id,
+            "Crop board",
+            _imagePath,
+            CreateDefect(id, DefectClass.Short, 0.9f, 0.0f, 0.0f, 0.5f, 0.4f));
         SetupRecord(record);
-        var sut = CreateSut();
-        await sut.LoadAsync(id);
         var region = new NormalizedRect(0.1, 0.2, 0.3, 0.4);
+        string cropPath = Path.Combine(_testRoot, "crop.png");
+        _cropService
+            .Setup(service => service.CropAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<NormalizedRect>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ViewportCropResult(cropPath, region, 60, 40));
+        InspectionRecord? inserted = null;
+        _repository
+            .Setup(repo => repo.InsertAsync(It.IsAny<InspectionRecord>(), It.IsAny<CancellationToken>()))
+            .Callback<InspectionRecord, CancellationToken>((created, _) => inserted = created)
+            .ReturnsAsync((InspectionRecord created, CancellationToken _) => created.Id);
+        var sut = CreateSut();
+        Guid? createdId = null;
+        sut.InspectionCreated += (_, recordId) => createdId = recordId;
+        await sut.LoadAsync(id);
 
         await sut.CropViewportCommand.ExecuteAsync(region);
 
@@ -253,6 +282,15 @@ public class InspectionViewerViewModelTests : IDisposable
             region,
             null,
             It.IsAny<CancellationToken>()), Times.Once);
+        inserted.Should().NotBeNull();
+        inserted!.Name.Should().Be("Crop board crop");
+        inserted.ImagePath.Should().Be(cropPath);
+        inserted.Defects.Should().ContainSingle();
+        inserted.Defects[0].BoundingBox.X.Should().BeApproximately(0, 0.0001f);
+        inserted.Defects[0].BoundingBox.Y.Should().BeApproximately(0, 0.0001f);
+        inserted.Defects[0].BoundingBox.Width.Should().BeApproximately(1, 0.0001f);
+        inserted.Defects[0].BoundingBox.Height.Should().BeApproximately(0.5f, 0.0001f);
+        createdId.Should().Be(inserted.Id);
         _notificationService.Verify(service => service.ShowToastAsync(
             "Crop saved",
             It.Is<string>(message => message.Contains("crop.png", StringComparison.Ordinal)),
@@ -291,7 +329,7 @@ public class InspectionViewerViewModelTests : IDisposable
         var id = Guid.NewGuid();
         var record = CreateRecord(id, "Crop board", _imagePath);
         SetupRecord(record);
-        var cropCompletion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cropCompletion = new TaskCompletionSource<ViewportCropResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         _cropService
             .Setup(service => service.CropAsync(
                 It.IsAny<string>(),
@@ -424,12 +462,17 @@ public class InspectionViewerViewModelTests : IDisposable
             .ReturnsAsync(true);
         var sut = CreateSut();
         await sut.LoadAsync(id);
+        InspectionRenamedEventArgs? renamed = null;
+        sut.Renamed += (_, args) => renamed = args;
 
         sut.BeginRenameCommand.Execute(null);
         sut.EditedName = "New name";
         await sut.CommitRenameCommand.ExecuteAsync(null);
 
         sut.CurrentName.Should().Be("New name");
+        renamed.Should().NotBeNull();
+        renamed!.InspectionId.Should().Be(id);
+        renamed.Name.Should().Be("New name");
         _repository.Verify(repo => repo.UpdateNameAsync(id, "New name", It.IsAny<CancellationToken>()), Times.Once);
     }
 }

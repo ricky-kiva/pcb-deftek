@@ -96,6 +96,8 @@ public sealed partial class HistoryViewModel : ViewModelBase
 
         Viewer.Closed += OnViewerClosed;
         Viewer.Deleted += OnViewerRecordDeleted;
+        Viewer.Renamed += OnViewerRenamed;
+        Viewer.InspectionCreated += OnViewerInspectionCreated;
         Filters = new HistoryFilterViewModel();
         Filters.FiltersChanged += OnFiltersChanged;
     }
@@ -429,6 +431,29 @@ public sealed partial class HistoryViewModel : ViewModelBase
     private void OnViewerClosed(object? sender, EventArgs e)
     {
         IsViewerOpen = false;
+    }
+
+    private void OnViewerRenamed(object? sender, InspectionRenamedEventArgs e)
+    {
+        Items.FirstOrDefault(item => item.Id == e.InspectionId)
+            ?.ApplyPersistedName(e.Name);
+    }
+
+    private void OnViewerInspectionCreated(object? sender, Guid inspectionId)
+    {
+        _ = ReloadAfterCropAsync();
+    }
+
+    private async Task ReloadAfterCropAsync()
+    {
+        try
+        {
+            await LoadFirstPageAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to refresh history after a crop was added.");
+        }
     }
 
     private void OnViewerRecordDeleted(object? sender, Guid recordId)

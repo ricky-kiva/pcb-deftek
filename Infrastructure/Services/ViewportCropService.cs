@@ -10,6 +10,7 @@ using OpenCvSharp;
 using pcb_deftek.Common.Exceptions;
 using pcb_deftek.Common.Storage;
 using pcb_deftek.Domain.Models;
+using pcb_deftek.Infrastructure.Persistence.Repositories;
 
 namespace pcb_deftek.Infrastructure.Services;
 
@@ -23,17 +24,21 @@ public sealed class ViewportCropService : IViewportCropService
     private const int MaxNameLength = 80;
 
     private readonly ILogger<ViewportCropService> _logger;
+    private readonly IUserSettingsService? _settingsService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ViewportCropService"/> class.
     /// </summary>
-    public ViewportCropService(ILogger<ViewportCropService>? logger = null)
+    public ViewportCropService(
+        ILogger<ViewportCropService>? logger = null,
+        IUserSettingsService? settingsService = null)
     {
         _logger = logger ?? NullLogger<ViewportCropService>.Instance;
+        _settingsService = settingsService;
     }
 
     /// <inheritdoc />
-    public Task<string> CropAsync(
+    public async Task<ViewportCropResult> CropAsync(
         string sourceImagePath,
         string recordName,
         NormalizedRect visibleRegion,
@@ -44,16 +49,45 @@ public sealed class ViewportCropService : IViewportCropService
         ArgumentException.ThrowIfNullOrWhiteSpace(recordName);
         cancellationToken.ThrowIfCancellationRequested();
 
-        return Task.Run(
-            () => Crop(sourceImagePath, recordName, visibleRegion, destinationDirectory, cancellationToken),
-            cancellationToken);
+        string outputDirectory = string.IsNullOrWhiteSpace(destinationDirectory)
+            ? await ResolveDefaultDirectoryAsync(cancellationToken).ConfigureAwait(false)
+            : Path.GetFullPath(destinationDirectory);
+
+        return await Task.Run(
+            () => Crop(sourceImagePath, recordName, visibleRegion, outputDirectory, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
     }
 
-    private string Crop(
+    private async Task<string> ResolveDefaultDirectoryAsync(CancellationToken cancellationToken)
+    {
+        if (_settingsService is null)
+        {
+            return KnownFolderPaths.GetCropImagesDirectory();
+        }
+
+        try
+        {
+            var settings = await _settingsService.LoadSettingsAsync(cancellationToken).ConfigureAwait(false);
+            return string.IsNullOrWhiteSpace(settings.CropOutputDirectory)
+                ? KnownFolderPaths.GetCropImagesDirectory()
+                : settings.CropOutputDirectory;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read the configured crop directory; using the default.");
+            return KnownFolderPaths.GetCropImagesDirectory();
+        }
+    }
+
+    private ViewportCropResult Crop(
         string sourceImagePath,
         string recordName,
         NormalizedRect visibleRegion,
-        string? destinationDirectory,
+        string outputDirectory,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -87,9 +121,6 @@ public sealed class ViewportCropService : IViewportCropService
         try
         {
             using var cropped = new Mat(source, new Rect(x, y, width, height));
-            string outputDirectory = string.IsNullOrWhiteSpace(destinationDirectory)
-                ? KnownFolderPaths.GetDownloadsDirectory()
-                : Path.GetFullPath(destinationDirectory);
 
             Directory.CreateDirectory(outputDirectory);
 
@@ -107,7 +138,7 @@ public sealed class ViewportCropService : IViewportCropService
                 width,
                 height);
 
-            return outputPath;
+            return new ViewportCropResult(outputPath, region, width, height);
         }
         catch (OperationCanceledException)
         {

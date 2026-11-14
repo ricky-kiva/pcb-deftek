@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
@@ -48,6 +49,16 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
     /// Raised whenever the viewer closes and clears its state.
     /// </summary>
     public event EventHandler? Closed;
+
+    /// <summary>
+    /// Raised after a crop is written and inserted into the history repository.
+    /// </summary>
+    public event EventHandler<Guid>? InspectionCreated;
+
+    /// <summary>
+    /// Raised after an inspection rename has been persisted.
+    /// </summary>
+    public event EventHandler<InspectionRenamedEventArgs>? Renamed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InspectionViewerViewModel"/> class.
@@ -336,14 +347,24 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
 
         try
         {
-            string outputPath = await _cropService.CropAsync(
+            ViewportCropResult crop = await _cropService.CropAsync(
                 record.ImagePath,
                 record.Name,
                 visibleRegion.Value,
                 destinationDirectory: null,
                 CancellationToken.None);
 
-            await ShowToastSafeAsync("Crop saved", outputPath);
+            try
+            {
+                var created = await CreateHistoryRecordAsync(record, crop, CancellationToken.None);
+                await ShowToastSafeAsync("Crop saved", $"{crop.FilePath} was added to History.");
+                InspectionCreated?.Invoke(this, created.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Crop was written but could not be added to history for inspection {InspectionId}.", record.Id);
+                await ShowToastSafeAsync("Crop saved", $"{crop.FilePath} could not be added to History.");
+            }
         }
         catch (OperationCanceledException)
         {
@@ -404,6 +425,56 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
         {
             IsDeleting = false;
         }
+    }
+
+    private async Task<InspectionRecord> CreateHistoryRecordAsync(
+        InspectionRecord source,
+        ViewportCropResult crop,
+        CancellationToken cancellationToken)
+    {
+        var newId = Guid.NewGuid();
+        var region = crop.SourceRegion;
+        var defects = new List<DetectedDefect>();
+
+        foreach (var defect in source.Defects)
+        {
+            var box = defect.BoundingBox;
+            float left = Math.Max(box.X, (float)region.X);
+            float top = Math.Max(box.Y, (float)region.Y);
+            float right = Math.Min(box.Right, (float)region.Right);
+            float bottom = Math.Min(box.Bottom, (float)region.Bottom);
+
+            if (right <= left || bottom <= top)
+            {
+                continue;
+            }
+
+            var croppedBounds = BoundingBox.Clamp(
+                (float)((left - region.X) / region.Width),
+                (float)((top - region.Y) / region.Height),
+                (float)((right - left) / region.Width),
+                (float)((bottom - top) / region.Height));
+
+            defects.Add(new DetectedDefect(
+                Guid.NewGuid(),
+                newId,
+                defect.ClassCode,
+                defect.Confidence,
+                croppedBounds));
+        }
+
+        var now = DateTime.UtcNow;
+        var record = new InspectionRecord(
+            newId,
+            $"{source.Name} crop",
+            now,
+            now,
+            DetectionMode.SingleFile,
+            crop.FilePath,
+            defects);
+
+        await _repository.InsertAsync(record, cancellationToken);
+        return record;
     }
 
     private void ApplyRecord(InspectionRecord record, BitmapSource? image)
@@ -489,6 +560,11 @@ public sealed partial class InspectionViewerViewModel : ObservableObject
         {
             case nameof(InspectionNameEditor.Name):
                 OnPropertyChanged(nameof(CurrentName));
+                if (_record is not null && _nameEditor is not null)
+                {
+                    Renamed?.Invoke(this, new InspectionRenamedEventArgs(_record.Id, _nameEditor.Name));
+                }
+
                 break;
             case nameof(InspectionNameEditor.EditedName):
                 OnPropertyChanged(nameof(EditedName));
