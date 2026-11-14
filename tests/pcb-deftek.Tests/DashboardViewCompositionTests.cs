@@ -273,6 +273,16 @@ public class DashboardViewCompositionTests
                     .OrderBy(info => info.ClassId)
                     .Select(info => new DashboardClassCount(info.Class, info.Abbreviation, info.ClassId == 0 ? 1 : 0))
                     .ToArray()));
+
+        public Task<IReadOnlyList<InspectionRecord>> GetMatchingInspectionsAsync(
+            DashboardFilter filter,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("The view-composition fake does not load evidence.");
+
+        public Task<int> GetMatchingInspectionCountAsync(
+            DashboardFilter filter,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("The view-composition fake does not count evidence.");
     }
 
     private sealed class FakeSettingsService : IUserSettingsService
