@@ -91,6 +91,15 @@ public partial class App : Application
     {
         Log.Information("pcb-deftek application exiting. ExitCode: {ExitCode}", e.ApplicationExitCode);
 
+        try
+        {
+            _serviceProvider?.GetService<IDashboardProgressService>()?.CancelAll();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to cancel background processes during application shutdown.");
+        }
+
         if (_serviceProvider is IDisposable disposable)
         {
             disposable.Dispose();
