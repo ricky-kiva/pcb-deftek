@@ -98,7 +98,6 @@ public sealed partial class DashboardFilterViewModel : ObservableObject
         DateRangePreset.Day => "Today",
         DateRangePreset.Week => "This week",
         DateRangePreset.Month => "This month",
-        DateRangePreset.Monthly => "Monthly",
         DateRangePreset.Custom when CustomStartDate.HasValue && CustomEndDate.HasValue =>
             $"{CustomStartDate.Value.ToString("d", CultureInfo.CurrentCulture)} – {CustomEndDate.Value.ToString("d", CultureInfo.CurrentCulture)}",
         _ => "Custom range"
@@ -153,11 +152,21 @@ public sealed partial class DashboardFilterViewModel : ObservableObject
             CustomEndDate,
             DateTime.Today);
 
+        DashboardBucketGranularity? granularityOverride = null;
+        if (SelectedPreset == DateRangePreset.Custom &&
+            CustomStartDate.HasValue &&
+            CustomEndDate.HasValue &&
+            SpansFullYear(CustomStartDate.Value, CustomEndDate.Value))
+        {
+            granularityOverride = DashboardBucketGranularity.Month;
+        }
+
         filter = new DashboardFilter(
             bounds.StartUtc,
             bounds.EndUtc,
             SelectedClasses,
-            SelectedSeverities);
+            SelectedSeverities,
+            granularityOverride);
         return true;
     }
 
@@ -218,6 +227,9 @@ public sealed partial class DashboardFilterViewModel : ObservableObject
             NotifyFiltersChanged();
         }
     }
+
+    private static bool SpansFullYear(DateTime start, DateTime end) =>
+        (end.Date - start.Date).TotalDays >= 364;
 
     private void UpdateCustomRangeValidation()
     {

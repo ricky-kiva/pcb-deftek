@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using FluentAssertions;
+using pcb_deftek.Domain.Contracts;
 using pcb_deftek.Domain.Models;
 using pcb_deftek.Presentation.Models;
 using pcb_deftek.Presentation.ViewModels;
@@ -79,18 +80,6 @@ public class DashboardFilterViewModelTests
     }
 
     [Fact]
-    public void MonthlyPreset_ProducesRollingThirtyDayWindow()
-    {
-        var sut = new DashboardFilterViewModel { SelectedPreset = DateRangePreset.Monthly };
-
-        sut.TryCreateFilter(out var filter).Should().BeTrue();
-
-        filter!.StartDateUtc.Should().Be(LocalStartOfDayUtc(DateTime.Today.AddDays(-29)));
-        filter.EndDateUtc.Should().Be(LocalEndOfDayUtc(DateTime.Today));
-        sut.DateRangeLabel.Should().Be("Monthly");
-    }
-
-    [Fact]
     public void CustomRange_WithValidDates_ProducesInclusiveBounds()
     {
         var start = new DateTime(2026, 11, 1);
@@ -106,8 +95,24 @@ public class DashboardFilterViewModelTests
 
         filter!.StartDateUtc.Should().Be(LocalStartOfDayUtc(start));
         filter.EndDateUtc.Should().Be(LocalEndOfDayUtc(end));
+        filter.BucketGranularityOverride.Should().BeNull();
         sut.DateRangeLabel.Should().Contain("1");
         sut.DateRangeLabel.Should().Contain("5");
+    }
+
+    [Fact]
+    public void CustomRange_WithFullYear_RequestsMonthlyBuckets()
+    {
+        var sut = new DashboardFilterViewModel
+        {
+            SelectedPreset = DateRangePreset.Custom,
+            CustomStartDate = new DateTime(2026, 1, 1),
+            CustomEndDate = new DateTime(2026, 12, 31)
+        };
+
+        sut.TryCreateFilter(out var filter).Should().BeTrue();
+
+        filter!.BucketGranularityOverride.Should().Be(DashboardBucketGranularity.Month);
     }
 
     [Fact]

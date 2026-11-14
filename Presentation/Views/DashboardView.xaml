@@ -162,12 +162,6 @@
                                   IsChecked="{Binding Filters.SelectedPreset, Mode=OneWay, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Month}"
                                   Click="OnDatePresetClick"
                                   AutomationProperties.Name="Filter dashboard by this month" />
-                    <ToggleButton Style="{StaticResource FilterChipStyle}"
-                                  Content="Monthly"
-                                  Tag="Monthly"
-                                  IsChecked="{Binding Filters.SelectedPreset, Mode=OneWay, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Monthly}"
-                                  Click="OnDatePresetClick"
-                                  AutomationProperties.Name="Filter dashboard by monthly range" />
                     <ToggleButton x:Name="CustomDateToggle"
                                   Style="{StaticResource FilterChipStyle}"
                                   Content="Custom"
@@ -487,12 +481,12 @@
                                             <TextBlock Text="{Binding DisplayName}"
                                                        FontSize="13" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                            <TextBlock Text="{Binding SeverityLabel}"
+                                            <TextBlock Text="{Binding Abbreviation}"
                                                        FontSize="11"
-                                                       Margin="10,0,0,0"
+                                                       Margin="4,0,0,0"
                                                        VerticalAlignment="Center"
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                            <TextBlock Text="{Binding Abbreviation}"
+                                            <TextBlock Text="{Binding SeverityLabel}"
                                                        FontSize="11"
                                                        Margin="4,0,0,0"
                                                        VerticalAlignment="Center"
@@ -532,7 +526,7 @@
                                             </Border>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1">
-                                            <TextBlock Text="Explanation" Style="{StaticResource SectionLabelStyle}" />
+                                            <TextBlock Text="Explanation" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,3" />
                                             <TextBox Text="{Binding Explanation, Mode=OneWay}" Style="{StaticResource ReadOnlyBodyTextBoxStyle}" />
                                             <TextBlock Text="Root cause" Style="{StaticResource SectionLabelStyle}" />
                                             <TextBox Text="{Binding RootCause, Mode=OneWay}" Style="{StaticResource ReadOnlyBodyTextBoxStyle}" />
@@ -581,15 +575,16 @@
 
         <!-- Startup preference -->
         <CheckBox Grid.Row="3"
-                  Content="Skip dashboard on startup"
                   IsChecked="{Binding SkipDashboardOnStartup, Mode=TwoWay}"
                   FontSize="11"
-                  Height="22"
-                  Padding="0"
-                  Margin="2,4,0,0"
+                  MinHeight="22"
+                  Padding="0,4"
+                  Margin="2,0,0,0"
                   VerticalContentAlignment="Center"
                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                  AutomationProperties.Name="Skip dashboard on startup" />
+                  AutomationProperties.Name="Skip dashboard on startup">
+            <TextBlock Text="Skip dashboard on startup" Margin="6,0,0,0" />
+        </CheckBox>
 
         <!-- Enlarged chart modal -->
         <Border x:Name="ChartModalOverlay"

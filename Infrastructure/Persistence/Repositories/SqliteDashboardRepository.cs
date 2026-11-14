@@ -66,7 +66,8 @@ public sealed class SqliteDashboardRepository : IDashboardRepository
             filter.StartDateUtc,
             filter.EndDateUtc,
             minUtc,
-            maxUtc);
+            maxUtc,
+            filter.BucketGranularityOverride);
 
         CultureInfo culture = CultureInfo.CurrentCulture;
         DateTime rangeStartUtc = filter.StartDateUtc ?? minUtc;
