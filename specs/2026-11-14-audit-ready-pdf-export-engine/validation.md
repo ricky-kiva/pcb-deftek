@@ -11,6 +11,8 @@
 | Licensing | Live PDF generation | `LicenseType.Community` configured before generation; non-profit eligibility recorded here; no Evaluation license in production code |
 | Hygiene | `git diff` | No absolute user paths, no secrets, no generated PDFs committed |
 
+Recorded 2026-11-15: QuestPDF 2026.9.2 Socket deep score **89** (no alerts, license 100); project is **non-profit**, so `LicenseType.Community` is valid.
+
 ## 2. Automated Test Gates
 
 Baseline before Phase 9: 729 passing tests (692 unit + 37 BDD), 0 failed, 0 skipped. Phase 9 must keep that set green and add the coverage below.

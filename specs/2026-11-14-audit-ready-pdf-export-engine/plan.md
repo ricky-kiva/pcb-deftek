@@ -50,13 +50,13 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Verify and add QuestPDF per `AGENTS.md` §2 and `tech-stack.md`, then configure the Community license once per process.
 - **Acceptance criteria:**
-  - [ ] `socket` inspection of `QuestPDF` 2026.9.2 is recorded as safe (CLI available: `socket 1.14.1`).
-  - [ ] Official QuestPDF docs confirm the API used in Tasks 5.1–5.2 (`Document.Create`, `Image(byte[]/string)`, `Svg`, page numbers).
-  - [ ] `QuestPDF` 2026.9.2 is referenced in `pcb-deftek.csproj`; no other package is added.
-  - [ ] `QuestPDF.Settings.License = LicenseType.Community` is set before any generation; the guard is idempotent for tests. The non-profit eligibility is recorded in `validation.md`.
+  - [x] `socket` inspection of `QuestPDF` 2026.9.2 is recorded as safe (deep score 89, no alerts; `socket 1.14.1`).
+  - [x] Official QuestPDF docs confirm the API used in Tasks 5.1–5.2 (`Document.Create`, `Image(byte[]/string)`, `Svg`, page numbers).
+  - [x] `QuestPDF` 2026.9.2 is referenced in `pcb-deftek.csproj`; no other package is added.
+  - [x] `QuestPDF.Settings.License = LicenseType.Community` is set before any generation; the guard is idempotent for tests. The non-profit eligibility is recorded in `validation.md`.
 - **Verification:**
-  - [ ] `dotnet restore` and `dotnet build pcb-deftek.slnx` succeed with 0 warnings.
-  - [ ] A throwaway generation smoke check produces a valid `%PDF` file (deleted afterwards).
+  - [x] `dotnet restore` and `dotnet build pcb-deftek.slnx` succeed with 0 warnings.
+  - [x] A throwaway generation smoke check produces a valid `%PDF` file (deleted afterwards).
 - **Dependencies:** None
 - **Files:**
   - `pcb-deftek.csproj`
@@ -66,31 +66,32 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 #### Task 1.2: Report Content Contracts
 
-- **Description:** Define the immutable report model consumed by the document builder: identity (title, generated timestamp), filter summary, metric blocks with chart series, and evidence entries with inspection metadata and defect rows (class, confidence, severity — no abbreviation). Define `DashboardExportResult` (exported path or no-match outcome) and a typed export exception.
+- **Description:** Define the immutable report model consumed by the document builder: identity (title, generated timestamp), filter summary, metric blocks with chart series, and evidence entries with inspection metadata and defect rows (class, confidence, severity — no abbreviation). Define `DashboardExportResult` (exported path or no-match outcome) and reuse the existing `ExportException` instead of duplicating a PDF-specific type.
 - **Acceptance criteria:**
-  - [ ] Report model contains no WPF or QuestPDF types.
-  - [ ] Evidence entry carries: inspection id/name, local timestamp, `DetectionMode`, PASS/FAIL, staged image path, and defect rows (class display name, confidence, severity).
-  - [ ] Metric block carries kind, title, display value, caption, and either time-series, PASS/FAIL, or class-count data.
-  - [ ] `DashboardExportProgress(Percentage, Message)` carries intermediate progress without any Presentation type.
-  - [ ] Export result distinguishes `Exported` (with path) from `NoMatches`.
-  - [ ] Failure exception derives from the existing `Common/Exceptions` hierarchy.
+  - [x] Report model contains no WPF or QuestPDF types.
+  - [x] Evidence entry carries: inspection id/name, local timestamp, `DetectionMode`, PASS/FAIL, staged image path, and defect rows (class display name, confidence, severity).
+  - [x] Metric block carries kind, title, display value, caption, and either time-series, PASS/FAIL, or class-count data.
+  - [x] `DashboardExportProgress(Percentage, Message)` carries intermediate progress without any Presentation type.
+  - [x] Export result distinguishes `Exported` (with path) from `NoMatches`.
+  - [x] Failure exception derives from the existing `Common/Exceptions` hierarchy (`ExportException`).
 - **Verification:**
-  - [ ] `dotnet build pcb-deftek.slnx` succeeds with 0 warnings.
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DashboardExportContractTests`
+  - [x] `dotnet build pcb-deftek.slnx` succeeds with 0 warnings.
 - **Dependencies:** None
 - **Files:**
   - `Infrastructure/Export/DashboardReportModel.cs`
   - `Infrastructure/Export/DashboardExportResult.cs`
-  - `Infrastructure/Export/DashboardReportExportException.cs`
+  - `Infrastructure/Export/DashboardExportProgress.cs`
 - **Estimated scope:** S (3 files)
 
 #### Task 1.3: Export Service Contract
 
 - **Description:** Define `IDashboardExportService` with an export method taking `DashboardFilter` and `CancellationToken`, plus a preflight count method used by the dashboard for no-match and large-export decisions. The interface must not expose QuestPDF types.
 - **Acceptance criteria:**
-  - [ ] `CountMatchingInspectionsAsync(filter, token)` returns the number of inspections the export would include.
-  - [ ] `ExportAsync(filter, IProgress<DashboardExportProgress>? progress, token)` returns a `DashboardExportResult`, never a path for a no-match request.
-  - [ ] Interface is nullable-annotated and documents notification/cancellation side effects.
-  - [ ] The interface never exposes Presentation types; progress flows through `IProgress<DashboardExportProgress>`.
+  - [x] `CountMatchingInspectionsAsync(filter, token)` returns the number of inspections the export would include.
+  - [x] `ExportAsync(filter, IProgress<DashboardExportProgress>? progress, token)` returns a `DashboardExportResult`, never a path for a no-match request.
+  - [x] Interface is nullable-annotated and documents notification/cancellation side effects.
+  - [x] The interface never exposes Presentation types; progress flows through `IProgress<DashboardExportProgress>`.
 - **Verification:**
   - [ ] `dotnet build pcb-deftek.slnx` succeeds with 0 warnings.
 - **Dependencies:** Task 1.2
@@ -101,9 +102,9 @@ Ordering follows the dependency graph: package + contracts → process control/c
 ---
 
 ### Checkpoint 1: Contracts Stable
-- [ ] QuestPDF builds on `net10.0-windows` with 0 warnings.
-- [ ] Report/export contracts compile and contain no presentation types.
-- [ ] Community license configuration is verified by a smoke generation.
+- [x] QuestPDF builds on `net10.0-windows` with 0 warnings.
+- [x] Report/export contracts compile and contain no presentation types.
+- [x] Community license configuration is verified by a smoke generation.
 - [ ] Review contracts with human before building process control and layout.
 
 ---
