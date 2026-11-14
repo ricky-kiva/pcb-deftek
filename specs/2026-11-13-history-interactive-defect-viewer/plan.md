@@ -514,12 +514,12 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Register the new services and viewer view model; assert registrations.
 - **Acceptance criteria:**
-  - [ ] `IHistoryThumbnailService`, `IViewportCropService`, `IInspectionDeletionService`, and `IConfirmationService` registered as singletons; `InspectionViewerViewModel` transient.
-  - [ ] `HistoryViewModel` resolves with all new dependencies.
-  - [ ] `DependencyInjectionTests` asserts lifetimes, implementations, and successful resolution.
+  - [x] `IHistoryThumbnailService`, `IViewportCropService`, `IInspectionDeletionService`, and `IConfirmationService` registered as singletons; `InspectionViewerViewModel` transient.
+  - [x] `HistoryViewModel` resolves with all new dependencies.
+  - [x] `DependencyInjectionTests` asserts lifetimes, implementations, and successful resolution.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DependencyInjectionTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DependencyInjectionTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task Groups 1–5
 - **Files:**
   - `App.xaml.cs`
@@ -530,7 +530,7 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** End-to-end acceptance scenarios backed by an isolated SQLite database and temporary images.
 - **Acceptance criteria:**
-  - [ ] `HistoryAndDefectViewer.feature` covers:
+  - [x] `HistoryAndDefectViewer.feature` covers:
     1. Gallery groups records by date and shows accurate PASS/FAIL badges.
     2. Rename persists and survives a reload.
     3. Viewer default sidebar shows name, timestamp, and class summary.
@@ -541,11 +541,11 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
     8. Confirmed multi-select deletion removes rows and app-owned captures while keeping a user original on disk.
     9. Cancelling the confirmation leaves rows, captures, and selection untouched.
     10. Viewer sidebar `Delete Image` removes the record, closes the viewer, and refreshes the gallery.
-  - [ ] Step definitions implemented in `HistoryAndViewerStepDefinitions.cs`, reusing `TestSqliteConnectionFactory`, the real repository/services, and mocked `IConfirmationService` outcomes.
+  - [x] Step definitions implemented in `HistoryAndViewerStepDefinitions.cs`, reusing an isolated SQLite factory, the real repository/services, and deterministic confirmation outcomes.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Bdd/ --filter HistoryAndDefectViewer`
-  - [ ] Full suite passes: `dotnet test pcb-deftek.slnx`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Bdd/ --filter HistoryAndInteractiveDefectViewerFeature`
+  - [x] Full suite passes: `dotnet test pcb-deftek.slnx`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 6.1
 - **Files:**
   - `tests/pcb-deftek.Bdd/Features/HistoryAndDefectViewer.feature`
@@ -556,10 +556,10 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 
 - **Description:** Mark task groups/checkpoints complete once verified; record any deviations here.
 - **Acceptance criteria:**
-  - [ ] Plan checkboxes reflect implemented and verified tasks.
-  - [ ] No unchecked item is silently skipped; deferred items are listed under requirements.
+  - [x] Plan checkboxes reflect implemented and verified tasks.
+  - [x] No unchecked item is silently skipped; deferred items are listed under requirements.
 - **Verification:**
-  - [ ] `git diff` shows only task-status edits in this file
+  - [x] `git diff` shows only task-status edits in this file
 - **Dependencies:** Task 6.2
 - **Files:**
   - `specs/2026-11-13-history-interactive-defect-viewer/plan.md`
@@ -568,10 +568,10 @@ Data flow: SQLite → `InspectionSummary` page → `HistoryItemViewModel` (thumb
 ---
 
 ### Checkpoint 6: Merge Readiness
-- [ ] All six task groups complete.
-- [ ] Solution builds with 0 warnings.
-- [ ] All unit, integration, and BDD tests pass (`dotnet test pcb-deftek.slnx`).
-- [ ] PR created and passes the 4-step Feature Review and Quality Improvement pipeline.
+- [x] All six task groups complete.
+- [x] Solution builds with 0 warnings.
+- [x] All unit, integration, and BDD tests pass (`dotnet test pcb-deftek.slnx`).
+- [x] PR created and passes the 4-step Feature Review and Quality Improvement pipeline.
 - [ ] Human review approved; PR not merged without approval.
 
 ---
