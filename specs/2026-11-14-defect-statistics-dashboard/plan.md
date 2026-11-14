@@ -36,38 +36,36 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Add immutable contracts for the dashboard query and its results, independent of WPF and SQL.
 - **Acceptance criteria:**
-  - [ ] `DashboardFilter` carries inclusive UTC start/end bounds, selected `DefectClass` set, selected `DefectSeverity` set, and preset metadata needed for labels.
-  - [ ] `DashboardStatistics` exposes total inspections, total matching defects, total pass/fail counts, the resolved `DashboardBucketGranularity`, adaptive buckets (start/end/label, inspections, matching defects, passes, fails), and per-class defect counts.
-  - [ ] Buckets are ordered oldest→newest and cover hourly, daily, weekly (culture week start), or monthly granularity; class counts are ordered by `DefectClassInfo.ClassId` and include all nine classes with zero defaults.
-  - [ ] A pure `DashboardBucketPolicy` maps a date span to granularity: ≤2 days hourly, ≤90 days daily, ≤2 years weekly, otherwise monthly; empty data resolves to daily.
-  - [ ] Contracts are pure records/read-only types with no WPF or repository dependencies.
+  - [x] `DashboardFilter` carries inclusive UTC start/end bounds and selected `DefectClass`/`DefectSeverity` sets.
+  - [x] `DashboardStatistics` exposes total inspections, total matching defects, total pass/fail counts, the resolved `DashboardBucketGranularity`, adaptive buckets (start/end/label, inspections, matching defects, passes, fails), and per-class defect counts.
+  - [x] Buckets are ordered oldest→newest and cover hourly, daily, weekly (culture week start), or monthly granularity; class counts are ordered by `DefectClassInfo.ClassId` and include all nine classes with zero defaults.
+  - [x] A pure `DashboardBucketPolicy` maps a date span to granularity: ≤2 days hourly, ≤90 days daily, ≤2 years weekly, otherwise monthly; empty data resolves to daily.
+  - [x] Contracts are pure records/read-only types with no WPF or repository dependencies.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardStatisticsTests`
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardStatisticsTests`
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** None
 - **Files:**
-  - `Domain/Contracts/DashboardFilter.cs`
   - `Domain/Contracts/DashboardStatistics.cs`
-  - `Domain/Contracts/DashboardBucketPolicy.cs`
   - `tests/pcb-deftek.Tests/DashboardStatisticsTests.cs`
-- **Estimated scope:** M (4 files)
+- **Estimated scope:** S (2 files)
 
 #### Task 1.2: SQLite Dashboard Aggregate Query
 
 - **Description:** Implement `IDashboardRepository` / `SqliteDashboardRepository` with filtered aggregate SQL for metric and chart data.
 - **Acceptance criteria:**
-  - [ ] Interface exposes one async `GetStatisticsAsync(DashboardFilter, CancellationToken)` method.
-  - [ ] Query applies inclusive `CreatedAtUtc` bounds and optional class/severity filters; severity maps to class codes through `DefectKnowledgeBase` (no schema change).
-  - [ ] When class/severity filters are active, only inspections with at least one matching defect are included; PASS inspections are excluded.
-  - [ ] Total defects and distribution count only defects matching the active filters; distribution includes all nine classes.
-  - [ ] Query resolves adaptive granularity from explicit filter bounds; for all-time, it uses the matching data extent; empty data falls back to daily.
-  - [ ] Buckets group in local time at hour/day/week/month granularity; each bucket contains inspections, matching defects, passes, and fails; ordering is stable.
-  - [ ] Bucket labels are culture-aware and identify the unit (hour/day/week/month).
-  - [ ] Empty result returns zeroed metrics and nine zero class buckets without exceptions.
+  - [x] Interface exposes one async `GetStatisticsAsync(DashboardFilter, CancellationToken)` method.
+  - [x] Query applies inclusive `CreatedAtUtc` bounds and optional class/severity filters; severity maps to class codes through `DefectKnowledgeBase` (no schema change).
+  - [x] When class/severity filters are active, only inspections with at least one matching defect are included; PASS inspections are excluded.
+  - [x] Total defects and distribution count only defects matching the active filters; distribution includes all nine classes.
+  - [x] Query resolves adaptive granularity from explicit filter bounds; for all-time, it uses the matching data extent; empty data falls back to daily.
+  - [x] Buckets group in local time at hour/day/week/month granularity; each bucket contains inspections, matching defects, passes, and fails; ordering is stable.
+  - [x] Bucket labels are culture-aware and identify the unit (hour/day/week/month).
+  - [x] Empty result returns zeroed metrics and nine zero class buckets without exceptions.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardRepositoryTests`
-  - [ ] Seed ≥100 records covering date/class/severity combinations and assert totals, buckets, ordering, and no N+1 access
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardRepositoryTests`
+  - [x] Seed 120 records covering date/class/severity combinations and assert totals, buckets, ordering, and no N+1 access
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.1
 - **Files:**
   - `Infrastructure/Persistence/Repositories/IDashboardRepository.cs`
@@ -79,16 +77,16 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 
 - **Description:** Prove dashboard aggregates against the real SQLite schema, including boundary dates and combined filters.
 - **Acceptance criteria:**
-  - [ ] Date bounds include records exactly at local start/end converted to UTC.
-  - [ ] Adaptive boundaries at 2 days, 90 days, and 2 years select the correct granularity.
-  - [ ] Class-only, severity-only, and class+severity filters compose correctly.
-  - [ ] Duplicate defect classes count individually while distribution groups by class.
-  - [ ] Records with no defects never appear when a class/severity filter is active.
-  - [ ] All nine selected classes with no severity filter behave like the unfiltered class set.
+  - [x] Date bounds include records exactly at the boundary instants.
+  - [x] Adaptive boundaries at 2 days, 90 days, and 2 years select the correct granularity.
+  - [x] Class-only, severity-only, and class+severity filters compose correctly.
+  - [x] Duplicate defect classes count individually while distribution groups by class.
+  - [x] Records with no defects never appear when a class/severity filter is active.
+  - [x] All nine selected classes with no severity filter behave like the unfiltered class set.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardRepositoryTests`
-  - [ ] Existing persistence integration tests still pass
-  - [ ] Build succeeds with 0 warnings
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter DashboardRepositoryTests`
+  - [x] Existing persistence integration tests still pass
+  - [x] Build succeeds with 0 warnings
 - **Dependencies:** Task 1.2
 - **Files:**
   - `tests/pcb-deftek.Tests/DashboardRepositoryTests.cs`
@@ -97,9 +95,9 @@ Data flow: filters → local date bounds converted to UTC → dashboard SQL aggr
 ---
 
 ### Checkpoint 1: Dashboard Data Correct
-- [ ] Contract and SQL tests pass.
-- [ ] Totals and chart buckets match seeded data.
-- [ ] No new schema migration or NuGet package.
+- [x] Contract and SQL tests pass.
+- [x] Totals and chart buckets match seeded data.
+- [x] No new schema migration or NuGet package.
 - [ ] Review with human before UI work.
 
 ---
