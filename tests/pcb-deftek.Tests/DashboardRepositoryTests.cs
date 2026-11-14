@@ -241,7 +241,137 @@ public class DashboardRepositoryTests : IDisposable
         result.ClassCounts.Should().HaveCount(9);
     }
 
-    private async Task Insert(DateTime createdAtUtc, IReadOnlyList<DefectClass> defectClasses)
+    [Fact]
+    public async Task MatchingInspections_ReturnNewestFirstWithMetadataAndDefects()
+    {
+        var now = DateTime.UtcNow;
+        var oldest = await Insert(now.AddDays(-3), Array.Empty<DefectClass>(), DetectionMode.BatchFolder, InspectionOrigin.Crop);
+        var middle = await Insert(now.AddDays(-2), new[] { DefectClass.Short, DefectClass.Open });
+        var newest = await Insert(now.AddDays(-1), new[] { DefectClass.Open });
+
+        var result = await _dashboardRepository.GetMatchingInspectionsAsync(DashboardFilter.AllTime);
+
+        result.Select(record => record.Id).Should().Equal(newest.Id, middle.Id, oldest.Id);
+        result[0].Name.Should().Be(newest.Name);
+        result[0].ImagePath.Should().Be(newest.ImagePath);
+        result[0].Mode.Should().Be(DetectionMode.SingleFile);
+        result[0].Origin.Should().Be(InspectionOrigin.External);
+        result[0].Defects.Select(defect => defect.Class).Should().Equal(DefectClass.Open);
+        result[1].Defects.Select(defect => defect.Class).Should().BeEquivalentTo(new[] { DefectClass.Short, DefectClass.Open });
+        result[2].Defects.Should().BeEmpty();
+        result[2].Origin.Should().Be(InspectionOrigin.Crop);
+        result[2].Mode.Should().Be(DetectionMode.BatchFolder);
+    }
+
+    [Fact]
+    public async Task ClassFilter_ProjectsOnlyMatchingDefectsAndExcludesPassInspections()
+    {
+        var now = DateTime.UtcNow;
+        await Insert(now.AddDays(-3), Array.Empty<DefectClass>());
+        await Insert(now.AddDays(-2), new[] { DefectClass.Short });
+        var openOnly = await Insert(now.AddDays(-1), new[] { DefectClass.Open });
+        var filter = new DashboardFilter(defectClasses: new[] { DefectClass.Open });
+
+        var statistics = await _dashboardRepository.GetStatisticsAsync(filter);
+        var count = await _dashboardRepository.GetMatchingInspectionCountAsync(filter);
+        var evidence = await _dashboardRepository.GetMatchingInspectionsAsync(filter);
+
+        count.Should().Be(1);
+        evidence.Should().ContainSingle();
+        evidence[0].Id.Should().Be(openOnly.Id);
+        evidence[0].Defects.Should().ContainSingle()
+            .Which.Class.Should().Be(DefectClass.Open);
+        evidence[0].DefectCount.Should().Be(statistics.TotalDefects);
+        evidence[0].DefectCount.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task EvidenceCountAndStatistics_AgreeForFilterCombinations(bool includeSeverity)
+    {
+        var now = DateTime.UtcNow;
+        await Insert(now.AddDays(-8), Array.Empty<DefectClass>());
+        await Insert(now.AddDays(-7), new[] { DefectClass.Short });
+        await Insert(now.AddDays(-6), new[] { DefectClass.Open, DefectClass.Short });
+        await Insert(now.AddDays(-5), new[] { DefectClass.Spur });
+        await Insert(now.AddDays(-2), new[] { DefectClass.Open });
+        await Insert(now.AddDays(-1), new[] { DefectClass.Short, DefectClass.Open });
+
+        var filters = new List<DashboardFilter>
+        {
+            DashboardFilter.AllTime,
+            new(startDateUtc: now.AddDays(-6), endDateUtc: now.AddDays(-2)),
+            new(defectClasses: new[] { DefectClass.Short }),
+            new(defectClasses: new[] { DefectClass.Short, DefectClass.Open })
+        };
+        if (includeSeverity)
+        {
+            filters.Add(new DashboardFilter(severities: new[] { DefectSeverity.High }));
+            filters.Add(new DashboardFilter(
+                defectClasses: new[] { DefectClass.Short, DefectClass.Open },
+                severities: new[] { DefectSeverity.High }));
+        }
+
+        foreach (var filter in filters)
+        {
+            var statistics = await _dashboardRepository.GetStatisticsAsync(filter);
+            var count = await _dashboardRepository.GetMatchingInspectionCountAsync(filter);
+            var evidence = await _dashboardRepository.GetMatchingInspectionsAsync(filter);
+
+            count.Should().Be(evidence.Count);
+            count.Should().Be(statistics.TotalInspections);
+            evidence.Sum(record => record.DefectCount).Should().Be(statistics.TotalDefects);
+        }
+    }
+
+    [Fact]
+    public async Task MatchingInspections_UseIdAsDeterministicTiebreaker()
+    {
+        var at = DateTime.UtcNow;
+        var first = await Insert(at, new[] { DefectClass.Open });
+        var second = await Insert(at, new[] { DefectClass.Short });
+
+        var result = await _dashboardRepository.GetMatchingInspectionsAsync(DashboardFilter.AllTime);
+
+        var expected = new[] { first.Id, second.Id }
+            .OrderByDescending(id => id.ToString("D"), StringComparer.Ordinal);
+        result.Select(record => record.Id).Should().Equal(expected);
+    }
+
+    [Fact]
+    public async Task DateBounds_AreInclusiveForEvidenceAndCount()
+    {
+        var start = new DateTime(2026, 3, 1, 12, 0, 0, DateTimeKind.Utc);
+        var end = start.AddDays(2);
+        await Insert(start.AddTicks(-1), new[] { DefectClass.Open });
+        var atStart = await Insert(start, new[] { DefectClass.Open });
+        var atEnd = await Insert(end, new[] { DefectClass.Open });
+        await Insert(end.AddTicks(1), new[] { DefectClass.Open });
+        var filter = new DashboardFilter(startDateUtc: start, endDateUtc: end);
+
+        var evidence = await _dashboardRepository.GetMatchingInspectionsAsync(filter);
+        var count = await _dashboardRepository.GetMatchingInspectionCountAsync(filter);
+
+        count.Should().Be(2);
+        evidence.Select(record => record.Id).Should().Equal(atEnd.Id, atStart.Id);
+    }
+
+    [Fact]
+    public async Task EmptyDatabase_ReturnsNoEvidenceAndZeroCount()
+    {
+        var evidence = await _dashboardRepository.GetMatchingInspectionsAsync(DashboardFilter.AllTime);
+        var count = await _dashboardRepository.GetMatchingInspectionCountAsync(DashboardFilter.AllTime);
+
+        evidence.Should().BeEmpty();
+        count.Should().Be(0);
+    }
+
+    private async Task<InspectionRecord> Insert(
+        DateTime createdAtUtc,
+        IReadOnlyList<DefectClass> defectClasses,
+        DetectionMode mode = DetectionMode.SingleFile,
+        InspectionOrigin origin = InspectionOrigin.External)
     {
         var id = Guid.NewGuid();
         var defects = defectClasses.Select(defectClass => new DetectedDefect(
@@ -256,9 +386,11 @@ public class DashboardRepositoryTests : IDisposable
             $"board-{id:N}",
             createdAtUtc,
             createdAtUtc,
-            DetectionMode.SingleFile,
+            mode,
             $"images/{id:N}.png",
-            defects);
+            defects,
+            origin);
         await _inspectionRepository.InsertAsync(record);
+        return record;
     }
 }
