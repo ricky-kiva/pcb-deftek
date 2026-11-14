@@ -311,6 +311,20 @@ public sealed record DashboardReportDefect
 
     /// <summary>Gets the diagnostic severity.</summary>
     public DefectSeverity Severity { get; }
+
+    /// <summary>Gets the confidence as a whole percentage.</summary>
+    public int ConfidencePercent => (int)Math.Round(Confidence * 100.0f, MidpointRounding.AwayFromZero);
+
+    /// <summary>Gets the display label for the diagnostic severity.</summary>
+    public string SeverityLabel => Severity switch
+    {
+        DefectSeverity.Critical => "Critical",
+        DefectSeverity.High => "High",
+        DefectSeverity.MediumHigh => "Medium-high",
+        DefectSeverity.Medium => "Medium",
+        DefectSeverity.LowMedium => "Low-medium",
+        _ => Severity.ToString()
+    };
 }
 
 /// <summary>One inspection evidence block in the report.</summary>
