@@ -163,8 +163,8 @@ public class HistoryAndViewerStepDefinitions : IDisposable
         string rawPath = Path.Combine(_imageRoot, $"{imageId}_raw.png");
         string annotatedPath = Path.Combine(_imageRoot, $"{imageId}_annotated.png");
         _annotatedCapturePath = annotatedPath;
-        File.WriteAllBytes(rawPath, new byte[] { 1, 2, 3 });
-        File.WriteAllBytes(annotatedPath, new byte[] { 4, 5, 6 });
+        WriteImage(rawPath, 160, 120);
+        WriteImage(annotatedPath, 160, 120);
         _records[liveName] = await InsertRecord(
             liveName,
             LocalNoonUtc(),
@@ -174,7 +174,7 @@ public class HistoryAndViewerStepDefinitions : IDisposable
             InspectionOrigin.LiveCapture);
 
         string externalPath = Path.Combine(_testRoot, $"{externalName}-original.png");
-        File.WriteAllBytes(externalPath, new byte[] { 7, 8, 9 });
+        WriteImage(externalPath, 160, 120);
         _records[externalName] = await InsertRecord(
             externalName,
             LocalNoonUtc(),
@@ -188,7 +188,7 @@ public class HistoryAndViewerStepDefinitions : IDisposable
     public async Task GivenALiveCaptureSelectedForDeletion(string name)
     {
         string rawPath = Path.Combine(_imageRoot, $"{name}-raw.png");
-        File.WriteAllBytes(rawPath, new byte[] { 1 });
+        WriteImage(rawPath, 160, 120);
         _records[name] = await InsertRecord(
             name,
             LocalNoonUtc(),
@@ -338,11 +338,13 @@ public class HistoryAndViewerStepDefinitions : IDisposable
         _history.Items.Should().Contain(item => item.Origin == InspectionOrigin.Crop);
     }
 
-    [Then(@"the viewer should show the unavailable state")]
-    public void ThenViewerShowsUnavailable()
+    [Then(@"the missing record should be removed from history")]
+    public async Task ThenMissingRecordRemoved()
     {
-        _viewer.IsImageUnavailable.Should().BeTrue();
-        _viewer.ImageSource.Should().BeNull();
+        await WaitUntilAsync(() => _history.Items.Count == 0 && _history.TotalCount == 0);
+        _currentRecord.Should().NotBeNull();
+        _history.Items.Should().BeEmpty();
+        (await _repository.GetByIdAsync(_currentRecord!.Id)).Should().BeNull();
     }
 
     [Then(@"only the failing short record should remain")]
@@ -431,6 +433,12 @@ public class HistoryAndViewerStepDefinitions : IDisposable
         _records[name] = record;
         _currentRecord = record;
         return record;
+    }
+
+    private static void WriteImage(string path, int width, int height)
+    {
+        using var mat = new Mat(height, width, MatType.CV_8UC3, Scalar.All(140));
+        Cv2.ImWrite(path, mat).Should().BeTrue();
     }
 
     private string CreateImage(string name, int width = 160, int height = 120)

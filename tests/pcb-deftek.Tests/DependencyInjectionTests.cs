@@ -5,6 +5,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using pcb_deftek;
+using pcb_deftek.Infrastructure.Export;
 using pcb_deftek.Infrastructure.Inference;
 using pcb_deftek.Infrastructure.Persistence;
 using pcb_deftek.Infrastructure.Vision;
@@ -178,6 +179,7 @@ public class DependencyInjectionTests
     [InlineData(typeof(INavigationService))]
     [InlineData(typeof(IStartupRoutingService))]
     [InlineData(typeof(IDashboardProgressService))]
+    [InlineData(typeof(IDashboardExportService))]
     [InlineData(typeof(MainViewModel))]
     [InlineData(typeof(SettingsViewModel))]
     public void ConfigureServices_WhenCalled_RegistersPresentationServicesAsSingletons(Type serviceType)
@@ -254,6 +256,22 @@ public class DependencyInjectionTests
 
         provider.GetRequiredService<DashboardViewModel>().Should().NotBeNull();
         provider.GetRequiredService<IDashboardProgressService>().Should().NotBeNull();
+        provider.GetRequiredService<IDashboardExportService>().Should().NotBeNull();
+        provider.GetRequiredService<IConfirmationService>().Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ConfigureServices_WhenProviderBuilt_ResolvesExportServiceAsSingletonWithoutCircularDependency()
+    {
+        var services = new ServiceCollection();
+        App.ConfigureServices(services);
+        using var provider = services.BuildServiceProvider();
+
+        IDashboardExportService first = provider.GetRequiredService<IDashboardExportService>();
+        IDashboardExportService second = provider.GetRequiredService<IDashboardExportService>();
+
+        first.Should().BeSameAs(second);
+        provider.GetRequiredService<DashboardViewModel>().Should().NotBeNull();
     }
 
     [Theory]

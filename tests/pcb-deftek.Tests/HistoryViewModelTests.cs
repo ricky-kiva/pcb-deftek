@@ -82,7 +82,8 @@ public class HistoryViewModelTests
         string name,
         DateTime createdAtUtc,
         int defectCount = 0,
-        DetectionMode mode = DetectionMode.SingleFile)
+        DetectionMode mode = DetectionMode.SingleFile,
+        string? imagePath = null)
     {
         return new InspectionSummary(
             Guid.NewGuid(),
@@ -91,7 +92,7 @@ public class HistoryViewModelTests
             createdAtUtc,
             mode,
             defectCount,
-            $"images/{name}.png");
+            imagePath ?? $"images/{name}.png");
     }
 
     private void SetupPages(IReadOnlyList<InspectionSummary> all, Action<InspectionQueryFilter>? onCall = null)
@@ -432,6 +433,154 @@ public class HistoryViewModelTests
     }
 
     [Fact]
+    public async Task LoadFirstPageAsync_WhenThumbnailUnreadable_DeletesRecordReloadsFirstPageAndToastsOnce()
+    {
+        string goodPath = Path.Combine(Path.GetTempPath(), $"pcb-good-{Guid.NewGuid():N}.png");
+        string badPath = Path.Combine(Path.GetTempPath(), $"pcb-bad-{Guid.NewGuid():N}.png");
+        var good = CreateSummary("good", LocalNoonUtc(), imagePath: goodPath);
+        var bad = CreateSummary("bad", LocalNoonUtc().AddMinutes(-1), imagePath: badPath);
+        var all = new List<InspectionSummary> { good, bad };
+        var pageCalls = new List<int>();
+        SetupPages(all, filter => pageCalls.Add(filter.PageNumber));
+        _thumbnailService
+            .Setup(service => service.GetThumbnailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string path, CancellationToken _) =>
+                path == goodPath ? CreateFrozenBitmap() : null);
+        _deletionService
+            .Setup(service => service.DeleteManyAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyCollection<Guid> ids, CancellationToken _) =>
+            {
+                all.RemoveAll(summary => ids.Contains(summary.Id));
+                return new InspectionDeletionResult(ids.Count, 0, Array.Empty<string>());
+            });
+        var sut = CreateSut();
+
+        await sut.LoadFirstPageAsync();
+        await sut.CurrentHydrationTask!.WaitAsync(TimeSpan.FromSeconds(5));
+
+        sut.Items.Should().ContainSingle();
+        sut.Items[0].Id.Should().Be(good.Id);
+        sut.Items.Should().OnlyContain(item => !item.IsImageUnavailable);
+        sut.TotalCount.Should().Be(1);
+        pageCalls.Should().HaveCountGreaterThanOrEqualTo(2);
+        pageCalls.Last().Should().Be(1);
+        _deletionService.Verify(
+            service => service.DeleteManyAsync(
+                It.Is<IReadOnlyCollection<Guid>>(ids => ids.Single() == bad.Id),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _notificationService.Verify(
+            service => service.ShowToastAsync(
+                "Removed unreadable inspections",
+                It.Is<string>(message => message.Contains("1 inspection")),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task LoadFirstPageAsync_WhenUnreadableImageParentIsMissing_SkipsDeletion()
+    {
+        string missingParentPath = Path.Combine(
+            Path.GetTempPath(),
+            $"pcb-missing-{Guid.NewGuid():N}",
+            "bad.png");
+        var summary = CreateSummary("bad", LocalNoonUtc(), imagePath: missingParentPath);
+        SetupPages(new[] { summary });
+        _thumbnailService
+            .Setup(service => service.GetThumbnailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BitmapSource?)null);
+        var sut = CreateSut();
+
+        await sut.LoadFirstPageAsync();
+        await sut.CurrentHydrationTask!.WaitAsync(TimeSpan.FromSeconds(5));
+
+        sut.Items.Should().ContainSingle();
+        sut.Items[0].IsImageUnavailable.Should().BeTrue();
+        _deletionService.Verify(
+            service => service.DeleteManyAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _notificationService.Verify(
+            service => service.ShowToastAsync(
+                "Removed unreadable inspections",
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task LoadFirstPageAsync_WhenDeletionFailsOnce_RetriesAndRemovesRecord()
+    {
+        string badPath = Path.Combine(Path.GetTempPath(), $"pcb-bad-{Guid.NewGuid():N}.png");
+        var bad = CreateSummary("bad", LocalNoonUtc(), imagePath: badPath);
+        var all = new List<InspectionSummary> { bad };
+        SetupPages(all);
+        _thumbnailService
+            .Setup(service => service.GetThumbnailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BitmapSource?)null);
+        int attempts = 0;
+        _deletionService
+            .Setup(service => service.DeleteManyAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+            .Returns((IReadOnlyCollection<Guid> ids, CancellationToken _) =>
+            {
+                attempts++;
+                if (attempts == 1)
+                {
+                    throw new IOException("locked");
+                }
+
+                all.RemoveAll(summary => ids.Contains(summary.Id));
+                return Task.FromResult(new InspectionDeletionResult(ids.Count, 0, Array.Empty<string>()));
+            });
+        var sut = CreateSut();
+
+        await sut.LoadFirstPageAsync();
+        await sut.CurrentHydrationTask!.WaitAsync(TimeSpan.FromSeconds(5));
+
+        attempts.Should().Be(2);
+        sut.Items.Should().BeEmpty();
+        sut.TotalCount.Should().Be(0);
+        _notificationService.Verify(
+            service => service.ShowToastAsync(
+                "Removed unreadable inspections",
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task LoadFirstPageAsync_WhenDeletionFailsTwice_LeavesRecordAndDoesNotToast()
+    {
+        string badPath = Path.Combine(Path.GetTempPath(), $"pcb-bad-{Guid.NewGuid():N}.png");
+        var summary = CreateSummary("bad", LocalNoonUtc(), imagePath: badPath);
+        SetupPages(new[] { summary });
+        _thumbnailService
+            .Setup(service => service.GetThumbnailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BitmapSource?)null);
+        int attempts = 0;
+        _deletionService
+            .Setup(service => service.DeleteManyAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+            .Returns((IReadOnlyCollection<Guid> _, CancellationToken _) =>
+            {
+                attempts++;
+                throw new IOException("storage offline");
+            });
+        var sut = CreateSut();
+
+        await sut.LoadFirstPageAsync();
+        await sut.CurrentHydrationTask!.WaitAsync(TimeSpan.FromSeconds(5));
+
+        attempts.Should().Be(2);
+        sut.Items.Should().ContainSingle();
+        sut.Items[0].IsImageUnavailable.Should().BeTrue();
+        _notificationService.Verify(
+            service => service.ShowToastAsync(
+                "Removed unreadable inspections",
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task OpenViewerAsync_LoadsRecordAndOpensOverlay()
     {
         var summary = CreateSummary("viewer-record", LocalNoonUtc());
@@ -615,5 +764,24 @@ public class HistoryViewModelTests
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    private static BitmapSource CreateFrozenBitmap()
+    {
+        const int width = 4;
+        const int height = 4;
+        int stride = width * 3;
+        var pixels = new byte[stride * height];
+        var bitmap = BitmapSource.Create(
+            width,
+            height,
+            96,
+            96,
+            System.Windows.Media.PixelFormats.Bgr24,
+            null,
+            pixels,
+            stride);
+        bitmap.Freeze();
+        return bitmap;
     }
 }

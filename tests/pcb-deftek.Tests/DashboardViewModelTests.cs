@@ -5,8 +5,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using pcb_deftek.Common.Exceptions;
 using pcb_deftek.Domain.Contracts;
 using pcb_deftek.Domain.Models;
+using pcb_deftek.Infrastructure.Export;
 using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Presentation.Models;
@@ -22,6 +24,8 @@ public class DashboardViewModelTests
     private readonly FakeUserSettingsService _settings = new();
     private readonly DashboardProgressService _progress = new();
     private readonly FakeNotificationService _notification = new();
+    private readonly FakeExportService _export = new();
+    private readonly FakeConfirmationService _confirmation = new();
 
     [Fact]
     public void Constructor_BuildsNineDefectInfoItemsInClassOrderWithAssetPaths()
@@ -227,40 +231,177 @@ public class DashboardViewModelTests
     }
 
     [Fact]
-    public async Task ExportRequested_CarriesSnapshotOfActiveFilter()
+    public async Task RequestExport_WhenNoMatches_ShowsToastWithoutModalOrExport()
     {
-        _repository.Handler = (_, _) => Task.FromResult(SampleStatistics());
+        _export.CountHandler = (_, _) => Task.FromResult(0);
         var sut = CreateSut();
-        await sut.LoadAsync();
-        sut.Filters.SelectedPreset = DateRangePreset.Day;
-        sut.Filters.ClassOptions.Single(option => option.Value == DefectClass.Open).IsSelected = true;
-        DashboardFilter? exported = null;
-        sut.ExportRequested += (_, filter) => exported = filter;
 
-        sut.RequestExportCommand.Execute(null);
+        await sut.RequestExportCommand.ExecuteAsync(null);
 
-        exported.Should().NotBeNull();
-        exported!.StartDateUtc.Should().NotBeNull();
-        exported.EndDateUtc.Should().NotBeNull();
-        exported.DefectClasses.Should().Equal(DefectClass.Open);
+        _export.ExportCalls.Should().Be(0);
+        sut.IsNotificationModalOpen.Should().BeFalse();
+        _progress.DataExport.IsIdle.Should().BeTrue();
+        _notification.Messages.Should().ContainSingle()
+            .Which.Title.Should().Be("No matching inspections");
     }
 
     [Fact]
-    public async Task ExportRequested_RepeatedClicksRaiseConsistentSnapshots()
+    public async Task RequestExport_UsesActiveFilterForCountAndExport()
     {
         _repository.Handler = (_, _) => Task.FromResult(SampleStatistics());
+        _export.CountHandler = (_, _) => Task.FromResult(1);
+        _export.ExportHandler = (_, _, _) => Task.FromResult(
+            DashboardExportResult.Exported("report.pdf", 1));
         var sut = CreateSut();
-        await sut.LoadAsync();
-        sut.Filters.ClassOptions.Single(option => option.Value == DefectClass.Short).IsSelected = true;
-        var snapshots = new List<DashboardFilter>();
-        sut.ExportRequested += (_, filter) => snapshots.Add(filter);
+        sut.Filters.ClassOptions.Single(option => option.Value == DefectClass.Open).IsSelected = true;
 
-        sut.RequestExportCommand.Execute(null);
-        sut.RequestExportCommand.Execute(null);
+        await sut.RequestExportCommand.ExecuteAsync(null);
 
-        snapshots.Should().HaveCount(2);
-        snapshots[0].DefectClasses.Should().Equal(DefectClass.Short);
-        snapshots[1].DefectClasses.Should().Equal(DefectClass.Short);
+        _export.LastCountFilter!.DefectClasses.Should().Equal(DefectClass.Open);
+        _export.LastExportFilter!.DefectClasses.Should().Equal(DefectClass.Open);
+    }
+
+    [Fact]
+    public async Task RequestExport_AboveThreshold_ConfirmsAndExports()
+    {
+        _repository.Handler = (_, _) => Task.FromResult(SampleStatistics());
+        _export.CountHandler = (_, _) => Task.FromResult(101);
+        _confirmation.Result = true;
+        _export.ExportHandler = (_, _, _) => Task.FromResult(
+            DashboardExportResult.Exported("report.pdf", 1));
+        var sut = CreateSut();
+
+        await sut.RequestExportCommand.ExecuteAsync(null);
+
+        _confirmation.Requests.Should().ContainSingle();
+        _confirmation.Requests[0].Message.Should().Contain("101");
+        _export.ExportCalls.Should().Be(1);
+        sut.IsNotificationModalOpen.Should().BeTrue();
+        _progress.DataExport.Status.Should().Be(DashboardProgressStatus.Completed);
+        _progress.DataExport.Percentage.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task RequestExport_AboveThresholdDeclined_DoesNotExportOrOpenModal()
+    {
+        _export.CountHandler = (_, _) => Task.FromResult(101);
+        _confirmation.Result = false;
+        var sut = CreateSut();
+
+        await sut.RequestExportCommand.ExecuteAsync(null);
+
+        _export.ExportCalls.Should().Be(0);
+        sut.IsNotificationModalOpen.Should().BeFalse();
+        _progress.DataExport.IsIdle.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RequestExport_AtThreshold_DoesNotPrompt()
+    {
+        _repository.Handler = (_, _) => Task.FromResult(SampleStatistics());
+        _export.CountHandler = (_, _) => Task.FromResult(100);
+        _export.ExportHandler = (_, _, _) => Task.FromResult(
+            DashboardExportResult.Exported("report.pdf", 1));
+        var sut = CreateSut();
+
+        await sut.RequestExportCommand.ExecuteAsync(null);
+
+        _confirmation.Requests.Should().BeEmpty();
+        _export.ExportCalls.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RequestExport_ForwardsProgressAndReloadsStatistics()
+    {
+        _repository.Handler = (_, _) => Task.FromResult(SampleStatistics());
+        _export.CountHandler = (_, _) => Task.FromResult(1);
+        _export.ExportHandler = (_, progress, _) =>
+        {
+            progress?.Report(new DashboardExportProgress(0, "Preparing report"));
+            progress?.Report(new DashboardExportProgress(55, "Staging evidence"));
+            return Task.FromResult(DashboardExportResult.Exported("report.pdf", 1));
+        };
+        var sut = CreateSut();
+
+        await sut.RequestExportCommand.ExecuteAsync(null);
+
+        _export.ExportCalls.Should().Be(1);
+        _progress.DataExport.Status.Should().Be(DashboardProgressStatus.Completed);
+        _progress.DataExport.Percentage.Should().Be(100);
+        sut.IsNotificationModalOpen.Should().BeTrue();
+        _repository.Requests.Should().ContainSingle("statistics reload after a successful export");
+    }
+
+    [Fact]
+    public async Task RequestExport_WhenCancelled_ReportsCancelledWithoutToast()
+    {
+        _export.CountHandler = (_, _) => Task.FromResult(1);
+        _export.ExportHandler = (_, _, _) => throw new OperationCanceledException();
+        var sut = CreateSut();
+
+        await sut.RequestExportCommand.ExecuteAsync(null);
+
+        _progress.DataExport.Status.Should().Be(DashboardProgressStatus.Cancelled);
+        _notification.Messages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RequestExport_WhenExportFails_ReportsFailedAndDoesNotThrow()
+    {
+        _export.CountHandler = (_, _) => Task.FromResult(1);
+        _export.ExportHandler = (_, _, _) => throw new ExportException("boom");
+        var sut = CreateSut();
+
+        await sut.RequestExportCommand.ExecuteAsync(null);
+
+        _progress.DataExport.Status.Should().Be(DashboardProgressStatus.Failed);
+        _progress.DataExport.Message.Should().Be("Export failed");
+        _notification.Messages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RequestExport_WhileRunning_IgnoresSecondCall()
+    {
+        _repository.Handler = (_, _) => Task.FromResult(SampleStatistics());
+        _export.CountHandler = (_, _) => Task.FromResult(1);
+        var blocked = new TaskCompletionSource<DashboardExportResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        _export.ExportHandler = (_, _, _) => blocked.Task;
+        var sut = CreateSut();
+
+        Task first = sut.RequestExportCommand.ExecuteAsync(null);
+        await WaitUntilAsync(() => _export.ExportCalls == 1);
+        sut.RequestExportCommand.CanExecute(null).Should().BeFalse();
+
+        await sut.RequestExportCommand.ExecuteAsync(null);
+        _export.CountCalls.Should().Be(1);
+
+        blocked.SetResult(DashboardExportResult.Exported("report.pdf", 1));
+        await first;
+    }
+
+    [Fact]
+    public async Task RequestExport_UsesDataExportCancellationToken()
+    {
+        _export.CountHandler = (_, _) => Task.FromResult(1);
+        var started = new TaskCompletionSource<CancellationToken>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        _export.ExportHandler = async (_, _, token) =>
+        {
+            started.TrySetResult(token);
+            await Task.Delay(Timeout.InfiniteTimeSpan, token);
+            return DashboardExportResult.Exported("report.pdf", 1);
+        };
+        var sut = CreateSut();
+
+        Task exportTask = sut.RequestExportCommand.ExecuteAsync(null);
+        CancellationToken token = await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        sut.CancelProcessCommand.Execute(DashboardProcess.DataExport);
+
+        await exportTask;
+
+        token.IsCancellationRequested.Should().BeTrue();
+        _progress.DataExport.Status.Should().Be(DashboardProgressStatus.Cancelled);
     }
 
     [Fact]
@@ -307,6 +448,8 @@ public class DashboardViewModelTests
         _repository,
         _settings,
         _progress,
+        _export,
+        _confirmation,
         notificationService: _notification);
 
     [Fact]
@@ -399,13 +542,68 @@ public class DashboardViewModelTests
             throw new NotSupportedException("The view-model fake does not count evidence.");
     }
 
+    private sealed class FakeExportService : IDashboardExportService
+    {
+        public Func<DashboardFilter, CancellationToken, Task<int>> CountHandler { get; set; } =
+            (_, _) => Task.FromResult(1);
+
+        public Func<DashboardFilter, IProgress<DashboardExportProgress>?, CancellationToken, Task<DashboardExportResult>> ExportHandler { get; set; } =
+            (_, _, _) => Task.FromResult(DashboardExportResult.Exported("report.pdf", 1));
+
+        public int CountCalls { get; private set; }
+
+        public int ExportCalls { get; private set; }
+
+        public DashboardFilter? LastCountFilter { get; private set; }
+
+        public DashboardFilter? LastExportFilter { get; private set; }
+
+        public Task<int> CountMatchingInspectionsAsync(
+            DashboardFilter filter,
+            CancellationToken cancellationToken = default)
+        {
+            CountCalls++;
+            LastCountFilter = filter;
+            return CountHandler(filter, cancellationToken);
+        }
+
+        public Task<DashboardExportResult> ExportAsync(
+            DashboardFilter filter,
+            IProgress<DashboardExportProgress>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            ExportCalls++;
+            LastExportFilter = filter;
+            return ExportHandler(filter, progress, cancellationToken);
+        }
+    }
+
+    private sealed class FakeConfirmationService : IConfirmationService
+    {
+        public bool Result { get; set; } = true;
+
+        public List<(string Title, string Message, string ConfirmText)> Requests { get; } = new();
+
+        public Task<bool> ConfirmAsync(
+            string title,
+            string message,
+            string confirmText = "Delete",
+            CancellationToken cancellationToken = default)
+        {
+            Requests.Add((title, message, confirmText));
+            return Task.FromResult(Result);
+        }
+    }
+
     private sealed class FakeNotificationService : INotificationService
     {
-        public string? LastTitle { get; private set; }
+        public string? LastTitle => Messages.LastOrDefault().Title;
+
+        public List<(string Title, string Message)> Messages { get; } = new();
 
         public Task ShowToastAsync(string title, string message, CancellationToken cancellationToken = default)
         {
-            LastTitle = title;
+            Messages.Add((title, message));
             return Task.CompletedTask;
         }
     }

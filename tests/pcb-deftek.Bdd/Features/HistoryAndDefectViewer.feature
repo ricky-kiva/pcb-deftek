@@ -38,11 +38,11 @@ Feature: History and Interactive Defect Viewer
     Then the crop PNG should be 100x50
     And the gallery should contain the cropped inspection
 
-  Scenario: Missing source image shows the unavailable state
+  Scenario: Missing source image is removed from history
     Given an isolated history database
     And an inspection "missing-board" whose image file is missing
-    When I open the viewer for "missing-board"
-    Then the viewer should show the unavailable state
+    When the history page loads
+    Then the missing record should be removed from history
 
   Scenario: Date, status, and defect-class filters compose
     Given an isolated history database

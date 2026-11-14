@@ -204,7 +204,9 @@ public class DashboardViewCompositionTests
         var vm = new DashboardViewModel(
             repository,
             new FakeSettingsService(),
-            new DashboardProgressService());
+            new DashboardProgressService(),
+            new StubDashboardExportService(),
+            new StubConfirmationService());
         return (new DashboardView(), vm);
     }
 

@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using pcb_deftek.Domain.Contracts;
 using pcb_deftek.Domain.Models;
+using pcb_deftek.Infrastructure.Export;
 using pcb_deftek.Infrastructure.Notifications;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Presentation.Services;
@@ -27,8 +28,13 @@ public sealed partial class DashboardViewModel : ViewModelBase
     private const string TotalPcbsColor = "#0066FF";
     private const string TotalDefectsColor = "#E81123";
 
+    /// <summary>Number of matching inspections above which the operator must confirm an export.</summary>
+    public const int LargeExportInspectionThreshold = 100;
+
     private readonly IDashboardRepository _repository;
     private readonly IUserSettingsService _settingsService;
+    private readonly IDashboardExportService _exportService;
+    private readonly IConfirmationService _confirmationService;
     private readonly ILogger<DashboardViewModel> _logger;
     private readonly INotificationService? _notificationService;
     private readonly SemaphoreSlim _settingsSaveGate = new(1, 1);
@@ -38,12 +44,6 @@ public sealed partial class DashboardViewModel : ViewModelBase
     private bool _suppressPreferenceSave;
     private UserSettings _settings = new();
     private List<string> _cardOrder = DashboardCardOrderPolicy.DefaultOrder.ToList();
-
-    /// <summary>
-    /// Raised when Export Data is clicked with a valid filter snapshot.
-    /// Phase 9 subscribes to generate the PDF report.
-    /// </summary>
-    public event EventHandler<DashboardFilter>? ExportRequested;
 
     /// <inheritdoc />
     public override string Title => "Dashboard";
@@ -83,6 +83,10 @@ public sealed partial class DashboardViewModel : ViewModelBase
     private bool _skipDashboardOnStartup;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RequestExportCommand))]
+    private bool _isExporting;
+
+    [ObservableProperty]
     private bool _isNotificationModalOpen;
 
     [ObservableProperty]
@@ -96,12 +100,16 @@ public sealed partial class DashboardViewModel : ViewModelBase
         IDashboardRepository repository,
         IUserSettingsService settingsService,
         IDashboardProgressService progressService,
+        IDashboardExportService exportService,
+        IConfirmationService confirmationService,
         ILogger<DashboardViewModel>? logger = null,
         INotificationService? notificationService = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         Progress = progressService ?? throw new ArgumentNullException(nameof(progressService));
+        _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
+        _confirmationService = confirmationService ?? throw new ArgumentNullException(nameof(confirmationService));
         _logger = logger ?? NullLogger<DashboardViewModel>.Instance;
         _notificationService = notificationService;
         _uiContext = SynchronizationContext.Current;
@@ -235,12 +243,86 @@ public sealed partial class DashboardViewModel : ViewModelBase
     [RelayCommand]
     private void SetTwoColumnLayout() => ColumnLayout = DashboardColumnLayout.TwoColumns;
 
-    [RelayCommand]
-    private void RequestExport()
+    private bool CanRequestExport => !IsExporting;
+
+    [RelayCommand(CanExecute = nameof(CanRequestExport))]
+    private async Task RequestExportAsync()
     {
-        if (Filters.TryCreateFilter(out var filter))
+        if (IsExporting || !Filters.TryCreateFilter(out DashboardFilter? filter))
         {
-            ExportRequested?.Invoke(this, filter);
+            return;
+        }
+
+        IsExporting = true;
+        bool exportStarted = false;
+
+        try
+        {
+            int matchingCount = await _exportService
+                .CountMatchingInspectionsAsync(filter);
+
+            if (matchingCount == 0)
+            {
+                await ShowToastSafeAsync(
+                    "No matching inspections",
+                    "No inspections match the active dashboard filter.");
+                return;
+            }
+
+            if (matchingCount > LargeExportInspectionThreshold)
+            {
+                bool confirmed = await _confirmationService.ConfirmAsync(
+                    "Export large report?",
+                    $"{matchingCount.ToString("N0", CultureInfo.CurrentCulture)} inspections match the active filter. " +
+                    "Generating this report may take a while. Continue?",
+                    "Export");
+                if (!confirmed)
+                {
+                    return;
+                }
+            }
+
+            IsNotificationModalOpen = true;
+            ReportExportProgress(DashboardProgressStatus.Running, 0, "Preparing report");
+            CancellationToken token = Progress.GetCancellationToken(DashboardProcess.DataExport);
+            var progress = new CallbackProgress<DashboardExportProgress>(
+                value => ReportExportProgress(
+                    DashboardProgressStatus.Running,
+                    value.Percentage,
+                    value.Message));
+
+            exportStarted = true;
+            DashboardExportResult result = await _exportService
+                .ExportAsync(filter, progress, token);
+
+            if (result.Outcome == DashboardExportOutcome.NoMatches)
+            {
+                ReportExportProgress(DashboardProgressStatus.Completed, 100, "No matching inspections");
+                await ShowToastSafeAsync(
+                    "No matching inspections",
+                    "No inspections match the active dashboard filter.");
+                return;
+            }
+
+            ReportExportProgress(DashboardProgressStatus.Completed, 100, "Report saved");
+            await ReloadAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            ReportExportProgress(DashboardProgressStatus.Cancelled, 0, "Cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Dashboard report export failed.");
+            ReportExportProgress(DashboardProgressStatus.Failed, 100, "Export failed");
+            if (!exportStarted)
+            {
+                await ShowToastSafeAsync("Report export failed", ex.Message);
+            }
+        }
+        finally
+        {
+            IsExporting = false;
         }
     }
 
@@ -502,6 +584,47 @@ public sealed partial class DashboardViewModel : ViewModelBase
         DashboardBucketGranularity.Month => "Monthly",
         _ => throw new ArgumentOutOfRangeException(nameof(granularity))
     };
+
+    private void ReportExportProgress(
+        DashboardProgressStatus status,
+        double percentage,
+        string? message)
+    {
+        try
+        {
+            Progress.ReportDataExport(status, percentage, message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to report data-export progress.");
+        }
+    }
+
+    private async Task ShowToastSafeAsync(string title, string message)
+    {
+        if (_notificationService is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _notificationService.ShowToastAsync(title, message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to dispatch notification '{Title}'.", title);
+        }
+    }
+
+    private sealed class CallbackProgress<T> : IProgress<T>
+    {
+        private readonly Action<T> _callback;
+
+        public CallbackProgress(Action<T> callback) => _callback = callback;
+
+        public void Report(T value) => _callback(value);
+    }
 
     private async Task PersistPreferencesAsync()
     {

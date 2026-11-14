@@ -38,6 +38,8 @@ public sealed partial class HistoryViewModel : ViewModelBase
     private int _currentPage;
     private bool _hasLoadedOnce;
 
+    internal Task? CurrentHydrationTask { get; private set; }
+
     /// <summary>
     /// Raised after a confirmed deletion with the identifiers removed from the gallery.
     /// </summary>
@@ -314,6 +316,13 @@ public sealed partial class HistoryViewModel : ViewModelBase
             return;
         }
 
+        // Thumbnail hydration reads the same files; let it finish before deleting so
+        // Windows does not reject the file removal while a decode still holds the file.
+        if (CurrentHydrationTask is { } hydration)
+        {
+            await hydration;
+        }
+
         bool confirmed = await _confirmationService
             .ConfirmAsync(
                 "Delete Inspections",
@@ -537,7 +546,7 @@ public sealed partial class HistoryViewModel : ViewModelBase
             return;
         }
 
-        _ = HydrateThumbnailsAsync(items, token);
+        CurrentHydrationTask = HydrateThumbnailsAsync(items, token);
     }
 
     private async Task HydrateThumbnailsAsync(IReadOnlyList<HistoryItemViewModel> items, CancellationToken token)
@@ -545,6 +554,18 @@ public sealed partial class HistoryViewModel : ViewModelBase
         try
         {
             await Task.WhenAll(items.Select(item => item.LoadThumbnailAsync(_thumbnailService, token)));
+            token.ThrowIfCancellationRequested();
+
+            var unreadable = items.Where(item => item.IsImageUnavailable).ToList();
+            if (unreadable.Count == 0)
+            {
+                return;
+            }
+
+            if (await RemoveUnreadableInspectionsAsync(unreadable, token))
+            {
+                await LoadFirstPageAsync();
+            }
         }
         catch (OperationCanceledException)
         {
@@ -554,6 +575,74 @@ public sealed partial class HistoryViewModel : ViewModelBase
         {
             _logger.LogWarning(ex, "History thumbnail hydration encountered an unexpected error.");
         }
+    }
+
+    private async Task<bool> RemoveUnreadableInspectionsAsync(
+        IReadOnlyList<HistoryItemViewModel> unreadable,
+        CancellationToken token)
+    {
+        var deletable = unreadable
+            .Where(item => InvalidInspectionImageGuard.IsParentDirectoryAccessible(item.ImagePath, _logger))
+            .ToList();
+
+        if (deletable.Count == 0)
+        {
+            return false;
+        }
+
+        Guid[] ids = deletable.Select(item => item.Id).ToArray();
+        InspectionDeletionResult? result = null;
+
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            try
+            {
+                result = await _deletionService
+                    .DeleteManyAsync(ids, token);
+                break;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                if (attempt == 0)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Failed to remove {Count} unreadable inspection(s); retrying once.",
+                        ids.Length);
+                }
+                else
+                {
+                    _logger.LogError(
+                        ex,
+                        "Failed to remove {Count} unreadable inspection(s); cleanup skipped.",
+                        ids.Length);
+                }
+            }
+        }
+
+        if (result is null || result.DeletedRecordCount == 0)
+        {
+            return false;
+        }
+
+        string message = $"Removed {result.DeletedRecordCount} inspection(s) with unreadable images.";
+        if (result.HasFileFailures)
+        {
+            message += $" {result.FailedFilePaths.Count} capture file(s) could not be removed.";
+        }
+
+        if (Viewer.CurrentRecordId is Guid openId && ids.Contains(openId))
+        {
+            Viewer.Close();
+            IsViewerOpen = false;
+        }
+
+        await ShowToastSafeAsync("Removed unreadable inspections", message);
+        return true;
     }
 
     private async Task ShowToastSafeAsync(string title, string message)
