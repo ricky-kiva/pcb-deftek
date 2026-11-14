@@ -1,0 +1,18 @@
+<UserControl x:Class="pcb_deftek.Presentation.Controls.DashboardChartHost"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:pcb_deftek.Presentation.Controls"
+             x:Name="Root"
+             Background="Transparent">
+    <Grid>
+        <local:PassFailLineChart x:Name="PassFailChart"
+                                 Visibility="Collapsed"
+                                 ChartActivated="OnChildChartActivated" />
+        <local:MetricTimeSeriesChart x:Name="MetricChart"
+                                     Visibility="Collapsed"
+                                     ChartActivated="OnChildChartActivated" />
+        <local:DefectBarChart x:Name="BarChart"
+                              Visibility="Collapsed"
+                              ChartActivated="OnChildChartActivated" />
+    </Grid>
+</UserControl>

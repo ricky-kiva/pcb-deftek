@@ -38,7 +38,8 @@ public sealed class DashboardMetricCardViewModel
         IReadOnlyList<DashboardPassFailPoint>? passFailSeries = null,
         IReadOnlyList<DashboardClassCount>? classCounts = null,
         string? seriesColorHex = null,
-        string? accessibleSummary = null)
+        string? accessibleSummary = null,
+        string? granularityLabel = null)
     {
         Key = key ?? throw new ArgumentNullException(nameof(key));
         Title = title ?? throw new ArgumentNullException(nameof(title));
@@ -50,6 +51,7 @@ public sealed class DashboardMetricCardViewModel
         ClassCounts = classCounts ?? Array.Empty<DashboardClassCount>();
         SeriesColorHex = seriesColorHex;
         AccessibleSummary = accessibleSummary ?? $"{title}: {displayValue}. {caption}";
+        GranularityLabel = granularityLabel ?? string.Empty;
     }
 
     /// <summary>Gets the stable card key used for persistence.</summary>
@@ -81,4 +83,7 @@ public sealed class DashboardMetricCardViewModel
 
     /// <summary>Gets the accessible summary for the card.</summary>
     public string AccessibleSummary { get; }
+
+    /// <summary>Gets the adaptive bucket granularity label, if applicable.</summary>
+    public string GranularityLabel { get; }
 }
