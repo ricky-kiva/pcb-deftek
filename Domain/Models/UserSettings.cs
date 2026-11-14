@@ -41,4 +41,15 @@ public record UserSettings
     /// Gets the directory where cropped and live-captured inspection images should be written.
     /// </summary>
     public string ImageOutputDirectory { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Gets the persisted dashboard metric-card order. Invalid or missing keys are normalized
+    /// to the standard four-card order.
+    /// </summary>
+    public IReadOnlyList<string> DashboardCardOrder { get; init; } = DashboardCardOrderPolicy.DefaultOrder;
+
+    /// <summary>
+    /// Gets the persisted dashboard grid column count. Defaults to two columns.
+    /// </summary>
+    public DashboardColumnLayout DashboardColumnLayout { get; init; } = DashboardColumnLayout.TwoColumns;
 }

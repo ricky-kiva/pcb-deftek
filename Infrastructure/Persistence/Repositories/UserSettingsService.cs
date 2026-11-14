@@ -23,6 +23,8 @@ public class UserSettingsService : IUserSettingsService
     public const string KeyReportExportPath = "Settings:Export:ReportPath";
     public const string KeyDatabaseExportPath = "Settings:Export:DatabasePath";
     public const string KeyImageOutputDirectory = "Settings:Export:ImagePath";
+    public const string KeyDashboardCardOrder = "Settings:Dashboard:CardOrder";
+    public const string KeyDashboardColumnLayout = "Settings:Dashboard:ColumnLayout";
     private const string LegacyCropOutputDirectoryKey = "Settings:Export:CropPath";
 
     private readonly ISettingsRepository _settingsRepository;
@@ -62,6 +64,9 @@ public class UserSettingsService : IUserSettingsService
 
             bool skipDashboard = await _settingsRepository.GetSettingAsync<bool>(KeySkipDashboardOnStartup, cancellationToken).ConfigureAwait(false);
 
+            string? dashboardCardOrder = await _settingsRepository.GetSettingAsync<string>(KeyDashboardCardOrder, cancellationToken).ConfigureAwait(false);
+            string? dashboardColumnLayout = await _settingsRepository.GetSettingAsync<string>(KeyDashboardColumnLayout, cancellationToken).ConfigureAwait(false);
+
             string? reportPath = await _settingsRepository.GetSettingAsync<string>(KeyReportExportPath, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(reportPath))
             {
@@ -91,6 +96,8 @@ public class UserSettingsService : IUserSettingsService
                 PreferredDevice = device,
                 DefaultStartupPage = defaultPage,
                 SkipDashboardOnStartup = skipDashboard,
+                DashboardCardOrder = DashboardCardOrderPolicy.Parse(dashboardCardOrder),
+                DashboardColumnLayout = DashboardColumnLayoutPolicy.Parse(dashboardColumnLayout),
                 ReportExportPath = reportPath,
                 DatabaseExportPath = dbPath,
                 ImageOutputDirectory = imagePath
@@ -120,6 +127,14 @@ public class UserSettingsService : IUserSettingsService
         await _settingsRepository.SetSettingAsync(KeyReportExportPath, settings.ReportExportPath, cancellationToken).ConfigureAwait(false);
         await _settingsRepository.SetSettingAsync(KeyDatabaseExportPath, settings.DatabaseExportPath, cancellationToken).ConfigureAwait(false);
         await _settingsRepository.SetSettingAsync(KeyImageOutputDirectory, settings.ImageOutputDirectory, cancellationToken).ConfigureAwait(false);
+        await _settingsRepository.SetSettingAsync(
+            KeyDashboardCardOrder,
+            DashboardCardOrderPolicy.Serialize(settings.DashboardCardOrder),
+            cancellationToken).ConfigureAwait(false);
+        await _settingsRepository.SetSettingAsync(
+            KeyDashboardColumnLayout,
+            settings.DashboardColumnLayout.ToString(),
+            cancellationToken).ConfigureAwait(false);
 
         Log.Information("User settings saved successfully. Threshold: {Threshold}, Device: {Device}, Startup: {Page}",
             settings.ConfidenceThreshold, settings.PreferredDevice, settings.DefaultStartupPage);
