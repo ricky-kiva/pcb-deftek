@@ -55,6 +55,145 @@ public sealed class SqliteDashboardRepository : IDashboardRepository
         return BuildStatistics(filter, rows, classCounts);
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<InspectionRecord>> GetMatchingInspectionsAsync(
+        DashboardFilter filter,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        IReadOnlyList<string>? allowedCodes = ResolveAllowedClassCodes(filter);
+        if (filter.HasDefectFilters && allowedCodes is { Count: 0 })
+        {
+            return Array.Empty<InspectionRecord>();
+        }
+
+        await using var connection = await _connectionFactory
+            .CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+        var rows = await LoadEvidenceRowsAsync(connection, filter, allowedCodes, cancellationToken)
+            .ConfigureAwait(false);
+
+        return rows
+            .Select(row => new InspectionRecord(
+                row.Id,
+                row.Name,
+                row.CreatedAtUtc,
+                row.UpdatedAtUtc,
+                row.Mode,
+                row.ImagePath,
+                row.Defects,
+                row.Origin))
+            .ToArray();
+    }
+
+    private static async Task<IReadOnlyList<EvidenceRow>> LoadEvidenceRowsAsync(
+        SqliteConnection connection,
+        DashboardFilter filter,
+        IReadOnlyList<string>? allowedCodes,
+        CancellationToken cancellationToken)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = BuildEvidenceSql(filter, allowedCodes);
+        AddParameters(cmd, filter, allowedCodes);
+
+        var rows = new List<EvidenceRow>();
+        var rowsById = new Dictionary<Guid, EvidenceRow>();
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            Guid inspectionId = Guid.Parse(reader.GetString(0));
+            if (!rowsById.TryGetValue(inspectionId, out EvidenceRow? row))
+            {
+                row = new EvidenceRow(
+                    inspectionId,
+                    reader.GetString(1),
+                    DateTime.Parse(reader.GetString(2), null, DateTimeStyles.RoundtripKind),
+                    DateTime.Parse(reader.GetString(3), null, DateTimeStyles.RoundtripKind),
+                    (DetectionMode)reader.GetInt32(4),
+                    reader.GetString(5),
+                    (InspectionOrigin)reader.GetInt32(6));
+                rowsById[inspectionId] = row;
+                rows.Add(row);
+            }
+
+            if (reader.IsDBNull(7))
+            {
+                continue;
+            }
+
+            row.Defects.Add(new DetectedDefect(
+                Guid.Parse(reader.GetString(7)),
+                inspectionId,
+                reader.GetString(8),
+                (float)reader.GetDouble(9),
+                new BoundingBox(
+                    (float)reader.GetDouble(10),
+                    (float)reader.GetDouble(11),
+                    (float)reader.GetDouble(12),
+                    (float)reader.GetDouble(13))));
+        }
+
+        return rows;
+    }
+
+    private static string BuildEvidenceSql(DashboardFilter filter, IReadOnlyList<string>? allowedCodes)
+    {
+        var sql = new StringBuilder();
+        sql.AppendLine(@"
+            SELECT i.Id, i.Name, i.CreatedAtUtc, i.UpdatedAtUtc, i.DetectionMode, i.ImagePath, i.Origin,
+                   d.Id, d.ClassCode, d.Confidence, d.BoxX, d.BoxY, d.BoxWidth, d.BoxHeight
+            FROM Inspections i");
+
+        if (allowedCodes is not null)
+        {
+            sql.Append(" LEFT JOIN Defects d ON d.InspectionId = i.Id AND d.ClassCode IN (");
+            AppendCodeParameters(sql, allowedCodes);
+            sql.AppendLine(")");
+        }
+        else
+        {
+            sql.AppendLine(" LEFT JOIN Defects d ON d.InspectionId = i.Id");
+        }
+
+        sql.AppendLine(" WHERE 1=1");
+        AppendDatePredicate(sql, filter);
+        AppendDefectFilterPredicate(sql, allowedCodes);
+        sql.AppendLine(" ORDER BY i.CreatedAtUtc DESC, i.Id DESC, d.ClassCode ASC, d.Confidence DESC, d.Id ASC;");
+        return sql.ToString();
+    }
+
+    /// <inheritdoc />
+    public async Task<int> GetMatchingInspectionCountAsync(
+        DashboardFilter filter,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        IReadOnlyList<string>? allowedCodes = ResolveAllowedClassCodes(filter);
+        if (filter.HasDefectFilters && allowedCodes is { Count: 0 })
+        {
+            return 0;
+        }
+
+        await using var connection = await _connectionFactory
+            .CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+        var sql = new StringBuilder("SELECT COUNT(1) FROM Inspections i WHERE 1=1");
+        AppendDatePredicate(sql, filter);
+        AppendDefectFilterPredicate(sql, allowedCodes);
+        sql.Append(';');
+
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = sql.ToString();
+        AddParameters(cmd, filter, allowedCodes);
+
+        object? result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        return Convert.ToInt32(result);
+    }
+
     private static DashboardStatistics BuildStatistics(
         DashboardFilter filter,
         IReadOnlyList<InspectionRow> rows,
@@ -266,6 +405,20 @@ public sealed class SqliteDashboardRepository : IDashboardRepository
         }
     }
 
+    private static void AppendDefectFilterPredicate(
+        StringBuilder sql,
+        IReadOnlyList<string>? allowedCodes)
+    {
+        if (allowedCodes is null)
+        {
+            return;
+        }
+
+        sql.Append(" AND EXISTS (SELECT 1 FROM Defects md WHERE md.InspectionId = i.Id AND md.ClassCode IN (");
+        AppendCodeParameters(sql, allowedCodes);
+        sql.Append("))");
+    }
+
     private static void AppendCodeParameters(StringBuilder sql, IReadOnlyList<string>? allowedCodes)
     {
         allowedCodes ??= Array.Empty<string>();
@@ -305,4 +458,41 @@ public sealed class SqliteDashboardRepository : IDashboardRepository
     }
 
     private sealed record InspectionRow(DateTime CreatedAtUtc, int DefectCount, int MatchingDefects);
+
+    private sealed class EvidenceRow
+    {
+        public EvidenceRow(
+            Guid id,
+            string name,
+            DateTime createdAtUtc,
+            DateTime updatedAtUtc,
+            DetectionMode mode,
+            string imagePath,
+            InspectionOrigin origin)
+        {
+            Id = id;
+            Name = name;
+            CreatedAtUtc = createdAtUtc;
+            UpdatedAtUtc = updatedAtUtc;
+            Mode = mode;
+            ImagePath = imagePath;
+            Origin = origin;
+        }
+
+        public Guid Id { get; }
+
+        public string Name { get; }
+
+        public DateTime CreatedAtUtc { get; }
+
+        public DateTime UpdatedAtUtc { get; }
+
+        public DetectionMode Mode { get; }
+
+        public string ImagePath { get; }
+
+        public InspectionOrigin Origin { get; }
+
+        public List<DetectedDefect> Defects { get; } = new();
+    }
 }

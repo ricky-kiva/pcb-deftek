@@ -387,6 +387,16 @@ public class DashboardViewModelTests
             Requests.Add(filter);
             return Handler(filter, cancellationToken);
         }
+
+        public Task<IReadOnlyList<InspectionRecord>> GetMatchingInspectionsAsync(
+            DashboardFilter filter,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("The view-model fake does not load evidence.");
+
+        public Task<int> GetMatchingInspectionCountAsync(
+            DashboardFilter filter,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("The view-model fake does not count evidence.");
     }
 
     private sealed class FakeNotificationService : INotificationService
