@@ -145,7 +145,9 @@ public class DashboardChartHostTests
     private static DashboardViewModel CreateViewModel() => new(
         new Mock<IDashboardRepository>().Object,
         new Mock<IUserSettingsService>().Object,
-        new DashboardProgressService());
+        new DashboardProgressService(),
+        new StubDashboardExportService(),
+        new StubConfirmationService());
 
     private static void RunOnSta(Action action)
     {

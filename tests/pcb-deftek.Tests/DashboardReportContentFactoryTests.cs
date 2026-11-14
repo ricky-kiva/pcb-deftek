@@ -60,7 +60,9 @@ public class DashboardReportContentFactoryTests
         var viewModel = new DashboardViewModel(
             new FakeDashboardRepository(statistics),
             new FakeSettingsService(),
-            new DashboardProgressService());
+            new DashboardProgressService(),
+            new StubDashboardExportService(),
+            new StubConfirmationService());
 
         await viewModel.LoadAsync();
 
@@ -273,6 +275,16 @@ public class DashboardReportContentFactoryTests
             DashboardFilter filter,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(_statistics);
+
+        public Task<IReadOnlyList<InspectionRecord>> GetMatchingInspectionsAsync(
+            DashboardFilter filter,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<int> GetMatchingInspectionCountAsync(
+            DashboardFilter filter,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 
     private sealed class FakeSettingsService : IUserSettingsService

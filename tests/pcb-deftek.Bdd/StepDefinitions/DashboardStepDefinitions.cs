@@ -9,6 +9,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using pcb_deftek.Domain.Contracts;
 using pcb_deftek.Domain.Models;
+using pcb_deftek.Infrastructure.Export;
 using pcb_deftek.Infrastructure.Persistence;
 using pcb_deftek.Infrastructure.Persistence.DatabaseExport;
 using pcb_deftek.Infrastructure.Persistence.Migrations;
@@ -207,6 +208,8 @@ public class DashboardStepDefinitions : IDisposable
         new SqliteDashboardRepository(_factory),
         _settingsService,
         _progress,
+        new BddDashboardExportService(),
+        new BddConfirmationService(),
         NullLogger<DashboardViewModel>.Instance);
 
     private async Task InsertAsync(DateTime createdAtUtc, IReadOnlyList<DefectClass> defectClasses)
@@ -246,6 +249,30 @@ public class DashboardStepDefinitions : IDisposable
 
     private static DateTime LocalNoonUtc() =>
         DateTime.SpecifyKind(DateTime.Today.AddHours(12), DateTimeKind.Local).ToUniversalTime();
+
+    private sealed class BddDashboardExportService : IDashboardExportService
+    {
+        public Task<int> CountMatchingInspectionsAsync(
+            DashboardFilter filter,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
+        public Task<DashboardExportResult> ExportAsync(
+            DashboardFilter filter,
+            IProgress<DashboardExportProgress>? progress = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(DashboardExportResult.NoMatches());
+    }
+
+    private sealed class BddConfirmationService : IConfirmationService
+    {
+        public Task<bool> ConfirmAsync(
+            string title,
+            string message,
+            string confirmText = "Delete",
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+    }
 
     public void Dispose()
     {

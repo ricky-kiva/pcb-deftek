@@ -22,6 +22,8 @@ public class MainViewModelTests
     {
         var services = new ServiceCollection();
         services.AddTransient<DashboardViewModel>();
+        services.AddSingleton<pcb_deftek.Infrastructure.Export.IDashboardExportService>(
+            new StubDashboardExportService());
         services.AddTransient<LiveDetectionViewModel>();
         services.AddSingleton(new Mock<ICameraService>().Object);
         services.AddSingleton(new Mock<ILiveInspectionEngine>().Object);
