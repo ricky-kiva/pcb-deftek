@@ -65,10 +65,10 @@ Performance under continuous inference is **not** covered by this phase; the che
 
 ### 5.1 CI & Documentation
 
-- [ ] Workflow triggers on push, PR, and manual dispatch; superseded runs cancel.
-- [ ] Release build fails on any warning.
-- [ ] Unit and BDD results upload on success and failure.
-- [ ] README prerequisites, commands, test-isolation rule, and data/log locations are correct and executed.
+- [x] Workflow triggers on push, PR, and manual dispatch; superseded runs cancel.
+- [x] Release build fails on any warning.
+- [x] Unit and BDD results upload on success and failure.
+- [x] README prerequisites, commands, test-isolation rule, and data/log locations are correct and executed.
 
 ### 5.2 BDD Closure
 
@@ -96,22 +96,25 @@ Performance under continuous inference is **not** covered by this phase; the che
 
 ### 5.5 Brand Identity & README
 
-- [ ] Executable icon in Explorer, title bar, and taskbar matches `Assets/app-icon.ico`.
-- [ ] `ApplicationIcon` and the icon `Resource` are set; the window `Icon` is bound; build remains at 0 warnings.
-- [ ] `Assets/app-icon.ico` and all five `docs/assets/` files are tracked in git.
-- [ ] README shows the logo at the top and embeds exactly the four staged page screenshots, in page order, with no broken links.
-- [ ] README states the detection scope: PCB trace defects (open/short circuits), best suited to bare PCBs without mounted components.
-- [ ] README documents the screenshot naming convention and current values (`1`/`1`).
+- [x] Executable icon in Explorer, title bar, and taskbar matches `Assets/app-icon.ico` (Explorer extraction and title bar observed; the taskbar renders the same `Window.Icon`).
+- [x] `ApplicationIcon` and the icon `Resource` are set; the window `Icon` is bound; build remains at 0 warnings.
+- [x] `Assets/app-icon.ico` and all five `docs/assets/` files are tracked in git.
+- [x] README shows the logo at the top and embeds exactly the four staged page screenshots, in page order, with no broken links.
+- [x] README states the detection scope: PCB trace defects (open/short circuits), best suited to bare PCBs without mounted components.
+- [x] README documents the screenshot naming convention and current values (`1`/`1`).
 
 ## 6. CI Results (to be recorded)
 
 | Item | Value |
 |---|---|
-| Workflow run URL | _pending_ |
-| Job duration | _pending_ |
-| Unit tests / result | _pending_ |
-| BDD tests / result | _pending_ |
-| Warning count | _pending_ |
+| Workflow run URL | https://github.com/ricky-kiva/pcb-deftek/actions/runs/43709496840 |
+| Job duration | 2m15s (11:33:26Z → 11:35:41Z) |
+| Unit tests / result | 790 passed, 0 failed, 0 skipped |
+| BDD tests / result | 44 passed, 0 failed, 0 skipped |
+| Warning count | 0 |
+| Artifact | `test-results` (unit + BDD `.trx`) |
+| Earlier runs (unit) | `43704968179` hung for 19 min; `43706692821` named the blocked tests via `--blame-hang`. Fixed in `ebc5c08`: a unit test constructed a real `App`, installing a non-pumping `Application.Current`, so later `Dispatcher.Invoke` calls from `LiveDetectionViewModel` deadlocked. `43709113215` then failed `LiveInspectionEngineTests` on a 2 s frame wait; widened to 15 s in `5d21631` (790 consecutive local passes). |
+| Earlier runs (BDD) | `43707982620` failed the export-cancel wait; `43708452705` failed both cancellation scenarios with `Completed` status because parallel feature collections starved the thread pool and a 10 s annotation-release safety window fired before cancellation. Fixed in `6888323`: BDD scenarios run serially, the block window is 60 s, and the wait reports state. |
 
 ## 7. Merge Readiness & Definition of Done
 

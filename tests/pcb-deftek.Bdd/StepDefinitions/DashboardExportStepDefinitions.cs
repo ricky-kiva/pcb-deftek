@@ -198,7 +198,8 @@ public class DashboardExportStepDefinitions : IDisposable
         {
             await WaitUntilAsync(
                 () => _annotation.Started.IsSet && _progress.DataExport.IsRunning,
-                TimeSpan.FromSeconds(5));
+                TimeSpan.FromSeconds(30),
+                () => $"the export should be running before cancellation (annotation started: {_annotation.Started.IsSet}, data export status: {_progress.DataExport.Status})");
             _dashboard.CancelProcessCommand.Execute(DashboardProcess.DataExport);
         }
         finally
@@ -337,7 +338,7 @@ public class DashboardExportStepDefinitions : IDisposable
             ? Directory.GetFiles(directory, "*.pdf", SearchOption.AllDirectories)
             : Array.Empty<string>();
 
-    private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
+    private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout, Func<string>? reason = null)
     {
         DateTime deadline = DateTime.UtcNow.Add(timeout);
         while (!condition() && DateTime.UtcNow < deadline)
@@ -345,7 +346,7 @@ public class DashboardExportStepDefinitions : IDisposable
             await Task.Delay(10);
         }
 
-        condition().Should().BeTrue("the expected background operation should start before the timeout");
+        condition().Should().BeTrue(reason?.Invoke() ?? "the expected background operation should start before the timeout");
     }
 
     private sealed class MutableSettingsService : IUserSettingsService
@@ -435,7 +436,7 @@ public class DashboardExportStepDefinitions : IDisposable
             {
                 BlockNextCall = false;
                 Started.Set();
-                Release.Wait(TimeSpan.FromSeconds(10));
+                Release.Wait(TimeSpan.FromSeconds(60));
             }
 
             return _inner.AnnotateImage(imagePath, defects, maxDimension);
