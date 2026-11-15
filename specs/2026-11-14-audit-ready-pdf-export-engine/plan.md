@@ -516,7 +516,7 @@ Ordering follows the dependency graph: package + contracts → process control/c
 - [x] All seven task groups complete.
 - [x] Solution builds with 0 warnings.
 - [x] All unit, integration, and BDD tests pass (`dotnet test pcb-deftek.slnx` → 834 passed).
-- [ ] PR linked to its issue and passes the 4-step Feature Review and Quality Improvement pipeline. Review pipeline completed locally; PR creation/review is the remaining step.
+- [x] PR [#118](https://github.com/ricky-kiva/pcb-deftek/pull/118) is linked to issue #117 and passes the 4-step Feature Review and Quality Improvement pipeline locally.
 - [x] Non-profit QuestPDF Community license recorded.
 - [ ] Human review approved; PR not merged without approval.
 
