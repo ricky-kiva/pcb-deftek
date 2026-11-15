@@ -15,7 +15,9 @@ Recorded 2026-11-15: QuestPDF 2026.9.2 Socket deep score **89** (no alerts, lice
 
 ## 2. Automated Test Gates
 
-Baseline before Phase 9: 729 passing tests (692 unit + 37 BDD), 0 failed, 0 skipped. Phase 9 must keep that set green and add the coverage below.
+Baseline before Phase 9: 729 passing tests (692 unit + 37 BDD), 0 failed, 0 skipped.
+
+Current baseline after Task Group 7: **834 passing tests** (790 unit + 44 BDD), 0 failed, 0 skipped. Phase 9 must keep that set green and add the coverage below.
 
 ### 2.1 Required Unit / Integration Coverage
 
@@ -48,6 +50,8 @@ Baseline before Phase 9: 729 passing tests (692 unit + 37 BDD), 0 failed, 0 skip
 | Invalid History image | Card removed after hydration; record deleted; count refreshed |
 
 BDD runs against an isolated SQLite database and temp artifact roots; it must never touch the developer's real `%LOCALAPPDATA%` database or Downloads folder.
+
+**Task Group 7 status:** all seven export scenarios were added to `AuditPdfExport.feature` and pass (7/7). The History cleanup scenario reuses the existing `HistoryAndDefectViewer.feature` bindings, which already prove the same hydration/delete behavior against an isolated database. The plan's verification filter was corrected to the generated feature class name `AuditPdfExportFeature`.
 
 ### 2.3 Full-Suite Gate
 
@@ -122,12 +126,12 @@ Measure on the development machine with the release build; record numbers in val
 
 | Metric | Target |
 |---|---|
-| Export of 100 inspections (each 1–3 defects) | ≤ 60 s wall clock; progress advances to 100 % |
+| Export of 100 inspections (each 1–3 defects) | ≤ 60 s wall clock; progress advances to 100 % (measured 2.4–2.7 s; §9) |
 | Large-export confirmation threshold | Triggered at 101+ matches; never blocks 1–100 |
 | Cancellation latency | `Cancelled` state and cleanup within 2 s of the modal request (or after the current image/phase boundary) |
 | UI responsiveness during export | Dashboard remains interactive; no dispatcher stall > 100 ms observed |
-| Peak memory increase | ≤ 250 MB over pre-export working set; bounded by one staged image at a time |
-| PDF size | ≤ 25 MB for 100 inspections at the bounded image dimension |
+| Peak memory increase | ≤ 250 MB over pre-export working set; bounded by one staged image at a time (measured +80.5 MB; §9) |
+| PDF size | ≤ 25 MB for 100 inspections at the bounded image dimension (measured 0.87 MB; §9) |
 | Repeated exports | Three consecutive exports succeed; temp staging folders do not accumulate |
 | Failure/cancel cleanup | Temp PDF/staging removed in all failure and cancellation paths |
 | App-exit cleanup | No orphaned report temp files after closing mid-export |
@@ -214,3 +218,36 @@ Phase 9 may merge into `main` only when:
 | Memory spikes on large export | Staging one image at a time; byte[] retained across pages |
 | UI freezes during export | Synchronous annotation/encode/generate on the dispatcher |
 | App exit leaves files | `CancelAll` not called, `Dispose` cleanup missing, or process killed before cleanup |
+
+## 9. Task Group 7 Results (2026-11-15)
+
+### 9.1 Automated verification
+
+| Command | Result |
+|---|---|
+| `dotnet build pcb-deftek.slnx` | 0 warnings, 0 errors |
+| `dotnet test tests/pcb-deftek.Bdd/ --filter "FullyQualifiedName~AuditPdfExportFeature"` | 7 passed, 0 failed |
+| `dotnet test pcb-deftek.slnx` | 834 passed (790 unit + 44 BDD), 0 failed, 0 skipped |
+
+The new BDD suite uses an isolated SQLite file, temp report/staging/image roots, a stub notification service, a stub confirmation service, and the real export/document/annotation/deletion services. It covers configured-path export, blank-path fallback under a temp-rooted `PCB Deftek/Report` tree, no-match toast with no modal, 101-record confirmation decline, modal cancellation, invalid-evidence deletion, and History hydration cleanup.
+
+### 9.2 Performance measurement
+
+Measured with a release-build throwaway harness on the development machine:
+
+| Metric | Value | Gate |
+|---|---|---|
+| Corpus | 100 inspections, 2 defects each, 480×640 source image | 100 inspections, 1–3 defects |
+| Wall clock | 2.4–2.7 s | ≤ 60 s |
+| PDF size | 870,981 bytes (0.87 MB) | ≤ 25 MB |
+| Working-set increase | 80.5 MB | ≤ 250 MB |
+| Staging folders remaining | 0 | 0 |
+| Signature | `%PDF-` | valid PDF |
+
+The generated 100-inspection report was inspected (35 pages) and contains the header, filter summary, four metric blocks, evidence headings with PASS/FAIL, three-column defect tables (Class, Confidence, Severity), annotated images, and `Page x of y` footers. No interactive PDF viewer was used; content was verified through PDF text extraction.
+
+### 9.3 Remaining manual/deferred gates
+
+- Task 2.5 manual "close the app mid-export" check remains open; automated cancellation/cleanup tests pass.
+- The 4-step Feature Review and Quality Improvement pipeline is executed locally for Task Group 7; PR review/approval remains open.
+- Human review approval is required before merge.
