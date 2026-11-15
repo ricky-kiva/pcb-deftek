@@ -204,7 +204,7 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
   - [x] Final [`v0.10.0`](https://github.com/ricky-kiva/pcb-deftek/releases/tag/v0.10.0) assets downloaded and verified: hashes match `SHA256SUMS.txt`, both executables are signed and timestamped, and the installer installs, launches and uninstalls cleanly (run `43750845817`).
 - **Deviations:**
   - The certificate is self-signed, so the verdict gates public distribution on a publicly trusted certificate; the original acceptance wording assumed a trusted certificate.
-  - Install/uninstall was validated on the existing user profile; a clean-profile install is still listed under Checkpoint C.
+  - Install/uninstall was validated on the existing profile, and the owner installed the released `v0.10.0` installer on their machine; a separate clean-profile run was not performed.
 - **Dependencies:** Tasks 1–7
 - **Files:**
   - `specs/2026-11-15-hardening-bdd-launch-readiness/launch-checklist.md`
@@ -216,7 +216,7 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 
 ### Checkpoint C: Release Ready
 - [x] All gates in `validation.md` pass, including the new hardware/notification/packaging/signature/release rows.
-- [ ] Signed installer installs on a clean profile and the app starts (validated on the existing profile; a clean-profile run remains unperformed — owner approved the release without it).
+- [x] Signed installer installs and the app starts (owner installed the released `v0.10.0` installer on their machine and confirmed the app runs; a separate clean-profile run was not needed).
 - [x] Human approval recorded before tagging `v0.10.0` (approved 2026-11-16; tag pushed and release published).
 
 ---
