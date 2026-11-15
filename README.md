@@ -5,10 +5,20 @@
 <h1 align="center">PCB Deftek</h1>
 
 <p align="center">
-  <a href="https://github.com/ricky-kiva/pcb-deftek/actions/workflows/ci.yml"><img src="https://github.com/ricky-kiva/pcb-deftek/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <p align="center">
+      <a href="https://github.com/ricky-kiva/pcb-deftek/actions/workflows/ci.yml" style="text-decoration: none;">
+        <img src="https://github.com/ricky-kiva/pcb-deftek/actions/workflows/ci.yml/badge.svg" alt="CI status">
+      </a>
+      <a href="https://dotnet.microsoft.com/en-us/download/dotnet/10.0" style="text-decoration: none;">
+          <img src="https://img.shields.io/badge/10.0-512BD4?logo=dotnet&logoColor=white" alt=".NET 10">
+        </a>
+      <a href="https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-14" style="text-decoration: none;">
+        <img src="https://img.shields.io/badge/C%23-14.0-239120?logo=csharp&logoColor=white" alt="C# 14">
+      </a>
+    </p>
 </p>
 
-Automated PCB defect detection and analysis for Windows. PCB Deftek inspects boards with an ONNX YOLO detector, localizes and classifies trace defects, stores inspection evidence in SQLite, and produces audit-ready PDF reports.
+Automated PCB trace defect detection and analysis for Windows. PCB Deftek inspects boards with an ONNX YOLO detector, localizes and classifies trace defects, stores inspection evidence in SQLite, and produces audit-ready PDF reports.
 
 > **Detection scope:** This application is specifically designed to detect PCB trace defects (e.g., open circuits and short circuits). It is best suited for bare PCBs without mounted components.
 
@@ -81,13 +91,19 @@ Every test creates its own SQLite database, capture folder, and export folder un
 
 Report, backup, and image folders are configurable in Settings. User-owned source images are never modified or deleted; cleanup is limited to records and app-owned capture files.
 
-## Project documentation
+## Sample PCB Images
 
-- Product scope: [`specs/mission.md`](specs/mission.md)
-- Stack and constraints: [`specs/tech-stack.md`](specs/tech-stack.md)
-- Roadmap: [`specs/roadmap.md`](specs/roadmap.md)
-- Per-phase plans, requirements, and validation: [`specs/`](specs/)
+You can use the sample PCB images provided in [`docs/sample-images/`](https://github.com/ricky-kiva/pcb-deftek/tree/main/docs/sample-images) to try out the application's AI-powered defect detection functionality.
+
+Alternatively, you can browse and download additional PCB defect images from the [Ultralytics Dataset](https://platform.ultralytics.com/lion-heron/datasets/dspcbsd-pcb-surface-defect).
+
+## Attribution
+
+- **Developer:** [Rickyslash](https://rickyslash.my.id)
+- **Model:** [PCB Defect YOLOv8m](https://huggingface.co/Janani-V/pcb-defect-yolov8m-dspcbsd/blob/main/inspector.py)
+- **Dataset:** [A PCB Surface Defect Dataset](https://www.nature.com/articles/s41597-024-03656-8)
 
 ## License
 
 GNU General Public License v3.0 — see [`LICENSE.txt`](LICENSE.txt).
+
