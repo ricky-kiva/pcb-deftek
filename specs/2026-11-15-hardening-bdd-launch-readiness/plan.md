@@ -141,16 +141,16 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 - **Description:** Stop rethrowing migration failures from `async void App.OnStartup`. Extract sequencing into a testable coordinator; abort cleanly with a fatal log, one dialog, and exit code 1.
 - **Acceptance criteria:**
-  - [ ] `Infrastructure/Startup/StartupCoordinator.RunAsync(IServiceProvider, CancellationToken)` returns success/failure and carries the exception.
-  - [ ] Migration failure returns failure; startup routing is not attempted; no `MainWindow` is constructed.
-  - [ ] Routing failure remains non-fatal (warning + default view), matching current behavior.
-  - [ ] `App.OnStartup` logs `Fatal`, shows one user-safe dialog when `ShowErrorDialogs` is true, then calls `Shutdown(1)`.
-  - [ ] Success path unchanged: migrations → routing → window.
-  - [ ] Tests cover failing migrator (router never invoked), failing router (success), and the success path; no real `%LOCALAPPDATA%` database is touched.
+  - [x] `Infrastructure/Startup/StartupCoordinator.RunAsync(IServiceProvider, CancellationToken)` returns success/failure and carries the exception.
+  - [x] Migration failure returns failure; startup routing is not attempted; no `MainWindow` is constructed.
+  - [x] Routing failure remains non-fatal (warning + default view), matching current behavior.
+  - [x] `App.OnStartup` logs `Fatal`, shows one user-safe dialog when `ShowErrorDialogs` is true, then calls `Shutdown(1)`.
+  - [x] Success path unchanged: migrations → routing → window.
+  - [x] Tests cover failing migrator (router never invoked), failing router (success), and the success path; no real `%LOCALAPPDATA%` database is touched.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~StartupCoordinatorTests`
-  - [ ] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DependencyInjectionTests`
-  - [ ] Manual: replace `app.db` with a corrupt copy (back it up first) and launch; expect fatal log, one dialog, exit without a window; restore the backup.
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~StartupCoordinatorTests` → 3 passed
+  - [x] `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DependencyInjectionTests` → 46 passed
+  - [x] Manual: replaced `app.db` with a corrupt file (backup taken first); the app logged `Fatal`, showed one dialog, exited with code 1, and left no window. Restored the backup; the next launch showed the dashboard.
 - **Dependencies:** Task 1.1
 - **Files:**
   - `Infrastructure/Startup/StartupCoordinator.cs`
@@ -162,8 +162,8 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 ### Checkpoint 2: Critical Branches Are Proven
 - [x] Both new BDD scenarios pass; existing 44 scenarios unchanged.
-- [ ] Startup failure path verified manually and by tests.
-- [x] Full suite green with no regression against the 834-test baseline (790 unit + 46 BDD).
+- [x] Startup failure path verified manually and by tests.
+- [x] Full suite green with no regression against the 834-test baseline (793 unit + 46 BDD).
 - [ ] Human review before Group 4.
 
 ---
