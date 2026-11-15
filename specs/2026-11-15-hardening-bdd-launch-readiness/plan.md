@@ -222,11 +222,11 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 - **Description:** Execute and record every gate in `validation.md`.
 - **Acceptance criteria:**
-  - [ ] `dotnet build pcb-deftek.slnx -c Release -warnaserror` → 0 errors, 0 warnings.
-  - [ ] `dotnet test pcb-deftek.slnx` → 100 % pass, 0 skipped, no regression against the 834-test baseline.
-  - [ ] CI green on the final commit; launch verdict recorded.
+  - [x] `dotnet build pcb-deftek.slnx -c Release -warnaserror` → 0 errors, 0 warnings.
+  - [x] `dotnet test pcb-deftek.slnx` → 100 % pass, 0 skipped, no regression against the updated baseline (800 unit + 46 BDD locally; 798 + 46 in CI).
+  - [x] CI green on the final commit; launch verdict recorded.
 - **Verification:**
-  - [ ] `validation.md` §8 updated with commands and counts.
+  - [x] `validation.md` §8 updated with commands and counts.
 - **Dependencies:** Task Groups 1–4
 - **Files:**
   - `specs/2026-11-15-hardening-bdd-launch-readiness/validation.md`
