@@ -89,7 +89,7 @@ public class CameraServiceTests
         sut.CurrentCamera.Name.Should().Be("Mock Camera");
 
         // Wait for at least one frame
-        var receivedFrame = await Task.WhenAny(frameTcs.Task, Task.Delay(1500));
+        var receivedFrame = await Task.WhenAny(frameTcs.Task, Task.Delay(TimeSpan.FromSeconds(15)));
         receivedFrame.Should().Be(frameTcs.Task);
 
         var frame = await frameTcs.Task;

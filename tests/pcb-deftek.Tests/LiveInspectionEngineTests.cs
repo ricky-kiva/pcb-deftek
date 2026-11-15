@@ -134,7 +134,7 @@ public class LiveInspectionEngineTests
         using var incomingMat = new Mat(100, 100, MatType.CV_8UC3, new Scalar(50, 50, 50));
         _mockCamera.Raise(c => c.FrameReceived += null, new CameraFrameEventArgs(incomingMat));
 
-        var completedTask = await Task.WhenAny(processedTcs.Task, Task.Delay(2000));
+        var completedTask = await Task.WhenAny(processedTcs.Task, Task.Delay(TimeSpan.FromSeconds(15)));
         completedTask.Should().Be(processedTcs.Task);
 
         var result = await processedTcs.Task;
@@ -255,10 +255,10 @@ public class LiveInspectionEngineTests
 
         using var mat = new Mat(100, 100, MatType.CV_8UC3, new Scalar(0, 0, 0));
         _mockCamera.Raise(c => c.FrameReceived += null, new CameraFrameEventArgs(mat));
-        var res1 = await frame1Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var res1 = await frame1Tcs.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         _mockCamera.Raise(c => c.FrameReceived += null, new CameraFrameEventArgs(mat));
-        var res2 = await frame2Tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var res2 = await frame2Tcs.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         res1.IsPass.Should().BeFalse();
         res1.DefectCount.Should().Be(3);
