@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -209,6 +210,84 @@ public class DefectImageViewerTests
         thread.Start();
         thread.Join();
         Assert.Null(captured);
+    }
+
+    [Fact]
+    public void MarkerHitAreaMatchesRenderedPositionAtFitAndAfterFocus()
+    {
+        Exception? captured = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var viewer = new DefectImageViewer { Width = 800, Height = 600 };
+                viewer.ImageSource = CreateBitmap(400, 100);
+                var marker = new DefectMarkerViewModel(
+                    new DetectedDefect(
+                        Guid.NewGuid(),
+                        Guid.NewGuid(),
+                        "short",
+                        0.9f,
+                        new BoundingBox(0.1f, 0.1f, 0.2f, 0.2f)),
+                    new Rect(40, 10, 80, 20));
+                viewer.Markers = new[] { marker };
+
+                viewer.Measure(new Size(800, 600));
+                viewer.Arrange(new Rect(0, 0, 800, 600));
+                viewer.UpdateLayout();
+                viewer.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
+                viewer.UpdateLayout();
+
+                // Letterboxed fit: the image origin sits at (0, 200). A LayoutTransform applies
+                // the scale but drops that translation, which moves the drawn box away from the
+                // region HitTest maps back to it.
+                AssertMarkerRenderedAtModelPosition(viewer, marker);
+
+                viewer.SelectedMarker = marker;
+                PumpDispatcher(TimeSpan.FromMilliseconds(300));
+                viewer.Transform!.ZoomFactor.Should().BeGreaterThan(1);
+                AssertMarkerRenderedAtModelPosition(viewer, marker);
+            }
+            catch (Exception ex)
+            {
+                captured = ex;
+            }
+            finally
+            {
+                Dispatcher.CurrentDispatcher.InvokeShutdown();
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        Assert.Null(captured);
+    }
+
+    /// <summary>
+    /// Asserts that the marker's on-screen rectangle equals the mapping hit testing uses:
+    /// image pixels scaled and offset by the viewport transform.
+    /// </summary>
+    private static void AssertMarkerRenderedAtModelPosition(
+        DefectImageViewer viewer,
+        DefectMarkerViewModel marker)
+    {
+        var transform = viewer.Transform;
+        transform.Should().NotBeNull();
+
+        var layer = (ItemsControl)viewer.FindName("MarkerLayer");
+        object? container = layer.ItemContainerGenerator.ContainerFromItem(marker);
+        container.Should().NotBeNull();
+
+        GeneralTransform markerToViewer = ((UIElement)container!).TransformToAncestor(viewer);
+        Rect bounds = marker.PixelBounds;
+
+        Point origin = markerToViewer.Transform(new Point(0, 0));
+        Point end = markerToViewer.Transform(new Point(bounds.Width, bounds.Height));
+
+        origin.X.Should().BeApproximately((bounds.X * transform!.Scale) + transform.OffsetX, 0.5);
+        origin.Y.Should().BeApproximately((bounds.Y * transform.Scale) + transform.OffsetY, 0.5);
+        end.X.Should().BeApproximately((bounds.Right * transform.Scale) + transform.OffsetX, 0.5);
+        end.Y.Should().BeApproximately((bounds.Bottom * transform.Scale) + transform.OffsetY, 0.5);
     }
 
     private static BitmapSource CreateQuadrantBitmap(int size)
