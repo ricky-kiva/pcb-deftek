@@ -86,4 +86,25 @@ public class WindowsNotificationServiceTests
         // Assert
         await act.Should().NotThrowAsync();
     }
+
+    [Fact]
+    public void Constructor_WhenDefault_WiresTheCompatToastDispatcher()
+    {
+        // Arrange
+        var service = new WindowsNotificationService();
+
+        // Act & Assert: the default path must be the compat notifier that registers an
+        // AppUserModelID, otherwise unpackaged runs (VS debug, dotnet run) cannot toast.
+        service.UsesCompatDispatcher.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Constructor_WhenCustomDispatcherInjected_DoesNotUseTheCompatPath()
+    {
+        // Arrange
+        var service = new WindowsNotificationService((_, _) => { });
+
+        // Act & Assert
+        service.UsesCompatDispatcher.Should().BeFalse();
+    }
 }
