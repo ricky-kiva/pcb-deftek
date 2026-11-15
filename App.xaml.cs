@@ -14,6 +14,7 @@ using pcb_deftek.Infrastructure.Persistence.Migrations;
 using pcb_deftek.Infrastructure.Inference;
 using pcb_deftek.Infrastructure.Persistence.Repositories;
 using pcb_deftek.Infrastructure.Services;
+using pcb_deftek.Infrastructure.Startup;
 using pcb_deftek.Infrastructure.Vision;
 using pcb_deftek.Presentation.Navigation;
 using pcb_deftek.Presentation.Services;
@@ -61,26 +62,28 @@ public partial class App : Application
         ConfigureServices(services);
         _serviceProvider = services.BuildServiceProvider();
 
-        // Run automated database migrations on startup
-        try
+        // Run the pre-window startup sequence: migrations are fatal, routing is best-effort.
+        var startup = _serviceProvider.GetRequiredService<StartupCoordinator>();
+        StartupResult startupResult = await startup.RunAsync(_serviceProvider).ConfigureAwait(true);
+        if (!startupResult.Succeeded)
         {
-            var migrator = _serviceProvider.GetRequiredService<IDatabaseMigrator>();
-            await migrator.MigrateToLatestAsync().ConfigureAwait(true);
-        }
-        catch (Exception ex)
-        {
-            Log.Fatal(ex, "Critical database migration failure during application startup: {Message}", ex.Message);
-            throw;
-        }
-        // Evaluate startup preferences and route initial view model
-        try
-        {
-            var router = _serviceProvider.GetRequiredService<IStartupRoutingService>();
-            await router.RouteStartupAsync().ConfigureAwait(true);
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Non-critical startup routing evaluation warning: {Message}", ex.Message);
+            Exception failure = startupResult.Failure!;
+            Log.Fatal(
+                failure,
+                "Critical database migration failure during application startup: {Message}",
+                failure.Message);
+
+            if (ShowErrorDialogs)
+            {
+                MessageBox.Show(
+                    $"PCB Deftek could not open its inspection database and will close.\n\n{failure.Message}\n\nSee the application log for details.",
+                    "Startup Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+
+            Shutdown(1);
+            return;
         }
 
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
@@ -154,6 +157,7 @@ public partial class App : Application
         services.AddSingleton<IPcbDefectDetector, PcbDefectDetector>();
         services.AddSingleton<IImageAnnotationService, ImageAnnotationService>();
         // Navigation & Presentation Services
+        services.AddSingleton<StartupCoordinator>();
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IStartupRoutingService, StartupRoutingService>();
         services.AddSingleton<SettingsViewModel>();
