@@ -105,12 +105,12 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 - **Description:** Cover the only missing sidebar transition: focused → default. Test-only; no production change.
 - **Acceptance criteria:**
-  - [ ] Focusing a marker sets `IsDefectFocused` and shows focused diagnostics.
-  - [ ] `SelectMarker(null)` (the existing empty-canvas click path) restores the default sidebar: record name, timestamp, class summaries.
-  - [ ] `Delete Image` remains available in both states.
-  - [ ] Scenario uses the isolated history database; existing scenarios unchanged.
+  - [x] Focusing a marker sets `IsDefectFocused` and shows focused diagnostics.
+  - [x] `SelectMarker(null)` (the existing empty-canvas click path) restores the default sidebar: record name, timestamp, class summaries.
+  - [x] `Delete Image` remains available in both states.
+  - [x] Scenario uses the isolated history database; existing scenarios unchanged.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Bdd/ --filter "FullyQualifiedName~HistoryAndDefectViewerFeature"`
+  - [x] `dotnet test tests/pcb-deftek.Bdd/ --filter "FullyQualifiedName~HistoryAndInteractiveDefectViewerFeature"` → 11 passed (10 existing + 1 new)
 - **Dependencies:** Task 1.1
 - **Files:**
   - `tests/pcb-deftek.Bdd/Features/HistoryAndDefectViewer.feature`
@@ -121,12 +121,12 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 - **Description:** Cover the export failure branch with an unwritable destination. Test-only; no production change.
 - **Acceptance criteria:**
-  - [ ] Destination cannot be created (a file occupies the directory path).
-  - [ ] Data-export progress reaches `Failed`; failure toast title is `Report export failed`.
-  - [ ] No `.pdf`, `.tmp`, or staging directory remains; no success toast.
-  - [ ] Scenario uses an isolated temp root and recording notification service.
+  - [x] Destination cannot be created (a file occupies the directory path).
+  - [x] Data-export progress reaches `Failed`; failure toast title is `Report export failed`.
+  - [x] No `.pdf`, `.tmp`, or staging directory remains; no success toast.
+  - [x] Scenario uses an isolated temp root and recording notification service.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Bdd/ --filter "FullyQualifiedName~AuditPdfExportFeature"`
+  - [x] `dotnet test tests/pcb-deftek.Bdd/ --filter "FullyQualifiedName~AuditPdfExportFeature"` → 8 passed (7 existing + 1 new)
 - **Dependencies:** Task 1.1
 - **Files:**
   - `tests/pcb-deftek.Bdd/Features/AuditPdfExport.feature`
@@ -161,9 +161,9 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 ---
 
 ### Checkpoint 2: Critical Branches Are Proven
-- [ ] Both new BDD scenarios pass; existing 44 scenarios unchanged.
+- [x] Both new BDD scenarios pass; existing 44 scenarios unchanged.
 - [ ] Startup failure path verified manually and by tests.
-- [ ] Full suite green with no regression against the 834-test baseline.
+- [x] Full suite green with no regression against the 834-test baseline (790 unit + 46 BDD).
 - [ ] Human review before Group 4.
 
 ---

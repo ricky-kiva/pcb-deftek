@@ -63,3 +63,13 @@ Feature: Audit PDF Export
     And an inspection "missing-history-board" whose image file is missing
     When the history page loads
     Then the missing record should be removed from history
+
+  Scenario: Failed export notifies and writes nothing
+    Given an isolated export database
+    And the report export path points at a file
+    And an exportable inspection "blocked-board" with a "short" defect
+    When I export the dashboard report
+    Then the data export should have failed
+    And the report failure notification should have fired
+    And no report PDF should be written
+    And no export staging directory should remain

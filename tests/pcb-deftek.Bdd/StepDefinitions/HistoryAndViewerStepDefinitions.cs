@@ -241,6 +241,9 @@ public class HistoryAndViewerStepDefinitions : IDisposable
     [When(@"I focus the first defect marker")]
     public void WhenIFocusTheFirstDefectMarker() => _viewer.SelectMarker(_viewer.DefectMarkers[0]);
 
+    [When(@"I clear the defect focus")]
+    public void WhenIClearTheDefectFocus() => _viewer.SelectMarker(null);
+
     [When(@"I crop the normalized region (.*), (.*), (.*), (.*)")]
     public async Task WhenICropNormalizedRegion(double x, double y, double width, double height)
     {
@@ -320,6 +323,12 @@ public class HistoryAndViewerStepDefinitions : IDisposable
         _viewer.FocusedImpact.Should().NotBeNullOrWhiteSpace();
         _viewer.FocusedAction.Should().NotBeNullOrWhiteSpace();
     }
+
+    [Then(@"the defect focus should be cleared")]
+    public void ThenTheDefectFocusShouldBeCleared() => _viewer.IsDefectFocused.Should().BeFalse();
+
+    [Then(@"the Delete Image action should be available")]
+    public void ThenTheDeleteImageActionShouldBeAvailable() => _viewer.CanDeleteImage.Should().BeTrue();
 
     [Then(@"the crop PNG should be (.*)x(.*)")]
     public void ThenCropDimensions(int width, int height)
