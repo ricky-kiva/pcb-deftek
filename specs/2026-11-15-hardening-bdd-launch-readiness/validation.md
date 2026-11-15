@@ -7,7 +7,8 @@
 | Restore | `dotnet restore pcb-deftek.slnx` | Completes; no new package |
 | Build | `dotnet build pcb-deftek.slnx -c Release --no-restore -warnaserror` | 0 errors, **0 warnings** |
 | Nullable | Build output | No nullable warnings; no suppression added |
-| Project file | `git diff pcb-deftek.csproj` | Only version metadata |
+| Project file | `git diff pcb-deftek.csproj` | Version metadata and `ApplicationIcon`/icon `Resource` only |
+| Icon | Release build output | `ApplicationIcon` embedded; `Window.Icon` bound in XAML; asset tracked (`git ls-files Assets/app-icon.ico`) |
 | Schema | `git diff Infrastructure/Persistence/Migrations` | No migration added |
 | Hygiene | `git diff` | No absolute user paths, no secrets, no build output |
 
@@ -93,6 +94,15 @@ Performance under continuous inference is **not** covered by this phase; the che
 - [ ] Checklist re-walked after `git clean -xdf` with the same verdict.
 - [ ] One overall Go/No-Go recorded.
 
+### 5.5 Brand Identity & README
+
+- [ ] Executable icon in Explorer, title bar, and taskbar matches `Assets/app-icon.ico`.
+- [ ] `ApplicationIcon` and the icon `Resource` are set; the window `Icon` is bound; build remains at 0 warnings.
+- [ ] `Assets/app-icon.ico` and all five `docs/assets/` files are tracked in git.
+- [ ] README shows the logo at the top and embeds exactly the four staged page screenshots, in page order, with no broken links.
+- [ ] README states the detection scope: PCB trace defects (open/short circuits), best suited to bare PCBs without mounted components.
+- [ ] README documents the screenshot naming convention and current values (`1`/`1`).
+
 ## 6. CI Results (to be recorded)
 
 | Item | Value |
@@ -156,5 +166,7 @@ Phase 10 may merge into `main` only when:
 | Startup dialog appears twice | Dispatcher handler and coordinator both reporting |
 | Startup exits 0 on migration failure | `Shutdown(1)` not reached or exception swallowed |
 | Version missing from binary | Wrong PropertyGroup or stale output |
+| Executable still shows the default icon | `ApplicationIcon` path wrong, asset not tracked, or stale output; rebuild and check `FileVersionInfo`/icon extraction |
+| README images broken | Asset untracked, filename mismatch/case, or wrong relative path; compare `git ls-files docs/assets` with the Markdown links |
 | Checklist item has no evidence | Re-run the check; an unevidenced item is a No-Go |
 | Checklist implies performance was verified | It was not; the known-gaps section must say so |

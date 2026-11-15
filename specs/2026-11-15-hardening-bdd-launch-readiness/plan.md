@@ -2,16 +2,18 @@
 
 ## Overview
 
-Phase 10 closes the roadmap with the smallest set of work that makes the shipped product **verifiable and distributable**. Ten tasks in five groups: CI, two test-only BDD scenarios, one startup-safety fix, release metadata, the launch checklist, and the merge gates.
+Phase 10 closes the roadmap with the smallest set of work that makes the shipped product **verifiable and distributable**. Ten tasks in five groups: CI with the application icon, README with brand assets, two test-only BDD scenarios, one startup-safety fix, release metadata, the launch checklist, and the merge gates.
 
 Deliberately deferred to keep launch fast (recorded in `requirements.md` §2.2 and as known gaps in the launch checklist): performance verification under continuous camera inference (roadmap Phase 10 bullet 2), the performance harness, the dashboard drag-path refactor and its BDD scenario, and a separate changelog file. The drag path is covered by a manual smoke step; release notes live inside the launch checklist.
+
+Brand assets already staged in the working tree: `Assets/app-icon.ico` (362 KB, six-size ICO) and `docs/assets/` (logo + one screenshot per page). Both are untracked today and are committed by Tasks 1.1 and 1.2.
 
 Task list target: **this `plan.md`** — project convention is `specs/<date>-<feature>/{plan,requirements,validation}.md`, so no `tasks/` directory is created.
 
 ## Architecture & Dependency Graph
 
 ```
-1. CI + README ──────────────────────────── gate for everything below
+1. CI, application icon, README brand assets ── gate for everything below
         │
 2. BDD: viewer focus reset, export failure   (test-only, no production change)
 3. Startup failure recovery ── StartupCoordinator ── App.OnStartup
@@ -27,44 +29,64 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 ### Task Group 1: CI/CD Build & Test Automation
 
-#### Task 1.1: GitHub Actions CI Pipeline
+#### Task 1.1: GitHub Actions CI Pipeline & Application Icon
 
-- **Description:** Add one workflow that restores, builds in Release with warnings as errors, and runs the unit and BDD projects separately, publishing `.trx` results on every outcome.
+- **Description:** Add one workflow that restores, builds in Release with warnings as errors, and runs the unit and BDD projects separately, publishing `.trx` results on every outcome. In the same task, wire the staged `Assets/app-icon.ico` as the executable icon and the WPF window icon.
 - **Acceptance criteria:**
   - [ ] `.github/workflows/ci.yml` triggers on `push`/`pull_request` to `main` plus `workflow_dispatch`; `permissions: contents: read`; concurrency cancels superseded runs.
   - [ ] Runs on `windows-latest`, `actions/setup-dotnet` pinned to `10.0.x`, NuGet cache keyed by `hashFiles('**/*.csproj')`.
   - [ ] `dotnet build pcb-deftek.slnx -c Release --no-restore -warnaserror` — any warning fails the job.
   - [ ] Unit and BDD tests run separately with `-c Release --no-build --no-restore --logger trx`; results upload with `if: always()`.
   - [ ] No secrets, no new NuGet package, job under 20 minutes.
+  - [ ] `pcb-deftek.csproj` sets `<ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>` and includes the file as `<Resource>`; no other build item changes.
+  - [ ] `MainWindow.xaml` sets `Icon` to the packaged `Assets/app-icon.ico` resource; title bar and taskbar show the icon at runtime.
+  - [ ] `Assets/app-icon.ico` is tracked in git (`git ls-files Assets/app-icon.ico`).
+  - [ ] Release build remains at 0 warnings and the solution builds unchanged.
 - **Verification:**
   - [ ] Workflow run URL and duration recorded in `validation.md` §6.
   - [ ] The same commands pass locally in Release with 0 warnings.
+  - [ ] Built executable shows the icon in Explorer (`[System.Drawing.Icon]::ExtractAssociatedIcon` or manual check); running app shows it in the title bar and taskbar.
 - **Dependencies:** None
 - **Files:**
   - `.github/workflows/ci.yml`
-- **Estimated scope:** S (1 file)
+  - `pcb-deftek.csproj`
+  - `MainWindow.xaml`
+  - `Assets/app-icon.ico` (tracked)
+- **Estimated scope:** M (4 files)
 
-#### Task 1.2: Minimal README
+#### Task 1.2: README with Brand Assets
 
-- **Description:** Replace the 12-byte stub with only what a new contributor or reviewer needs to build, run, and test.
+- **Description:** Replace the 12-byte stub with a launch-ready README: logo, what the product does and what it is not for, page screenshots, prerequisites, commands, test isolation rule, and data/log locations.
 - **Acceptance criteria:**
+  - [ ] Logo `docs/assets/readme-logo-1-1-c.png` is displayed at the top via a relative path that renders on GitHub.
+  - [ ] Description states, in these terms: "This application is specifically designed to detect PCB trace defects (e.g., open circuits and short circuits). It is best suited for bare PCBs without mounted components."
+  - [ ] A Screenshots section embeds all four staged captures from `docs/assets/`, in page order with captions: `readme-ss-page-dashboard-1-1-c.jpg`, `readme-ss-page-live-detection-1-1-c.jpg`, `readme-ss-page-file-detection-1-1-c.jpg`, `readme-ss-page-history-1-1-c.jpg`. No screenshot is invented for a page that has none.
+  - [ ] Documents the screenshot naming convention `readme-ss-page-{page_name}-{int_image_number}-{int_revision}-c.jpg` (current values: image number `1`, revision `1`) so later captures slot in without renaming.
   - [ ] Prerequisites: Windows x64, .NET 10 SDK, optional webcam, optional DirectML GPU.
   - [ ] Commands: `dotnet restore`, `dotnet build pcb-deftek.slnx -c Release`, `dotnet run --project pcb-deftek.csproj`, `dotnet test pcb-deftek.slnx`.
   - [ ] States that tests use isolated temp databases/roots and never touch real user data.
   - [ ] Lists data/log locations: `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\{app.db,logs,Captures}`, `Downloads\PCB Deftek\{Report,Backup,Images}`.
+  - [ ] `docs/assets/` (logo + four screenshots) is tracked in git; every relative link resolves (`git ls-files docs/assets` matches the referenced files).
   - [ ] No secrets or developer-specific paths.
 - **Verification:**
   - [ ] Every documented command executed from the repository root.
+  - [ ] README rendered locally or on the branch and checked for broken image links.
 - **Dependencies:** Task 1.1
 - **Files:**
   - `README.md`
-- **Estimated scope:** XS (1 file)
+  - `docs/assets/readme-logo-1-1-c.png` (tracked)
+  - `docs/assets/readme-ss-page-dashboard-1-1-c.jpg` (tracked)
+  - `docs/assets/readme-ss-page-live-detection-1-1-c.jpg` (tracked)
+  - `docs/assets/readme-ss-page-file-detection-1-1-c.jpg` (tracked)
+  - `docs/assets/readme-ss-page-history-1-1-c.jpg` (tracked)
+- **Estimated scope:** S (1 markdown file + 5 tracked assets)
 
 ---
 
 ### Checkpoint 1: CI Enforces the Quality Bar
 - [ ] CI green on the branch; blocks on warnings and test failures.
-- [ ] README commands verified.
+- [ ] README commands verified; logo, four screenshots, and scope statement render correctly.
+- [ ] Application icon visible in Explorer, title bar, and taskbar; icon and README assets tracked.
 - [ ] Human review before Group 2.
 
 ---
@@ -160,11 +182,13 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 - **Acceptance criteria:**
   - [ ] Covers: clean-clone build; full suite; Release publish; artifact contents/size; runtime prerequisites; functional smoke matrix for every essential feature in `mission.md` §5.1; data-safety checks; log/error behavior; `dotnet list package --vulnerable`; secrets/absolute-path scan; known gaps.
   - [ ] Functional smoke matrix includes the manual steps that replace deferred automation: drag a metric card and confirm persistence after reload; drop a card on itself (no change); open Live Detection and confirm streaming, overlays, telemetry, auto-hide, and capture.
+  - [ ] Checklist verifies the application icon: executable icon in Explorer, title-bar and taskbar icon at runtime, matching `Assets/app-icon.ico`.
+  - [ ] Checklist verifies README rendering: logo and all four page screenshots resolve from `docs/assets/`, and the trace-defect/bare-PCB scope statement is present.
   - [ ] Release notes for `0.10.0` are included in the checklist (Added / Changed / Fixed / Known Limitations), derived from phase specs — no separate changelog file.
   - [ ] `dotnet publish -c Release -r win-x64 --self-contained false` executed; output launched; smoke matrix run against it.
   - [ ] Every item records pass/fail with evidence; one overall Go/No-Go with conditions.
-  - [ ] Scope stated: no installer/MSIX, no signing, no icon, no GitHub Release publication (`mission.md` §5.2).
-  - [ ] Known gaps recorded: performance under continuous inference unverified, no automated drag-path test, multi-instance behavior allowed.
+  - [ ] Scope stated: no installer/MSIX, no signing, no splash branding, no GitHub Release publication (`mission.md` §5.2); the application icon and README brand assets are in scope.
+  - [ ] Known gaps recorded: performance under continuous inference unverified, no automated drag-path test, multi-instance behavior allowed, splash branding deferred.
 - **Verification:**
   - [ ] Checklist re-walked after `git clean -xdf`; same verdict.
 - **Dependencies:** Tasks 2.1, 2.2, 3.1, 4.1
@@ -243,6 +267,8 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 | ONNX model load (50 MB) inflates CI duration | Medium | Model copied from output; 20-minute timeout measured on first run. |
 | Launching without measured memory/UI behavior under continuous inference | High | Accepted for launch speed; recorded as a known gap in the checklist, with an ad-hoc pre-pilot soak recommended before wider distribution. |
 | No automated drag-path test | Medium | Manual checklist step (drag + reload, drop-on-self) executed against the portable build. |
+| Brand assets stay untracked or README paths break on GitHub | Medium | Commit `Assets/app-icon.ico` and `docs/assets/*`; verify links with `git ls-files` and a rendered check of the branch. |
+| Icon wiring breaks XAML resource loading or adds a warning | Low | `<ApplicationIcon>` for the executable, `<Resource>` + `Window.Icon` for the window; build and launch smoke in the same task. |
 | Startup extraction alters the success path | High | Coordinator success-path test, DI tests, and a manual cold start after the change. |
 | New scenarios leak temp roots or share state | Medium | Follow the existing per-scenario container/temp-root pattern and dispose. |
 | Checklist becomes a rubber stamp | High | Evidence required per item; clean-clone rebuild; smoke matrix against the published output. |
@@ -252,7 +278,7 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 1. CI on GitHub-hosted runners for `ricky-kiva/pcb-deftek`.
 2. Version `0.10.0`; release notes live in the launch checklist rather than `CHANGELOG.md`.
-3. Launch scope: portable `win-x64` publish only; installer/MSIX, signing, icon, and release publication stay in `mission.md` §5.2.
+3. Launch scope: portable `win-x64` publish only; installer/MSIX, code signing, splash branding, and release publication stay in `mission.md` §5.2. The official application icon and README brand assets are pulled into this phase.
 4. Startup behavior change: migration failure exits with code 1 instead of leaving a window-less process.
 5. Acceptance of the deferred items in `requirements.md` §2.2 — including performance verification under continuous inference — as documented launch gaps.
 

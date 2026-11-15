@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary & Context
 
-Phases 1–9 delivered every essential feature in `mission.md` §5.1 with 834 passing tests (790 unit, 44 BDD), 0 warnings, and a working PDF export engine. Phase 10 adds only what is needed to launch: a CI gate, two test-only BDD scenarios for untested failure/transition branches, a startup-failure fix, release metadata, and a launch checklist with a Go/No-Go verdict.
+Phases 1–9 delivered every essential feature in `mission.md` §5.1 with 834 passing tests (790 unit, 44 BDD), 0 warnings, and a working PDF export engine. Phase 10 adds only what is needed to launch: a CI gate, the application icon, a branded README, two test-only BDD scenarios for untested failure/transition branches, a startup-failure fix, release metadata, and a launch checklist with a Go/No-Go verdict.
 
 The goal is **speed to launch**. Performance verification under continuous camera inference (`roadmap.md` Phase 10 bullet 2) is consciously deferred: it requires either a retained harness or a dedicated soak session, and both are recorded as a launch gap rather than implemented here. Deferred work is listed in §2.2 and must appear as known gaps in the launch checklist.
 
@@ -20,15 +20,15 @@ The goal is **speed to launch**. Performance verification under continuous camer
 | Performance measurement | None retained | Repository listing |
 | Startup failure | Migration failure rethrown from `async void OnStartup`; dispatcher sets `Handled = true` | `App.xaml.cs` |
 | Logging | Serilog rolling files, 30 retained, `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\logs` | `LoggingBootstrapper.cs` |
-| Versioning / packaging | No version metadata, changelog, installer, or icon | `pcb-deftek.csproj`, repository listing |
-| Documentation | `README.md` is a 12-byte stub | `README.md` |
+| Versioning / packaging | No version metadata, changelog, or installer; no icon wired, though `Assets/app-icon.ico` is staged (untracked) | `pcb-deftek.csproj`, repository listing |
+| Documentation | `README.md` is a 12-byte stub; logo and four page screenshots staged under `docs/assets/` (untracked) | `README.md`, `docs/assets/` |
 
 ## 2. Scope
 
 ### 2.1 In Scope
 
-1. **CI** — GitHub Actions workflow: Release build with warnings-as-errors, separate unit and BDD test runs, result artifacts.
-2. **README** — prerequisites, commands, test isolation rule, data/log locations.
+1. **CI and application icon** — GitHub Actions workflow: Release build with warnings-as-errors, separate unit and BDD test runs, result artifacts; `Assets/app-icon.ico` wired as executable and window icon.
+2. **README with brand assets** — logo, product scope statement, four page screenshots, prerequisites, commands, test isolation rule, data/log locations, and the screenshot naming convention.
 3. **BDD closure (test-only)** — viewer focused→default transition; export failure notification and cleanup.
 4. **Startup hardening** — a testable coordinator so migration failure logs, shows one dialog, exits with code 1, and leaves no window; routing failure stays non-fatal.
 5. **Release identity** — `0.10.0` metadata in the project.
@@ -42,10 +42,12 @@ The goal is **speed to launch**. Performance verification under continuous camer
 | Full performance harness (dispatcher probe, memory sampler, reproducibility gates) | Depends on the item above | Launch checklist known gaps |
 | Dashboard drag-path refactor (`DashboardCardDragData`, `TryApplyCardDrop`) and its BDD scenario | Production refactor right before launch buys test coverage at code risk; the reorder behavior is already covered through the view model | Manual smoke step: drag a card, reload, drop on self |
 | Separate `CHANGELOG.md` | Release notes are written inside the launch checklist for this build | Launch checklist release-notes section |
-| Installer/MSIX, code signing, application icon, branding, GitHub Release publication | `mission.md` §5.2 future enhancements | Checklist known gaps |
+| Installer/MSIX, code signing, splash branding, GitHub Release publication | `mission.md` §5.2 future enhancements | Checklist known gaps |
 | Coverage tooling/coverage gate | New dependency with no launch requirement | Not tracked |
 | Multi-instance enforcement | Product decision with UX consequences; surfaced rather than invented | Checklist risk entry |
 | Performance optimization of inference | Measurement must precede optimization | Not tracked |
+
+The application icon, previously listed under `mission.md` §5.2, is pulled into Phase 10 and therefore no longer deferred.
 
 Also out of scope: new features, UI redesign, schema changes, new settings keys, new NuGet packages, localization, auto-update.
 
@@ -68,6 +70,8 @@ Also out of scope: new features, UI redesign, schema changes, new settings keys,
 | D13 | No new NuGet packages, migrations, or settings keys. | Freezes the dependency and schema surface for launch. |
 | D14 | BDD scenarios reuse the isolated-database, temp-root, and stub-service pattern. | Tests never touch real user data. |
 | D15 | Dashboard drag-and-drop is covered by a manual smoke step in the checklist, not automation. | The behavior already passes through the tested view-model path; manual verification is sufficient for launch. |
+| D16 | The application icon ships in Phase 10: `<ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>` for the executable plus `<Resource>` and `Window.Icon` for the window/taskbar. | The asset is already produced (six-size ICO, 362 KB) and an unbranded executable/taskbar entry undermines an otherwise finished launch package. |
+| D17 | README brand assets live in `docs/assets/` with fixed names: logo `readme-logo-1-1-c.png`; screenshots `readme-ss-page-{page_name}-{int_image_number}-{int_revision}-c.jpg` (currently `1`/`1` for dashboard, live-detection, file-detection, history). Assets are committed so relative Markdown links render on GitHub. | Deterministic names let later revisions be added without rewriting the README or breaking links; only existing pages are shown. |
 
 ## 4. CI Contract
 
@@ -103,11 +107,11 @@ New scenarios assert observable behavior only (state values, toast title, file a
 
 1. **Build & reproducibility** — clean-clone restore/build/test; 0 warnings; publish command; artifact contents and size.
 2. **Runtime prerequisites** — Windows 10/11 x64, .NET 10 desktop runtime, optional webcam, optional DirectML GPU.
-3. **Functional smoke matrix** — every essential feature in `mission.md` §5.1, including the manual drag steps (drag + reload, drop on self) and a live-camera pass (streaming, overlays, telemetry, auto-hide, capture) where hardware exists.
+3. **Functional smoke matrix** — every essential feature in `mission.md` §5.1, including the manual drag steps (drag + reload, drop on self), a live-camera pass (streaming, overlays, telemetry, auto-hide, capture) where hardware exists, and confirmation that the executable, title bar, and taskbar show `Assets/app-icon.ico`.
 4. **Data safety** — user-owned images untouched; app-owned captures only; database/export locations; backup/restore guidance.
 5. **Diagnostics** — log location/retention, startup failure behavior, dialog suppression, no silent catches on critical paths.
 6. **Security & dependencies** — `dotnet list package --vulnerable`, secrets/absolute-path scan, no network calls or telemetry.
-7. **Release notes for 0.10.0** — Added / Changed / Fixed, derived from phase specs; Known Limitations (performance under continuous inference unverified, no installer, unsigned, no icon, multi-instance allowed, no automated drag-path test).
+7. **Release notes for 0.10.0** — Added / Changed / Fixed, derived from phase specs; Known Limitations (performance under continuous inference unverified, no installer, unsigned, splash branding deferred, multi-instance allowed, no automated drag-path test). README logo and screenshots verified as resolving from `docs/assets/`.
 8. **Verdict** — per-category pass/fail with evidence and one Go/No-Go with conditions.
 
 A Go requires: clean-clone build, full suite green, portable build starts and completes the smoke matrix, export produces a valid PDF, deletion policy verified, logs present, no vulnerable dependency, and no known data-loss defect. Unverified performance is an accepted condition of the verdict, not a silent omission.
@@ -133,6 +137,9 @@ A Go requires: clean-clone build, full suite green, portable build starts and co
 | Migration fails at startup | Fatal log, one dialog, exit code 1, no window |
 | Routing fails at startup | Warning log, default view, app usable |
 | No camera on the launch machine | Checklist marks camera features not verified on that machine; recorded as a gap |
+| Icon asset absent or untracked | `ApplicationIcon` points at a missing file → build error; the asset must be tracked before it is referenced |
+| README image path wrong, case-mismatched, or untracked | Links render broken on GitHub; verify with `git ls-files docs/assets` and a rendered check |
+| A page has no screenshot | No image is invented; only the four staged captures appear |
 | Portable publish without .NET 10 runtime | Framework-dependent build reports the missing runtime; documented prerequisite |
 | Existing `app.db` from an earlier phase | Migration runner upgrades it; checklist verifies on a copy |
 
