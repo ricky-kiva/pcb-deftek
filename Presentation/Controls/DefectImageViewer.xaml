@@ -34,14 +34,13 @@
         <Grid x:Name="Scene"
               HorizontalAlignment="Left"
               VerticalAlignment="Top"
-              RenderTransformOrigin="0,0"
               IsHitTestVisible="False">
-            <Grid.RenderTransform>
+            <Grid.LayoutTransform>
                 <TransformGroup>
                     <ScaleTransform x:Name="SceneScale" />
                     <TranslateTransform x:Name="SceneTranslate" />
                 </TransformGroup>
-            </Grid.RenderTransform>
+            </Grid.LayoutTransform>
 
             <Image x:Name="BoardImage"
                    Stretch="Fill"
