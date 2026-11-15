@@ -38,6 +38,15 @@ public partial class LiveDetectionViewModel : ViewModelBase
     private Task? _startupTask;
     private int _navigationVersion;
 
+    private LiveFrameResult? _pendingFrameResult;
+    private int _frameDispatchScheduled;
+
+    /// <summary>
+    /// Gets or sets an override used to resolve the UI dispatcher. Tests supply a dispatcher so
+    /// UI-marshalling behaviour can be exercised without a running <see cref="System.Windows.Application"/>.
+    /// </summary>
+    internal Func<System.Windows.Threading.Dispatcher?>? UiDispatcherProvider { get; set; }
+
     /// <inheritdoc />
     public override string Title => "Live Detection";
 
@@ -501,26 +510,107 @@ public partial class LiveDetectionViewModel : ViewModelBase
             return;
         }
 
-        UpdateOnUiThread(() =>
+        var dispatcher = GetUiDispatcher();
+        if (dispatcher == null || dispatcher.CheckAccess())
         {
-            CurrentFrameImage = result.AnnotatedImage;
-            IsPass = result.IsPass;
-            DefectCount = result.DefectCount;
-            InferenceLatencyMs = result.Telemetry.InferenceLatencyMs;
-            Fps = result.Telemetry.Fps;
-            DeviceName = result.Telemetry.DeviceName;
-        });
-    }
-
-    private static void UpdateOnUiThread(Action action)
-    {
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher != null && !dispatcher.CheckAccess())
-        {
-            dispatcher.Invoke(action);
+            ApplyFrameResult(result);
             return;
         }
 
-        action();
+        if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
+        // Latest-frame-wins: while a dispatch is already queued, newer frames replace the pending
+        // result instead of queueing one UI operation per frame.
+        Volatile.Write(ref _pendingFrameResult, result);
+        TryScheduleFrameDispatch(dispatcher);
+    }
+
+    private void TryScheduleFrameDispatch(System.Windows.Threading.Dispatcher dispatcher)
+    {
+        if (Interlocked.CompareExchange(ref _frameDispatchScheduled, 1, 0) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            dispatcher.InvokeAsync(DispatchPendingFrameResult);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException)
+        {
+            // Dispatcher shut down between the guard and the post.
+            Volatile.Write(ref _pendingFrameResult, null);
+            Volatile.Write(ref _frameDispatchScheduled, 0);
+        }
+    }
+
+    private void DispatchPendingFrameResult()
+    {
+        try
+        {
+            var result = Interlocked.Exchange(ref _pendingFrameResult, null);
+            if (result != null)
+            {
+                ApplyFrameResult(result);
+            }
+        }
+        finally
+        {
+            Volatile.Write(ref _frameDispatchScheduled, 0);
+
+            // A frame may have arrived between the exchange and the flag reset; schedule it.
+            if (Volatile.Read(ref _pendingFrameResult) != null)
+            {
+                var dispatcher = GetUiDispatcher();
+                if (dispatcher != null && !dispatcher.HasShutdownStarted && !dispatcher.HasShutdownFinished)
+                {
+                    TryScheduleFrameDispatch(dispatcher);
+                }
+            }
+        }
+    }
+
+    private void ApplyFrameResult(LiveFrameResult result)
+    {
+        CurrentFrameImage = result.AnnotatedImage;
+        IsPass = result.IsPass;
+        DefectCount = result.DefectCount;
+        InferenceLatencyMs = result.Telemetry.InferenceLatencyMs;
+        Fps = result.Telemetry.Fps;
+        DeviceName = result.Telemetry.DeviceName;
+    }
+
+    private System.Windows.Threading.Dispatcher? GetUiDispatcher()
+        => UiDispatcherProvider?.Invoke() ?? System.Windows.Application.Current?.Dispatcher;
+
+    private void UpdateOnUiThread(Action action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+
+        var dispatcher = GetUiDispatcher();
+        if (dispatcher == null || dispatcher.CheckAccess())
+        {
+            action();
+            return;
+        }
+
+        if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
+        try
+        {
+            // Never block a background thread on the UI thread: during shutdown the UI thread
+            // disposes the service provider, so a synchronous Invoke would deadlock.
+            dispatcher.InvokeAsync(action);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException)
+        {
+            _logger.LogDebug(ex, "Skipped a UI update because the dispatcher is shutting down.");
+        }
     }
 }
