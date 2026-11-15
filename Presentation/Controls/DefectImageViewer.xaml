@@ -30,17 +30,31 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid x:Name="ViewportSurface" Background="Transparent" ClipToBounds="True">
+    <!--
+        Canvas, not Grid: a Grid gives its child the parent's available size during measure,
+        and a scene larger than the viewport receives a layout clip that is applied before the
+        render transform — cropping the image to a fraction of the viewport when scaled down.
+        Canvas measures children unbounded, so the scene keeps its pixel size and the render
+        transform alone decides what is visible.
+    -->
+    <Canvas x:Name="ViewportSurface" Background="Transparent" ClipToBounds="True">
         <Grid x:Name="Scene"
               HorizontalAlignment="Left"
               VerticalAlignment="Top"
               IsHitTestVisible="False">
-            <Grid.LayoutTransform>
+            <!--
+                RenderTransform, not LayoutTransform: the viewport model maps image pixels to
+                viewport units as (pixel * scale) + offset, and hit testing, panning and viewport
+                cropping all consume that mapping. A LayoutTransform applies the scale but drops
+                the translation during layout, so the drawn boxes would drift away from their
+                clickable regions by the offset.
+            -->
+            <Grid.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform x:Name="SceneScale" />
                     <TranslateTransform x:Name="SceneTranslate" />
                 </TransformGroup>
-            </Grid.LayoutTransform>
+            </Grid.RenderTransform>
 
             <Image x:Name="BoardImage"
                    Stretch="Fill"
@@ -77,5 +91,5 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </Grid>
-    </Grid>
+    </Canvas>
 </UserControl>
