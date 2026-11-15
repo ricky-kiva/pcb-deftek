@@ -277,7 +277,7 @@ public class LiveDetectionViewModelTests
             await sut.OnNavigatedToAsync();
 
             var uiBusy = new ManualResetEventSlim();
-            dispatcher.BeginInvoke(new Action(() =>
+            _ = dispatcher.BeginInvoke(new Action(() =>
             {
                 uiBusy.Set();
                 gate.Wait();
@@ -316,7 +316,7 @@ public class LiveDetectionViewModelTests
             await sut.OnNavigatedToAsync();
 
             var uiBusy = new ManualResetEventSlim();
-            dispatcher.BeginInvoke(new Action(() =>
+            _ = dispatcher.BeginInvoke(new Action(() =>
             {
                 uiBusy.Set();
                 gate.Wait();
