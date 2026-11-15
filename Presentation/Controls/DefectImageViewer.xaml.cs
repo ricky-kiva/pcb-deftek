@@ -170,6 +170,10 @@ public partial class DefectImageViewer : UserControl
 
         Scene.Width = image.PixelWidth;
         Scene.Height = image.PixelHeight;
+
+        // A newly assigned image always starts at the full-image fit. Reusing a
+        // previous transform would preserve its zoom/pan and crop the new image.
+        _transform = null;
         EnsureTransform();
     }
 
@@ -343,6 +347,16 @@ public partial class DefectImageViewer : UserControl
     private void OnViewerLoaded(object sender, RoutedEventArgs e)
     {
         EnsureTransform();
+    }
+
+    private void OnViewerIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true)
+        {
+            // The image can be assigned while the modal is collapsed (zero-sized).
+            // Fit it as soon as the control becomes visible.
+            EnsureTransform();
+        }
     }
 
     private void OnViewerSizeChanged(object sender, SizeChangedEventArgs e)
