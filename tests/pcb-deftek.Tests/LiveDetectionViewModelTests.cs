@@ -47,9 +47,9 @@ public class LiveDetectionViewModelTests
         _mockEngine.SetupProperty(e => e.ConfidenceThreshold, 0.65);
     }
 
-    private LiveDetectionViewModel CreateSut()
+    private LiveDetectionViewModel CreateSut(System.Windows.Threading.Dispatcher? uiDispatcher = null)
     {
-        return new LiveDetectionViewModel(
+        var sut = new LiveDetectionViewModel(
             _mockCamera.Object,
             _mockEngine.Object,
             _mockSnapshot.Object,
@@ -57,6 +57,13 @@ public class LiveDetectionViewModelTests
             _mockNotification.Object,
             NullLogger<LiveDetectionViewModel>.Instance,
             _messenger);
+
+        if (uiDispatcher != null)
+        {
+            sut.UiDispatcherProvider = () => uiDispatcher;
+        }
+
+        return sut;
     }
 
     private static LiveFrameResult CreateFrameResult(int defectCount)
@@ -95,6 +102,25 @@ public class LiveDetectionViewModelTests
 
         var telemetry = new LiveInspectionTelemetry(13.4, 14.1, 59.0, "DirectML GPU", DateTime.UtcNow);
         return new LiveFrameResult(bitmap, rawMat, inference, telemetry);
+    }
+
+    private static (Thread Thread, System.Windows.Threading.Dispatcher Dispatcher) StartDispatcherThread()
+    {
+        var ready = new TaskCompletionSource<System.Windows.Threading.Dispatcher>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var thread = new Thread(() =>
+        {
+            var dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+            ready.SetResult(dispatcher);
+            System.Windows.Threading.Dispatcher.Run();
+        })
+        {
+            IsBackground = true
+        };
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        return (thread, ready.Task.GetAwaiter().GetResult());
     }
 
     [Fact]
@@ -237,6 +263,123 @@ public class LiveDetectionViewModelTests
         sut.InferenceLatencyMs.Should().Be(13.4);
         sut.Fps.Should().Be(59.0);
         sut.DeviceName.Should().Be("DirectML GPU");
+    }
+
+    [Fact]
+    public async Task FrameProcessed_WhenUiThreadIsBusy_DoesNotBlockInferenceWorker()
+    {
+        var (thread, dispatcher) = StartDispatcherThread();
+        using var gate = new ManualResetEventSlim();
+
+        try
+        {
+            var sut = CreateSut(dispatcher);
+            await sut.OnNavigatedToAsync();
+
+            var uiBusy = new ManualResetEventSlim();
+            _ = dispatcher.BeginInvoke(new Action(() =>
+            {
+                uiBusy.Set();
+                gate.Wait();
+            }));
+            uiBusy.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue("the UI thread must be occupied");
+
+            using var frame = CreateFrameResult(defectCount: 1);
+
+            var worker = Task.Run(() => _mockEngine.Raise(
+                e => e.FrameProcessed += null,
+                new LiveFrameProcessedEventArgs(frame)));
+
+            Func<Task> raiseFrame = () => worker.WaitAsync(TimeSpan.FromSeconds(2));
+            await raiseFrame.Should().NotThrowAsync(
+                "dispatching a frame to the UI must never block the inference worker");
+
+            gate.Set();
+            await worker.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            gate.Set();
+            dispatcher.InvokeShutdown();
+            thread.Join(TimeSpan.FromSeconds(5));
+        }
+    }
+
+    [Fact]
+    public async Task FrameProcessed_WhenFramesArriveFasterThanUi_AppliesLatestFrame()
+    {
+        var (thread, dispatcher) = StartDispatcherThread();
+        using var gate = new ManualResetEventSlim();
+
+        try
+        {
+            var sut = CreateSut(dispatcher);
+            await sut.OnNavigatedToAsync();
+
+            var uiBusy = new ManualResetEventSlim();
+            _ = dispatcher.BeginInvoke(new Action(() =>
+            {
+                uiBusy.Set();
+                gate.Wait();
+            }));
+            uiBusy.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue("the UI thread must be occupied");
+
+            using var applied = new ManualResetEventSlim();
+            sut.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(LiveDetectionViewModel.DefectCount) && sut.DefectCount == 3)
+                {
+                    applied.Set();
+                }
+            };
+
+            using var first = CreateFrameResult(defectCount: 1);
+            using var second = CreateFrameResult(defectCount: 2);
+            using var third = CreateFrameResult(defectCount: 3);
+
+            var worker = Task.Run(() =>
+            {
+                _mockEngine.Raise(e => e.FrameProcessed += null, new LiveFrameProcessedEventArgs(first));
+                _mockEngine.Raise(e => e.FrameProcessed += null, new LiveFrameProcessedEventArgs(second));
+                _mockEngine.Raise(e => e.FrameProcessed += null, new LiveFrameProcessedEventArgs(third));
+            });
+
+            Func<Task> raiseFrames = () => worker.WaitAsync(TimeSpan.FromSeconds(2));
+            await raiseFrames.Should().NotThrowAsync(
+                "queued frames must not block the inference worker");
+
+            gate.Set();
+            applied.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue("the newest frame must be applied");
+            sut.DefectCount.Should().Be(3);
+            sut.CurrentFrameImage.Should().BeSameAs(third.AnnotatedImage);
+        }
+        finally
+        {
+            gate.Set();
+            dispatcher.InvokeShutdown();
+            thread.Join(TimeSpan.FromSeconds(5));
+        }
+    }
+
+    [Fact]
+    public async Task FrameProcessed_AfterDispatcherShutdown_IsIgnoredWithoutThrowing()
+    {
+        var (thread, dispatcher) = StartDispatcherThread();
+        var sut = CreateSut(dispatcher);
+        await sut.OnNavigatedToAsync();
+
+        dispatcher.InvokeShutdown();
+        thread.Join(TimeSpan.FromSeconds(5));
+
+        using var frame = CreateFrameResult(defectCount: 1);
+
+        Action act = () => _mockEngine.Raise(
+            e => e.FrameProcessed += null,
+            new LiveFrameProcessedEventArgs(frame));
+
+        act.Should().NotThrow();
+        sut.DefectCount.Should().Be(0);
+        sut.CurrentFrameImage.Should().BeNull();
     }
 
     [Fact]
