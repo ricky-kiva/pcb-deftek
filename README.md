@@ -40,16 +40,6 @@ Automated PCB defect detection and analysis for Windows. PCB Deftek inspects boa
 
 ![Inspection history](docs/assets/readme-ss-page-history-1-1-c.jpg)
 
-### Screenshot naming
-
-Screenshots live in `docs/assets/` and follow:
-
-```
-readme-ss-page-{page_name}-{int_image_number}-{int_revision}-c.jpg
-```
-
-`page_name` is kebab-case (for example `live-detection`), `int_image_number` distinguishes captures of the same page, and `int_revision` increments when a page's UI changes. Current captures use image number `1`, revision `1`. Add new revisions as separate files so existing links stay valid.
-
 ## Prerequisites
 
 - Windows 10 or 11, x64
@@ -77,8 +67,6 @@ dotnet test pcb-deftek.slnx
 - `tests/pcb-deftek.Bdd` — Reqnroll acceptance scenarios against real services with isolated databases.
 
 Every test creates its own SQLite database, capture folder, and export folder under the system temp directory. Tests never read or write `%LOCALAPPDATA%\PcbDeftek` or the user's Downloads folder.
-
-CI runs the same commands in Release with warnings treated as errors. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Data and logs
 
