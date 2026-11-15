@@ -17,8 +17,6 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 40
     env:
-      SIGNING_PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
-      SIGNING_PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
       TIMESTAMP_URL: http://timestamp.digicert.com
 
     steps:
@@ -35,6 +33,9 @@ jobs:
 
       - name: Require signing secrets
         shell: pwsh
+        env:
+          SIGNING_PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+          SIGNING_PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:SIGNING_PFX_BASE64) -or
               [string]::IsNullOrWhiteSpace($env:SIGNING_PFX_PASSWORD)) {
@@ -44,6 +45,9 @@ jobs:
 
       - name: Trust the signing certificate on this runner
         shell: pwsh
+        env:
+          SIGNING_PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+          SIGNING_PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
         run: |
           # The supplied certificate is self-signed, so signtool verify /pa needs its
           # public part in the ephemeral runner's trusted root. Only the public
@@ -81,17 +85,20 @@ jobs:
         shell: pwsh
         run: |
           $tag = $env:GITHUB_REF_NAME
-          if ($tag -notmatch '^v(?<version>\d+\.\d+\.\d+)(?<suffix>-[0-9A-Za-z][0-9A-Za-z.-]*)?$') {
-              throw "Tag '$tag' is not a release tag of the form v<major>.<minor>.<patch>."
+          if ($tag -notmatch '^v(?<version>\d+\.\d+\.\d+(-[0-9A-Za-z][0-9A-Za-z.-]*)?)$') {
+              throw "Tag '$tag' is not a release tag of the form v<major>.<minor>.<patch>[-<prerelease>]."
           }
+
+          $tagVersion = $Matches['version']
+          $coreVersion = ($tagVersion -split '-', 2)[0]
 
           [xml]$project = Get-Content -LiteralPath 'pcb-deftek.csproj'
           $projectVersion = ($project.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
-          if ($Matches['version'] -ne $projectVersion) {
-              throw "Tag version $($Matches['version']) does not match project version $projectVersion."
+          if ($coreVersion -ne $projectVersion) {
+              throw "Tag version $tagVersion does not match project version $projectVersion."
           }
 
-          "Tag `$tag` validated against project version `$projectVersion`." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Tag `$tag` validated: version `$tagVersion`, project version `$projectVersion`." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -128,7 +135,12 @@ jobs:
 
       - name: Package and sign
         shell: pwsh
-        run: ./build/package.ps1 -Sign -TimestampUrl $env:TIMESTAMP_URL
+        env:
+          SIGNING_PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+          SIGNING_PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+        run: |
+          $tagVersion = $env:GITHUB_REF_NAME -replace '^v', ''
+          ./build/package.ps1 -Sign -Version $tagVersion -TimestampUrl $env:TIMESTAMP_URL
 
       - name: Prepare release notes
         shell: pwsh
@@ -142,7 +154,7 @@ jobs:
           }
           if ($start -lt 0) { throw 'Release notes section (## 7) was not found in launch-checklist.md.' }
 
-          $version = ($env:GITHUB_REF_NAME -replace '^v', '' -replace '-.*$', '')
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
           $installation = @(
               '',
               '## Installation',

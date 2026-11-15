@@ -348,7 +348,9 @@ public partial class LiveDetectionViewModel : ViewModelBase
                 return;
             }
 
-            int targetIndex = SelectedCamera?.Index ?? 0;
+            // Read the index from the enumerated list rather than from SelectedCamera, which is
+            // assigned on the dispatcher thread; this continuation must not depend on that post running first.
+            int targetIndex = cameras is { Count: > 0 } ? cameras[0].Index : 0;
             await _liveInspectionEngine
                 .StartAsync(token)
                 .ConfigureAwait(false);
