@@ -77,7 +77,7 @@ Verify a download before running it:
 (Get-FileHash .\PCB-Deftek-<version>-setup.exe -Algorithm SHA256).Hash
 ```
 
-Compare the value with the matching line in `SHA256SUMS.txt`. Release executables are Authenticode-signed with an RFC 3161 timestamp; Windows may still show an unknown-publisher warning until SmartScreen reputation builds.
+Compare the value with the matching line in `SHA256SUMS.txt`. Release executables are Authenticode-signed with an RFC 3161 timestamp. The current certificate is self-signed, so Windows reports the publisher as untrusted; the signature and timestamp are still verifiable, and a publicly trusted code-signing certificate is required before external distribution.
 
 ## Getting started
 

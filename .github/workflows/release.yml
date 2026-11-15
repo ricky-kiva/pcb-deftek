@@ -42,6 +42,41 @@ jobs:
           }
           Write-Host 'Signing secrets are present.'
 
+      - name: Trust the signing certificate on this runner
+        shell: pwsh
+        run: |
+          # The supplied certificate is self-signed, so signtool verify /pa needs its
+          # public part in the ephemeral runner's trusted root. Only the public
+          # certificate is installed; the PFX and password never leave this step.
+          $pfxPath = Join-Path $env:RUNNER_TEMP ("release-trust-{0}.pfx" -f [guid]::NewGuid().ToString('N'))
+          $cerPath = Join-Path $env:RUNNER_TEMP ("release-trust-{0}.cer" -f [guid]::NewGuid().ToString('N'))
+          try {
+              $bytes = [Convert]::FromBase64String(($env:SIGNING_PFX_BASE64 -replace '\s', ''))
+              [IO.File]::WriteAllBytes($pfxPath, $bytes)
+
+              $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
+                  $pfxPath,
+                  $env:SIGNING_PFX_PASSWORD,
+                  [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet)
+              try {
+                  $publicBytes = $certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+                  [IO.File]::WriteAllBytes($cerPath, $publicBytes)
+                  Write-Host "Trusting certificate: $($certificate.Subject) (expires $($certificate.NotAfter.ToString('u')))"
+              }
+              finally {
+                  $certificate.Dispose()
+              }
+
+              Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\LocalMachine\Root' | Out-Null
+          }
+          finally {
+              foreach ($path in @($pfxPath, $cerPath)) {
+                  if (Test-Path -LiteralPath $path) {
+                      Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+                  }
+              }
+          }
+
       - name: Validate tag against project version
         shell: pwsh
         run: |
