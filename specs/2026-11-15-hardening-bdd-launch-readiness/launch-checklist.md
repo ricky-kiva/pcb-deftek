@@ -52,6 +52,29 @@ Smoke run: 12/12 PASS, first against the working-tree publish (`%TEMP%\pcb-defte
 
 Not exercised through the UI: file/folder picker, batch start-to-finish, capture persistence, viewer pan/zoom/crop, database backup/export, multiline delete. These are covered by the BDD suite against real services (46 scenarios), which passed in the clean clone and in CI.
 
+### 3a. Live-Inference Soak (5 minutes)
+
+Reduced from 10 minutes with owner approval. One minute warm-up, then samples at t=2 and t=5 while the real camera streams continuously.
+
+- Artifact: Release build from `main` @ `a71f14a` (`bin/Release/net10.0-windows10.0.19041.0`). The Phase A changes merged with #131 do not touch the inference path.
+- Machine: Windows 11 build 26200, Intel Core i7-11800H, 15.7 GB RAM, DirectML device 0 (RTX 2050, owner-confirmed); USB2.0 HD UVC WebCam at index 0.
+- Method: Live Detection page, real camera, 5 minutes uninterrupted. HUD values read through UI Automation at each sample and captured in screenshots; process counters read with `Get-Process`.
+
+| Sample | Elapsed | Working set | Private bytes | Inference latency | HUD FPS |
+|---|---|---|---|---|---|
+| Warm-up | 1 min | not sampled (per plan) | — | — | — |
+| t=2 | 2 min | 510.8 MB | 717.2 MB | 37.1 ms | 26 |
+| t=5 | 5 min | 516.0 MB | 715.3 MB | 39.4 ms | 25 |
+
+- Memory: +5.2 MB working set and −1.9 MB private bytes across the sampled window; no growth trend.
+- Provider: startup logged `ONNX Runtime initialized successfully with DirectML GPU provider (Device 0)` and every inference logged `... detected on "GpuDirectML"` for the full run.
+- Errors: 0 `[ERR]`/`[FTL]` entries in the run window; no dialog, no crash; PASS/FAIL badge and defect counter updated as expected for the scene.
+- Evidence: `%TEMP%\soak-task7\t2.png`, `%TEMP%\soak-task7\t5.png`, run log extract `%TEMP%\soak-task7\soak-window.log`.
+
+**Soak result: PASS** for the acceptance criteria above.
+
+**Finding — fixed in #135:** closing the window while Live Detection streamed deadlocked shutdown (`ExitCode: 0` logged, then no service shutdown lines): the UI thread blocked in `LiveInspectionEngine.Dispose` → `StopAsync().GetAwaiter().GetResult()` while the inference worker blocked in `LiveDetectionViewModel.UpdateOnUiThread` → `Dispatcher.Invoke`. #135 replaced the synchronous dispatch with a coalescing `InvokeAsync` path; closing now exits in 0.7 s with both "stopped cleanly" lines logged. The §11 verdict below was written before the fix and is superseded by the Task 8 verdict update.
+
 ## 4. Data Safety
 
 | Check | Result | Evidence |
