@@ -250,11 +250,11 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 - **Description:** Complete the `AGENTS.md` §4 lifecycle.
 - **Acceptance criteria:**
-  - [ ] PR links to the Phase 10 issue and lists gate results.
-  - [ ] Human approval recorded; PR not self-merged.
-  - [ ] Merge to `main`, issue closed, branch deleted; plan checkboxes updated.
+  - [x] PR links to the Phase 10 issue and lists gate results.
+  - [x] Human approval recorded; PR not self-merged.
+  - [x] Merge to `main`, issue closed, branch deleted; plan checkboxes updated (merged as `8d7e706`; #119 closed).
 - **Verification:**
-  - [ ] `git log --oneline -5` on `main` shows the merge; branch gone.
+  - [x] `git log --oneline -5` on `main` shows the merge; branch gone.
 - **Dependencies:** Task 5.2
 - **Files:** None
 - **Estimated scope:** XS (0 files)
@@ -262,9 +262,9 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 ---
 
 ### Checkpoint 4: Merge Readiness
-- [ ] All gates in `validation.md` §7 satisfied.
-- [ ] Human approval recorded.
-- [ ] Branch deleted after merge.
+- [x] All gates in `validation.md` §7 satisfied.
+- [x] Human approval recorded.
+- [x] Branch deleted after merge (`8d7e706` on `main`; #119 closed).
 
 ---
 
