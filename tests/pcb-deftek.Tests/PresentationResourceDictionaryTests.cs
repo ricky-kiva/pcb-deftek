@@ -58,6 +58,8 @@ public class PresentationResourceDictionaryTests
         // Assert - Action & Layout icons
         dictionary.Contains("IconExport").Should().BeTrue();
         dictionary.Contains("IconNotification").Should().BeTrue();
+        dictionary.Contains("IconProcesses").Should().BeTrue();
+        dictionary.Contains("IconWorkflow").Should().BeTrue();
         dictionary.Contains("IconOneColumn").Should().BeTrue();
         dictionary.Contains("IconTwoColumn").Should().BeTrue();
         dictionary.Contains("IconZoomReset").Should().BeTrue();
@@ -94,6 +96,8 @@ public class PresentationResourceDictionaryTests
         // Assert
         dictionary.Contains("SidebarNavigationItemStyle").Should().BeTrue();
         dictionary.Contains("FooterLinkButtonStyle").Should().BeTrue();
+        dictionary.Contains("SidebarCollapsedWidth").Should().BeTrue();
+        ((double)dictionary["SidebarCollapsedWidth"]).Should().Be(68);
         dictionary.Contains("FloatingHudCardStyle").Should().BeTrue();
         dictionary.Contains("StatusBadgeStyle").Should().BeTrue();
         dictionary.Contains("SeverityBadgeStyle").Should().BeTrue();

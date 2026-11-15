@@ -151,6 +151,9 @@ public class DashboardViewCompositionTests
             processes.Should().NotBeNull();
             System.Windows.Automation.AutomationProperties.GetName(processes!).Should().Be("Processes");
             view.FindName("ExportIcon").Should().NotBeNull();
+            var processesIcon = (System.Windows.Shapes.Path?)view.FindName("ProcessesIcon");
+            processesIcon.Should().NotBeNull();
+            processesIcon!.Data.Should().BeSameAs(view.TryFindResource("IconWorkflow"));
             ((FrameworkElement)view.FindName("ProcessActivityDot")).Visibility.Should().Be(Visibility.Collapsed);
 
             vm.Progress.ReportInference(DashboardProgressStatus.Running, 10, "Detecting");

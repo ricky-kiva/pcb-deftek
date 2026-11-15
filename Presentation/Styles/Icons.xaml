@@ -46,6 +46,9 @@
     <!-- Processes / Activity (pulse line) -->
     <StreamGeometry x:Key="IconProcesses">M3,13H5.79L10.1,4.79L11.28,13.75L14.5,9.66L17.83,13H21V15H17L14.67,12.67L9.92,18.73L8.94,11.31L7,15H3V13Z</StreamGeometry>
 
+    <!-- Workflow / process graph icon -->
+    <StreamGeometry x:Key="IconWorkflow">M3,3H9V9H3V3M15,3H21V9H15V3M9,15H15V21H9V15M5,9H7V12H5V9M17,9H19V12H17V9M5,11H19V13H5V11M11,12H13V16H11V12Z</StreamGeometry>
+
     <!-- 1-Column Layout Toggle -->
     <StreamGeometry x:Key="IconOneColumn">M4,5H20V19H4V5M6,7V17H18V7H6Z</StreamGeometry>
 
