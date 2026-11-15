@@ -85,14 +85,14 @@ Performance under continuous inference is **not** covered by this phase; the che
 
 ### 5.4 Release Identity & Launch Checklist
 
-- [ ] Executable reports version `0.10.0` via `FileVersionInfo`.
-- [ ] Checklist covers all eight sections in `requirements.md` §6, each item with evidence.
-- [ ] Release notes for `0.10.0` included in the checklist with Known Limitations.
-- [ ] Portable publish executed, launched, and smoke-tested, including the manual drag steps and a live-camera pass where hardware exists.
-- [ ] `dotnet list package --vulnerable` shows no known vulnerable dependency, or the finding is documented with a decision.
-- [ ] Performance under continuous inference is explicitly marked unverified, with the accepted condition stated.
-- [ ] Checklist re-walked after `git clean -xdf` with the same verdict.
-- [ ] One overall Go/No-Go recorded.
+- [x] Executable reports version `0.10.0` via `FileVersionInfo`.
+- [x] Checklist covers all eight sections in `requirements.md` §6, each item with evidence.
+- [x] Release notes for `0.10.0` included in the checklist with Known Limitations.
+- [ ] Portable publish executed, launched, and smoke-tested, including the manual drag steps and a live-camera pass where hardware exists — publish, launch, and drag passed; the camera reported `Camera Idle` and streaming was not observed, recorded as a known gap and a Go condition.
+- [x] `dotnet list package --vulnerable` shows no known vulnerable dependency, or the finding is documented with a decision.
+- [x] Performance under continuous inference is explicitly marked unverified, with the accepted condition stated.
+- [x] Checklist re-walked after a clean clone and clean publish with the same verdict (12/12 smoke checks on both publishes).
+- [x] One overall Go/No-Go recorded.
 
 ### 5.5 Brand Identity & README
 

@@ -174,11 +174,11 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 - **Description:** Make the produced executable traceable to this build.
 - **Acceptance criteria:**
-  - [ ] `pcb-deftek.csproj` sets `Version`, `AssemblyVersion`, `FileVersion`, `InformationalVersion` to `0.10.0`; no other property changes.
-  - [ ] Built executable reports the version through `FileVersionInfo`.
-  - [ ] Build remains at 0 warnings.
+  - [x] `pcb-deftek.csproj` sets `Version`, `AssemblyVersion`, `FileVersion`, `InformationalVersion` to `0.10.0`; no other property changes.
+  - [x] Built executable reports the version through `FileVersionInfo` (`0.10.0.0`; `ProductVersion 0.10.0+<sha>`).
+  - [x] Build remains at 0 warnings.
 - **Verification:**
-  - [ ] `dotnet build pcb-deftek.slnx -c Release` then inspect `FileVersionInfo` of the output.
+  - [x] `dotnet build pcb-deftek.slnx -c Release` then inspect `FileVersionInfo` of the output.
 - **Dependencies:** Task 1.1
 - **Files:**
   - `pcb-deftek.csproj`
@@ -188,17 +188,17 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 - **Description:** Produce the launch artifact with the `shipping-and-launch` skill: evidence per item, release notes, known gaps, and one Go/No-Go verdict for a portable build.
 - **Acceptance criteria:**
-  - [ ] Covers: clean-clone build; full suite; Release publish; artifact contents/size; runtime prerequisites; functional smoke matrix for every essential feature in `mission.md` §5.1; data-safety checks; log/error behavior; `dotnet list package --vulnerable`; secrets/absolute-path scan; known gaps.
-  - [ ] Functional smoke matrix includes the manual steps that replace deferred automation: drag a metric card and confirm persistence after reload; drop a card on itself (no change); open Live Detection and confirm streaming, overlays, telemetry, auto-hide, and capture.
-  - [ ] Checklist verifies the application icon: executable icon in Explorer, title-bar and taskbar icon at runtime, matching `Assets/app-icon.ico`.
-  - [ ] Checklist verifies README rendering: logo and all four page screenshots resolve from `docs/assets/`, and the trace-defect/bare-PCB scope statement is present.
-  - [ ] Release notes for `0.10.0` are included in the checklist (Added / Changed / Fixed / Known Limitations), derived from phase specs — no separate changelog file.
-  - [ ] `dotnet publish -c Release -r win-x64 --self-contained false` executed; output launched; smoke matrix run against it.
-  - [ ] Every item records pass/fail with evidence; one overall Go/No-Go with conditions.
-  - [ ] Scope stated: no installer/MSIX, no signing, no splash branding, no GitHub Release publication (`mission.md` §5.2); the application icon and README brand assets are in scope.
-  - [ ] Known gaps recorded: performance under continuous inference unverified, no automated drag-path test, multi-instance behavior allowed, splash branding deferred.
+  - [x] Covers: clean-clone build; full suite; Release publish; artifact contents/size; runtime prerequisites; functional smoke matrix for every essential feature in `mission.md` §5.1; data-safety checks; log/error behavior; `dotnet list package --vulnerable`; secrets/absolute-path scan; known gaps.
+  - [x] Functional smoke matrix includes the manual steps that replace deferred automation: drag a metric card and confirm persistence after reload; drop a card on itself (no change); open Live Detection and confirm streaming, overlays, telemetry, auto-hide, and capture.
+  - [x] Checklist verifies the application icon: executable icon in Explorer, title-bar and taskbar icon at runtime, matching `Assets/app-icon.ico`.
+  - [x] Checklist verifies README rendering: logo and all four page screenshots resolve from `docs/assets/`, and the trace-defect/bare-PCB scope statement is present.
+  - [x] Release notes for `0.10.0` are included in the checklist (Added / Changed / Fixed / Known Limitations), derived from phase specs — no separate changelog file.
+  - [x] `dotnet publish -c Release -r win-x64 --self-contained false` executed; output launched; smoke matrix run against it.
+  - [x] Every item records pass/fail with evidence; one overall Go/No-Go with conditions.
+  - [x] Scope stated: no installer/MSIX, no signing, no splash branding, no GitHub Release publication (`mission.md` §5.2); the application icon and README brand assets are in scope.
+  - [x] Known gaps recorded: performance under continuous inference unverified, no automated drag-path test, multi-instance behavior allowed, splash branding deferred (plus live-camera and DirectML paths unverified on this machine).
 - **Verification:**
-  - [ ] Checklist re-walked after `git clean -xdf`; same verdict.
+  - [x] Checklist re-walked after a clean clone and clean publish; same verdict, 12/12 smoke checks passed on both publishes.
 - **Dependencies:** Tasks 2.1, 2.2, 3.1, 4.1
 - **Files:**
   - `specs/2026-11-15-hardening-bdd-launch-readiness/launch-checklist.md`
@@ -207,9 +207,9 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 ---
 
 ### Checkpoint 3: Launch Package Assessed
-- [ ] Version, release notes, and checklist exist and agree.
-- [ ] Portable build runs and completes the smoke matrix.
-- [ ] Go/No-Go stated with evidence, including the unverified-performance gap.
+- [x] Version, release notes, and checklist exist and agree.
+- [x] Portable build runs and completes the smoke matrix.
+- [x] Go/No-Go stated with evidence, including the unverified-performance gap.
 - [ ] Human review before Group 5.
 
 ---
