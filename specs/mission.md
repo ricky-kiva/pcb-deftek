@@ -31,6 +31,7 @@ These features comprise the primary deliverables for initial development and val
   - Native Windows 11 Fluent Theme foundation (`PresentationFramework.Fluent`, `ThemeMode="System"`, Mica window backdrop).
   - Collapsible Sidebar Sheet on the left: Dashboard, Live Detection, File-Based Detection, History, and Settings anchored at the bottom.
   - Compact footer with dot-separated items: Social media icons (GitHub, LinkedIn, Instagram), Buy Me a Coffee link, and developer portfolio link.
+  - Application icon: `Assets/app-icon.ico` used for the executable, title bar, and taskbar.
 - **File-Based Detection:** Large drag-and-drop upload area supporting single-file, multi-file, and folder uploads (or File Explorer prompt), with progress bar, inline estimated completion time (ETA), and Windows completion toast notification.
 - **Live Camera Detection:** Full-screen video viewport with rendered defect bounding boxes and collapsed sidebar by default; floating top-right 3-card HUD (PASS/FAIL badge + defect count, telemetry toggle + latency/FPS display, camera source selector dropdown); bottom-left confidence slider; bottom-right capture button with `Space` shortcut; and cursor idle auto-hide behavior.
 - **Inspection History:** Persistent local storage, date-grouped gallery thumbnail cards with 1:1 square preview, top-left PASS/FAIL badge, and default `Date-Number` filename with double-click inline editing. Includes a filter bar mirroring the Dashboard filter structure (Date Range Selector with Day/Week/Month buttons and a custom-range option, PASS/FAIL status filter, and multi-select Defect Class filter), plus multi-select gallery selection for confirmed batch deletion of inspection records.
@@ -51,5 +52,5 @@ These features comprise the primary deliverables for initial development and val
 These capabilities are confirmed enhancements that will be implemented in future phases after all essential features above are complete and validated:
 - **Large Video Processing:** Advanced video streaming strategies and warning dialogs before processing large video files.
 - **Corporate Identity & Custom Storage:** Finalization of formal company and application names, including customized database storage paths (`%LOCALAPPDATA%\<Company>\<App>\app.db`).
-- **Application Icon & Visual Assets:** Official application icon, splash branding, and polished desktop assets.
+- **Splash Branding & Desktop Assets:** Splash branding and polished desktop assets (the official application icon ships in Phase 10 from `Assets/app-icon.ico`).
 - **GitHub Release & Distribution:** Production packaging and official GitHub Release distribution following the `shipping-and-launch` readiness checklist.

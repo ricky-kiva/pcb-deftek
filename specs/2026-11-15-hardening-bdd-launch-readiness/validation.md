@@ -1,0 +1,172 @@
+# Validation Criteria: Phase 10 — Hardening, BDD Verification & Launch Readiness
+
+## 1. Build & Quality Gates
+
+| Gate | Command | Pass condition |
+|---|---|---|
+| Restore | `dotnet restore pcb-deftek.slnx` | Completes; no new package |
+| Build | `dotnet build pcb-deftek.slnx -c Release --no-restore -warnaserror` | 0 errors, **0 warnings** |
+| Nullable | Build output | No nullable warnings; no suppression added |
+| Project file | `git diff pcb-deftek.csproj` | Version metadata and `ApplicationIcon`/icon `Resource` only |
+| Icon | Release build output | `ApplicationIcon` embedded; `Window.Icon` bound in XAML; asset tracked (`git ls-files Assets/app-icon.ico`) |
+| Schema | `git diff Infrastructure/Persistence/Migrations` | No migration added |
+| Hygiene | `git diff` | No absolute user paths, no secrets, no build output |
+
+## 2. Automated Test Gates
+
+Baseline entering Phase 10: **834 passing** (790 unit + 44 BDD), 0 failed, 0 skipped. Phase 10 keeps that set green and adds only test code.
+
+### 2.1 Required Unit Coverage
+
+| Area | Required assertions |
+|---|---|
+| Startup coordinator | Failing migrator → failure result with the exception, router not invoked; failing router → success, migrator invoked once; success → both invoked in order |
+| Startup wiring | `DependencyInjectionTests` and existing bootstrap tests remain green; no real `%LOCALAPPDATA%` database touched |
+
+### 2.2 Required BDD Coverage
+
+| Scenario | Assertion |
+|---|---|
+| Clearing viewer focus restores the default sidebar | Focused state → `SelectMarker(null)` → record name, timestamp, class summaries visible; `IsDefectFocused` false; `Delete Image` still available |
+| Failed export notifies and writes nothing | Data export reaches `Failed`; toast title `Report export failed`; no `.pdf`/`.tmp`/staging left; no success toast |
+
+Both run against isolated SQLite and temp artifact roots; existing scenarios are unchanged.
+
+### 2.3 Full-Suite Gate
+
+- `dotnet test pcb-deftek.slnx` → 100 % pass, 0 skipped, no regression against the 834-test baseline.
+- Expected additions: 2 BDD scenarios plus the startup coordinator tests.
+
+## 3. BDD Coverage Matrix (Roadmap Phase 10)
+
+| Workflow | Scenario | Entering Phase 10 | Verdict |
+|---|---|---|---|
+| Batch ETA | `FileBatchDetection` — ETA computed, 100 % progress, persisted | Covered | Verify, no change |
+| Camera auto-hide | `LiveCameraInspection` — controls hide, status/telemetry preserved, mouse restores | Covered | Verify, no change |
+| Viewer sidebar transitions | `HistoryAndDefectViewer` — default, focused | Partial | Add focused → default |
+| Dashboard drag-and-drop | `DefectStatisticsDashboard` — reorder + persistence via view model | Partial | Manual smoke step (deferred automation) |
+| Export notifications | `AuditPdfExport` — success, no-match, decline, cancel | Partial | Add failure notification |
+
+Performance under continuous inference is **not** covered by this phase; the checklist must state it as unverified.
+
+## 4. CI Verification Gates
+
+| Check | Evidence |
+|---|---|
+| Workflow valid and triggered | First run starts on push and PR; manual dispatch available |
+| Warning gate | Build step uses `-warnaserror`; log shows 0 warnings |
+| Tests split by project | Two test steps; both `.trx` artifacts present |
+| Artifacts on failure | A deliberately failing local run still uploads results |
+| Duration | Job ≤ 20 minutes, recorded |
+| Permissions | `contents: read`; no secrets referenced |
+| Concurrency | Second push to the same ref cancels the first run |
+
+## 5. Functional Acceptance Criteria
+
+### 5.1 CI & Documentation
+
+- [ ] Workflow triggers on push, PR, and manual dispatch; superseded runs cancel.
+- [ ] Release build fails on any warning.
+- [ ] Unit and BDD results upload on success and failure.
+- [ ] README prerequisites, commands, test-isolation rule, and data/log locations are correct and executed.
+
+### 5.2 BDD Closure
+
+- [ ] Clearing viewer focus restores the default sidebar and keeps delete available.
+- [ ] Export to an unwritable destination reports `Failed`, shows the failure toast, and leaves no PDF/temp/staging.
+- [ ] Existing scenarios still pass without edits.
+
+### 5.3 Startup Hardening
+
+- [ ] Migration failure: fatal log, one dialog, exit code 1, no window, no lingering process.
+- [ ] Routing failure: warning log, shell opens on the default view.
+- [ ] Success path unchanged.
+- [ ] Dialog suppressed when `App.ShowErrorDialogs` is false.
+
+### 5.4 Release Identity & Launch Checklist
+
+- [ ] Executable reports version `0.10.0` via `FileVersionInfo`.
+- [ ] Checklist covers all eight sections in `requirements.md` §6, each item with evidence.
+- [ ] Release notes for `0.10.0` included in the checklist with Known Limitations.
+- [ ] Portable publish executed, launched, and smoke-tested, including the manual drag steps and a live-camera pass where hardware exists.
+- [ ] `dotnet list package --vulnerable` shows no known vulnerable dependency, or the finding is documented with a decision.
+- [ ] Performance under continuous inference is explicitly marked unverified, with the accepted condition stated.
+- [ ] Checklist re-walked after `git clean -xdf` with the same verdict.
+- [ ] One overall Go/No-Go recorded.
+
+### 5.5 Brand Identity & README
+
+- [ ] Executable icon in Explorer, title bar, and taskbar matches `Assets/app-icon.ico`.
+- [ ] `ApplicationIcon` and the icon `Resource` are set; the window `Icon` is bound; build remains at 0 warnings.
+- [ ] `Assets/app-icon.ico` and all five `docs/assets/` files are tracked in git.
+- [ ] README shows the logo at the top and embeds exactly the four staged page screenshots, in page order, with no broken links.
+- [ ] README states the detection scope: PCB trace defects (open/short circuits), best suited to bare PCBs without mounted components.
+- [ ] README documents the screenshot naming convention and current values (`1`/`1`).
+
+## 6. CI Results (to be recorded)
+
+| Item | Value |
+|---|---|
+| Workflow run URL | _pending_ |
+| Job duration | _pending_ |
+| Unit tests / result | _pending_ |
+| BDD tests / result | _pending_ |
+| Warning count | _pending_ |
+
+## 7. Merge Readiness & Definition of Done
+
+Phase 10 may merge into `main` only when:
+
+1. All five task groups in `plan.md` are complete.
+2. `dotnet build pcb-deftek.slnx -c Release -warnaserror` succeeds.
+3. `dotnet test pcb-deftek.slnx` passes 100 %, 0 skipped, no regression against 834.
+4. CI is green on the final commit.
+5. The launch checklist has a recorded Go/No-Go with evidence.
+6. No new package, migration, or settings key; no production change beyond the startup failure path.
+7. Deferred items — including performance verification — are listed as known gaps in the checklist.
+8. `AGENTS.md` §7 review pipeline completed with approval at each stage.
+9. Clean history per `AGENTS.md` §4; PR linked to its issue; human approval; branch deleted after merge.
+
+## 8. Results (to be completed during implementation)
+
+### 8.1 Automated verification
+
+| Command | Result |
+|---|---|
+| _pending_ | _pending_ |
+
+### 8.2 Launch verdict
+
+| Item | Result |
+|---|---|
+| Publish command / output size | _pending_ |
+| Smoke matrix pass count | _pending_ |
+| Vulnerable dependency scan | _pending_ |
+| Performance verification | unverified (deferred, accepted gap) |
+| Go/No-Go | _pending_ |
+
+## 9. Review Pipeline Outcomes
+
+| Stage | Executed | Verdict |
+|---|---|---|
+| `code-review-and-quality` | _pending_ | _pending_ |
+| `code-simplification` | _pending (approval required)_ | _pending_ |
+| `performance-optimization` | _pending (approval required)_ | _pending_ |
+| `security-and-hardening` | _pending (approval required)_ | _pending_ |
+
+## 10. Failure Triage
+
+| Symptom | First check |
+|---|---|
+| CI job never starts | Workflow YAML syntax; `on:` block; branch filters |
+| Build fails only in CI | `-warnaserror` on analyzer/generated code; compare local Release build |
+| BDD fails only in CI | Desktop/webcam assumption, culture, temp-path permissions |
+| Viewer reset scenario fails | `SelectMarker(null)` no longer clears `IsDefectFocused` or the default projection |
+| Export failure scenario writes a file | Destination validated after creation, or cleanup skipped |
+| Startup dialog appears twice | Dispatcher handler and coordinator both reporting |
+| Startup exits 0 on migration failure | `Shutdown(1)` not reached or exception swallowed |
+| Version missing from binary | Wrong PropertyGroup or stale output |
+| Executable still shows the default icon | `ApplicationIcon` path wrong, asset not tracked, or stale output; rebuild and check `FileVersionInfo`/icon extraction |
+| README images broken | Asset untracked, filename mismatch/case, or wrong relative path; compare `git ls-files docs/assets` with the Markdown links |
+| Checklist item has no evidence | Re-run the check; an unevidenced item is a No-Go |
+| Checklist implies performance was verified | It was not; the known-gaps section must say so |
