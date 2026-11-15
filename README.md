@@ -5,17 +5,15 @@
 <h1 align="center">PCB Deftek</h1>
 
 <p align="center">
-  <p align="center">
-      <a href="https://github.com/ricky-kiva/pcb-deftek/actions/workflows/ci.yml" style="text-decoration: none;">
-        <img src="https://github.com/ricky-kiva/pcb-deftek/actions/workflows/ci.yml/badge.svg" alt="CI status">
-      </a>
-      <a href="https://dotnet.microsoft.com/en-us/download/dotnet/10.0" style="text-decoration: none;">
-          <img src="https://img.shields.io/badge/10.0-512BD4?logo=dotnet&logoColor=white" alt=".NET 10">
-        </a>
-      <a href="https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-14" style="text-decoration: none;">
-        <img src="https://img.shields.io/badge/C%23-14.0-239120?logo=csharp&logoColor=white" alt="C# 14">
-      </a>
-    </p>
+  <a href="https://github.com/ricky-kiva/pcb-deftek/actions/workflows/ci.yml">
+    <img src="https://github.com/ricky-kiva/pcb-deftek/actions/workflows/ci.yml/badge.svg" alt="CI status">
+  </a>
+  <a href="https://dotnet.microsoft.com/en-us/download/dotnet/10.0">
+    <img src="https://img.shields.io/badge/10.0-512BD4?logo=dotnet&logoColor=white" alt=".NET 10">
+  </a>
+  <a href="https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-14">
+    <img src="https://img.shields.io/badge/C%23-14.0-239120?logo=csharp&logoColor=white" alt="C# 14">
+  </a>
 </p>
 
 Automated PCB trace defect detection and analysis for Windows. PCB Deftek inspects boards with an ONNX YOLO detector, localizes and classifies trace defects, stores inspection evidence in SQLite, and produces audit-ready PDF reports.
