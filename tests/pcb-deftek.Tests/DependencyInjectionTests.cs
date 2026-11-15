@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -84,8 +85,10 @@ public class DependencyInjectionTests
     [Fact]
     public void Services_WhenAppUninitialized_ThrowsInvalidOperationException()
     {
-        // Arrange
-        var app = new App();
+        // Arrange: constructing App installs a non-pumping Application.Current for the
+        // whole test process, which deadlocks any later dispatcher.Invoke from another
+        // test. Create the instance without running the WPF constructor instead.
+        var app = (App)RuntimeHelpers.GetUninitializedObject(typeof(App));
 
         // Act
         Action act = () => _ = app.Services;
