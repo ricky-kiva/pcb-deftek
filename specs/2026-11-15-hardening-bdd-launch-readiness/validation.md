@@ -164,7 +164,7 @@ Independent review of `9752b0b..f6ea25f` (scoped Phase 10 paths) by a separate r
 | Stage | Executed | Verdict |
 |---|---|---|
 | `code-review-and-quality` | 2026-11-16 | 2 Required findings, 1 Optional implemented; follow-ups recorded below. Required fixes verified (`43755765713`) |
-| `code-simplification` | pending (approval required) | _pending_ |
+| `code-simplification` | 2026-11-16 | Deduplicated three repeated UI-thread guards in `FileDetectionViewModel` into `TryRunOnUiThread`; behavior unchanged, full suite green. Broader dispatcher unification deferred |
 | `performance-optimization` | pending (approval required) | _pending_ |
 | `security-and-hardening` | pending (approval required) | _pending_ |
 

@@ -243,10 +243,8 @@ public partial class FileDetectionViewModel : ViewModelBase
             return;
         }
 
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher != null && !dispatcher.CheckAccess())
+        if (TryRunOnUiThread(ClearQueue))
         {
-            dispatcher.Invoke(ClearQueue);
             return;
         }
 
@@ -283,10 +281,8 @@ public partial class FileDetectionViewModel : ViewModelBase
             return;
         }
 
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher != null && !dispatcher.CheckAccess())
+        if (TryRunOnUiThread(() => RemoveQueueItem(item)))
         {
-            dispatcher.Invoke(() => RemoveQueueItem(item));
             return;
         }
 
@@ -551,12 +547,26 @@ public partial class FileDetectionViewModel : ViewModelBase
         LargePreviewImage = null;
     }
 
-    private void AddPathsToQueue(IEnumerable<string> paths)
+    /// <summary>
+    /// Marshals the action to the UI dispatcher when called from a background thread.
+    /// </summary>
+    /// <returns><see langword="true"/> when the action was marshalled; the caller should then return.</returns>
+    private static bool TryRunOnUiThread(Action action)
     {
         var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher != null && !dispatcher.CheckAccess())
+        if (dispatcher == null || dispatcher.CheckAccess())
         {
-            dispatcher.Invoke(() => AddPathsToQueue(paths));
+            return false;
+        }
+
+        dispatcher.Invoke(action);
+        return true;
+    }
+
+    private void AddPathsToQueue(IEnumerable<string> paths)
+    {
+        if (TryRunOnUiThread(() => AddPathsToQueue(paths)))
+        {
             return;
         }
 
