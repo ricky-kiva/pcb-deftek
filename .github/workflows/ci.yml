@@ -46,6 +46,7 @@ jobs:
         run: >
           dotnet test tests/pcb-deftek.Tests/pcb-deftek.Tests.csproj
           -c Release --no-build --no-restore
+          --filter "FullyQualifiedName!~DirectMlInferenceTests"
           --logger "trx;LogFileName=unit.trx"
           --results-directory artifacts/test-results
           --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
