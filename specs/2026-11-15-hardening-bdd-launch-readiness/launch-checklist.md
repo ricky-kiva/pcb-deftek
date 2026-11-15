@@ -2,7 +2,7 @@
 
 Prepared 2026-11-15, updated 2026-11-16 after Phase A–C validation with the `shipping-and-launch` skill. Target artifacts: signed per-user installer and portable, self-contained `win-x64` zip (version 0.10.0).
 
-- Code under test: `main` @ `116d30e` (Tasks 5–6), plus the shutdown fix from #135 and the soak evidence recorded in §3a
+- Code under test: `main` @ `36f6541`, tagged `v0.10.0`; includes the shutdown fix from #135 and the soak evidence recorded in §3a
 - Test machine: Windows 11 Home Single Language 10.0.26200 (build 26200), Intel Core i7-11800H, 15.7 GB RAM, NVIDIA RTX 2050 (DirectML device 0), USB2.0 HD UVC WebCam, .NET SDK 10.0.402
 - Evidence artifacts live under `%TEMP%\pcb-deftek-*`, `%TEMP%\soak-task7*`, `%TEMP%\phaseb-task34*`; nothing generated is committed.
 
@@ -21,6 +21,7 @@ Prepared 2026-11-15, updated 2026-11-16 after Phase A–C validation with the `s
 | Installer | PASS | `PCB-Deftek-0.10.0-setup.exe`, 144.9 MB, per-user, no elevation |
 | Code signing | PASS (CI) | `signtool verify /pa /all` passes on the ephemeral runner after the self-signed public certificate is trusted; both executables carry an RFC 3161 timestamp |
 | Checksums | PASS | `SHA256SUMS.txt` is produced after signing; recomputation matches both assets |
+| Release publication | PASS | [`v0.10.0`](https://github.com/ricky-kiva/pcb-deftek/releases/tag/v0.10.0) from run `43750845817`: installer, portable zip and checksums; downloaded assets re-hashed and the installer install/launch/uninstall cycle passed |
 
 No database migration and no new NuGet package is introduced in this phase.
 
@@ -177,9 +178,8 @@ Reduced from 10 minutes with owner approval. One minute warm-up, then samples at
 
 **Go — conditional — for an internal pilot.** Build, tests, packaging, installer, signing pipeline, DirectML, live camera streaming, toast delivery, and a 5-minute soak are evidenced. The release workflow was validated end-to-end with `v0.10.0-rc.1`; the RC installer installed, launched, and uninstalled cleanly, and its assets matched `SHA256SUMS.txt`.
 
-**No-Go for public distribution** until:
+**No-Go for public distribution** until a publicly trusted code-signing certificate replaces the self-signed certificate; end users currently see an untrusted publisher.
 
-1. A publicly trusted code-signing certificate replaces the self-signed certificate; end users currently see an untrusted publisher.
-2. The final `v0.10.0` release assets are published and verified (the RC release was validated and then deleted by design).
+The final [`v0.10.0`](https://github.com/ricky-kiva/pcb-deftek/releases/tag/v0.10.0) assets are published and verified: downloaded SHA-256 values match `SHA256SUMS.txt`, both executables are signed with an RFC 3161 timestamp, and the installer installs, launches, and uninstalls cleanly.
 
 Accepted gaps for the pilot: multi-instance execution, splash branding, and manual-only drag-and-drop coverage beyond dashboard cards.
