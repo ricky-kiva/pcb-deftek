@@ -2,9 +2,9 @@
 
 ## Overview
 
-Phase 10 closes the roadmap with the smallest set of work that makes the shipped product **verifiable and distributable**. Twelve tasks in six groups: CI, two test-only BDD scenarios, one manual performance soak, one startup-safety fix, release metadata, the launch checklist, and the merge gates.
+Phase 10 closes the roadmap with the smallest set of work that makes the shipped product **verifiable and distributable**. Ten tasks in five groups: CI, two test-only BDD scenarios, one startup-safety fix, release metadata, the launch checklist, and the merge gates.
 
-Deliberately deferred to keep launch fast (recorded in `requirements.md` §2.2 and as known gaps in the launch checklist): the four-task performance harness, the dashboard drag-path refactor and its BDD scenario, and a separate changelog file. The roadmap's performance requirement is satisfied by a recorded manual soak instead of a tool; the drag path is covered by a documented manual smoke step; release notes live inside the launch checklist.
+Deliberately deferred to keep launch fast (recorded in `requirements.md` §2.2 and as known gaps in the launch checklist): performance verification under continuous camera inference (roadmap Phase 10 bullet 2), the performance harness, the dashboard drag-path refactor and its BDD scenario, and a separate changelog file. The drag path is covered by a manual smoke step; release notes live inside the launch checklist.
 
 Task list target: **this `plan.md`** — project convention is `specs/<date>-<feature>/{plan,requirements,validation}.md`, so no `tasks/` directory is created.
 
@@ -14,15 +14,14 @@ Task list target: **this `plan.md`** — project convention is `specs/<date>-<fe
 1. CI + README ──────────────────────────── gate for everything below
         │
 2. BDD: viewer focus reset, export failure   (test-only, no production change)
-3. Manual performance soak + recorded numbers (documentation only)
-4. Startup failure recovery ── StartupCoordinator ── App.OnStartup
+3. Startup failure recovery ── StartupCoordinator ── App.OnStartup
         │
-5. Version metadata + launch checklist (portable publish, Go/No-Go)
+4. Version metadata + launch checklist (portable publish, Go/No-Go)
         │
-6. Full gates → review pipeline → PR → human approval → merge
+5. Full gates → review pipeline → PR → human approval → merge
 ```
 
-Ordering rationale: CI first so later changes are gated; groups 2–4 are independent; the checklist is written last because it evaluates the final build; the review pipeline and PR close the `AGENTS.md` lifecycle.
+Ordering rationale: CI first so later changes are gated; the BDD additions are independent of the startup fix, but both land before the checklist so the checklist evaluates the final behavior; the review pipeline and PR close the `AGENTS.md` lifecycle.
 
 ## Task Breakdown
 
@@ -106,30 +105,9 @@ Ordering rationale: CI first so later changes are gated; groups 2–4 are indepe
 
 ---
 
-### Task Group 3: Manual Performance Verification
+### Task Group 3: Startup Failure Recovery
 
-#### Task 3.1: Live-Inference Soak & Recorded Baseline
-
-- **Description:** Measure the roadmap's memory and responsiveness requirement by hand on the Release build, instead of building a harness. Numbers are recorded; no code is added.
-- **Acceptance criteria:**
-  - [ ] 10-minute continuous Live Detection run (real camera; if none is available, mark the gate untested and record it as a launch gap).
-  - [ ] First 60 seconds are warm-up; samples taken at t = 2 min and t = 10 min.
-  - [ ] Working set, private bytes, HUD FPS, and HUD average latency recorded at both samples.
-  - [ ] UI responsiveness checked at t = 5 min: navigate Dashboard → History → back, open the viewer, move the confidence slider, toggle telemetry; no freeze over 1 s.
-  - [ ] No crash, no unhandled-exception dialog, and no `Error`/`Fatal` entries in the app log during the soak.
-  - [ ] Results and machine context (OS build, CPU, RAM, GPU) recorded in `validation.md` §9; each gate in §5 marked met, failed, or waived.
-- **Verification:**
-  - [ ] Gate verdicts match the recorded numbers; a failed gate is a merge blocker or an explicitly accepted risk.
-- **Dependencies:** Tasks 1.1, 1.2
-- **Files:**
-  - `specs/2026-11-15-hardening-bdd-launch-readiness/validation.md`
-- **Estimated scope:** XS (1 file + manual run)
-
----
-
-### Task Group 4: Startup Failure Recovery
-
-#### Task 4.1: Startup Coordinator & Failure Path
+#### Task 3.1: Startup Coordinator & Failure Path
 
 - **Description:** Stop rethrowing migration failures from `async void App.OnStartup`. Extract sequencing into a testable coordinator; abort cleanly with a fatal log, one dialog, and exit code 1.
 - **Acceptance criteria:**
@@ -152,17 +130,17 @@ Ordering rationale: CI first so later changes are gated; groups 2–4 are indepe
 
 ---
 
-### Checkpoint 2: This Build Is Measured and Fails Cleanly
+### Checkpoint 2: Critical Branches Are Proven
 - [ ] Both new BDD scenarios pass; existing 44 scenarios unchanged.
 - [ ] Startup failure path verified manually and by tests.
-- [ ] Soak gates recorded (or explicitly waived with a gap note).
-- [ ] Human review before Group 5.
+- [ ] Full suite green with no regression against the 834-test baseline.
+- [ ] Human review before Group 4.
 
 ---
 
-### Task Group 5: Release Identity & Launch Readiness
+### Task Group 4: Release Identity & Launch Readiness
 
-#### Task 5.1: Version Metadata
+#### Task 4.1: Version Metadata
 
 - **Description:** Make the produced executable traceable to this build.
 - **Acceptance criteria:**
@@ -176,20 +154,20 @@ Ordering rationale: CI first so later changes are gated; groups 2–4 are indepe
   - `pcb-deftek.csproj`
 - **Estimated scope:** XS (1 file)
 
-#### Task 5.2: Launch-Readiness Checklist & Go/No-Go
+#### Task 4.2: Launch-Readiness Checklist & Go/No-Go
 
 - **Description:** Produce the launch artifact with the `shipping-and-launch` skill: evidence per item, release notes, known gaps, and one Go/No-Go verdict for a portable build.
 - **Acceptance criteria:**
   - [ ] Covers: clean-clone build; full suite; Release publish; artifact contents/size; runtime prerequisites; functional smoke matrix for every essential feature in `mission.md` §5.1; data-safety checks; log/error behavior; `dotnet list package --vulnerable`; secrets/absolute-path scan; known gaps.
-  - [ ] Functional smoke matrix includes the two manual steps that replace the deferred BDD drag scenario: drag a metric card and confirm persistence after reload; drop a card on itself (no change).
+  - [ ] Functional smoke matrix includes the manual steps that replace deferred automation: drag a metric card and confirm persistence after reload; drop a card on itself (no change); open Live Detection and confirm streaming, overlays, telemetry, auto-hide, and capture.
   - [ ] Release notes for `0.10.0` are included in the checklist (Added / Changed / Fixed / Known Limitations), derived from phase specs — no separate changelog file.
   - [ ] `dotnet publish -c Release -r win-x64 --self-contained false` executed; output launched; smoke matrix run against it.
   - [ ] Every item records pass/fail with evidence; one overall Go/No-Go with conditions.
   - [ ] Scope stated: no installer/MSIX, no signing, no icon, no GitHub Release publication (`mission.md` §5.2).
-  - [ ] Known gaps recorded: no automated drag-path test, no dispatcher-stall probe, manual-only performance numbers, multi-instance behavior.
+  - [ ] Known gaps recorded: performance under continuous inference unverified, no automated drag-path test, multi-instance behavior allowed.
 - **Verification:**
   - [ ] Checklist re-walked after `git clean -xdf`; same verdict.
-- **Dependencies:** Tasks 2.1, 2.2, 3.1, 4.1, 5.1
+- **Dependencies:** Tasks 2.1, 2.2, 3.1, 4.1
 - **Files:**
   - `specs/2026-11-15-hardening-bdd-launch-readiness/launch-checklist.md`
 - **Estimated scope:** M (1 file + manual runs)
@@ -199,28 +177,28 @@ Ordering rationale: CI first so later changes are gated; groups 2–4 are indepe
 ### Checkpoint 3: Launch Package Assessed
 - [ ] Version, release notes, and checklist exist and agree.
 - [ ] Portable build runs and completes the smoke matrix.
-- [ ] Go/No-Go stated with evidence.
-- [ ] Human review before Group 6.
+- [ ] Go/No-Go stated with evidence, including the unverified-performance gap.
+- [ ] Human review before Group 5.
 
 ---
 
-### Task Group 6: Final Verification & Merge Readiness
+### Task Group 5: Final Verification & Merge Readiness
 
-#### Task 6.1: Full Gate Run
+#### Task 5.1: Full Gate Run
 
 - **Description:** Execute and record every gate in `validation.md`.
 - **Acceptance criteria:**
   - [ ] `dotnet build pcb-deftek.slnx -c Release -warnaserror` → 0 errors, 0 warnings.
   - [ ] `dotnet test pcb-deftek.slnx` → 100 % pass, 0 skipped, no regression against the 834-test baseline.
-  - [ ] CI green on the final commit; performance gates recorded; launch verdict recorded.
+  - [ ] CI green on the final commit; launch verdict recorded.
 - **Verification:**
-  - [ ] `validation.md` §9 updated with commands and counts.
-- **Dependencies:** Task Groups 1–5
+  - [ ] `validation.md` §8 updated with commands and counts.
+- **Dependencies:** Task Groups 1–4
 - **Files:**
   - `specs/2026-11-15-hardening-bdd-launch-readiness/validation.md`
 - **Estimated scope:** XS (1 file)
 
-#### Task 6.2: Review Pipeline
+#### Task 5.2: Review Pipeline
 
 - **Description:** Execute the gated `AGENTS.md` §7 pipeline, asking before each stage.
 - **Acceptance criteria:**
@@ -228,13 +206,13 @@ Ordering rationale: CI first so later changes are gated; groups 2–4 are indepe
   - [ ] `code-simplification`, `performance-optimization`, `security-and-hardening` executed only after explicit approval; outcomes recorded.
   - [ ] Blocking findings fixed; non-blocking recorded as follow-ups.
 - **Verification:**
-  - [ ] `validation.md` §10 lists each stage and verdict.
-- **Dependencies:** Task 6.1
+  - [ ] `validation.md` §9 lists each stage and verdict.
+- **Dependencies:** Task 5.1
 - **Files:**
   - `specs/2026-11-15-hardening-bdd-launch-readiness/validation.md`
 - **Estimated scope:** XS (1 file)
 
-#### Task 6.3: PR, Human Approval, Merge
+#### Task 5.3: PR, Human Approval, Merge
 
 - **Description:** Complete the `AGENTS.md` §4 lifecycle.
 - **Acceptance criteria:**
@@ -243,14 +221,14 @@ Ordering rationale: CI first so later changes are gated; groups 2–4 are indepe
   - [ ] Merge to `main`, issue closed, branch deleted; plan checkboxes updated.
 - **Verification:**
   - [ ] `git log --oneline -5` on `main` shows the merge; branch gone.
-- **Dependencies:** Task 6.2
+- **Dependencies:** Task 5.2
 - **Files:** None
 - **Estimated scope:** XS (0 files)
 
 ---
 
 ### Checkpoint 4: Merge Readiness
-- [ ] All gates in `validation.md` §8 satisfied.
+- [ ] All gates in `validation.md` §7 satisfied.
 - [ ] Human approval recorded.
 - [ ] Branch deleted after merge.
 
@@ -263,12 +241,12 @@ Ordering rationale: CI first so later changes are gated; groups 2–4 are indepe
 | CI runner has no interactive desktop or webcam | High | Existing BDD injects `FakeCameraService` and stubs; first CI run is the proof. Fix failures, do not filter tests. |
 | `-warnaserror` trips on Reqnroll-generated code | Medium | Fix at source or scope `NoWarn` to generated files only. |
 | ONNX model load (50 MB) inflates CI duration | Medium | Model copied from output; 20-minute timeout measured on first run. |
-| Manual soak numbers are noisy or unrepeatable | Medium | Warm-up excluded; both samples recorded; rerun before waiving a failed gate; machine context captured. |
+| Launching without measured memory/UI behavior under continuous inference | High | Accepted for launch speed; recorded as a known gap in the checklist, with an ad-hoc pre-pilot soak recommended before wider distribution. |
 | No automated drag-path test | Medium | Manual checklist step (drag + reload, drop-on-self) executed against the portable build. |
 | Startup extraction alters the success path | High | Coordinator success-path test, DI tests, and a manual cold start after the change. |
 | New scenarios leak temp roots or share state | Medium | Follow the existing per-scenario container/temp-root pattern and dispose. |
 | Checklist becomes a rubber stamp | High | Evidence required per item; clean-clone rebuild; smoke matrix against the published output. |
-| Scope creeps back into deferred work (harness, drag refactor, changelog) | Medium | Explicit deferral list in `requirements.md` §2.2; changes require a new task. |
+| Scope creeps back into deferred work (performance verification, drag refactor, changelog) | Medium | Explicit deferral list in `requirements.md` §2.2; changes require a new task. |
 
 ## Approvals Required (before implementation)
 
@@ -276,7 +254,7 @@ Ordering rationale: CI first so later changes are gated; groups 2–4 are indepe
 2. Version `0.10.0`; release notes live in the launch checklist rather than `CHANGELOG.md`.
 3. Launch scope: portable `win-x64` publish only; installer/MSIX, signing, icon, and release publication stay in `mission.md` §5.2.
 4. Startup behavior change: migration failure exits with code 1 instead of leaving a window-less process.
-5. Acceptance of the deferred items listed in `requirements.md` §2.2 as documented launch gaps.
+5. Acceptance of the deferred items in `requirements.md` §2.2 — including performance verification under continuous inference — as documented launch gaps.
 
 ## Open Questions
 
