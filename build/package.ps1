@@ -4,6 +4,9 @@ param(
     [string]$Runtime = 'win-x64',
     [string]$Version,
     [string]$InnoCompiler,
+    [string]$PfxPath,
+    [string]$TimestampUrl = 'http://timestamp.digicert.com',
+    [switch]$Sign,
     [switch]$SkipInstaller
 )
 
@@ -55,6 +58,25 @@ function Assert-UnderArtifacts {
     return $full
 }
 
+function Invoke-Sign {
+    param([Parameter(Mandatory)][string[]]$Files)
+
+    $signScript = Join-Path $repoRoot 'build\sign.ps1'
+    if (-not (Test-Path -LiteralPath $signScript)) {
+        throw "Signing script not found: $signScript"
+    }
+
+    $signArgs = @{ FilePath = $Files; TimestampUrl = $TimestampUrl }
+    if (-not [string]::IsNullOrWhiteSpace($PfxPath)) {
+        $signArgs['PfxPath'] = $PfxPath
+    }
+
+    & $signScript @signArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw "Signing failed with exit code $LASTEXITCODE"
+    }
+}
+
 $publishDir = Assert-UnderArtifacts (Join-Path $artifactsRoot "pcb-deftek-$Version-$Runtime")
 $zipPath = Assert-UnderArtifacts (Join-Path $artifactsRoot "PCB-Deftek-$Version-portable-$Runtime.zip")
 $setupPath = Assert-UnderArtifacts (Join-Path $artifactsRoot "PCB-Deftek-$Version-setup.exe")
@@ -93,6 +115,11 @@ foreach ($required in $requiredFiles) {
     }
 }
 
+if ($Sign) {
+    Write-Host 'Signing the application executable before packaging'
+    Invoke-Sign -Files @((Join-Path $publishDir 'pcb-deftek.exe'))
+}
+
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 Write-Host "Creating portable archive $zipPath"
 [System.IO.Compression.ZipFile]::CreateFromDirectory(
@@ -127,6 +154,11 @@ if (-not $SkipInstaller) {
     if (-not (Test-Path -LiteralPath $setupPath)) {
         throw "Installer was not produced: $setupPath"
     }
+}
+
+if ($Sign -and (Test-Path -LiteralPath $setupPath)) {
+    Write-Host 'Signing the installer'
+    Invoke-Sign -Files @($setupPath)
 }
 
 $checksumTargets = @($zipPath)

@@ -124,34 +124,38 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 
 - **Description:** Sign the application executable and the installer with the project certificate using SHA-256 and an RFC 3161 timestamp. Signing runs automatically in the tag-driven release workflow; there is no local signing requirement. `package.ps1` is extended so signing happens in the correct order: publish → sign `pcb-deftek.exe` → build portable zip → compile installer → sign `setup.exe` → write checksums.
 - **Acceptance criteria:**
-  - [ ] `build/sign.ps1` signs `pcb-deftek.exe` and the setup executable with SHA-256 and an RFC 3161 timestamp against `http://timestamp.digicert.com`; the certificate comes from `SIGNING_PFX_BASE64`/`SIGNING_PFX_PASSWORD` (CI) or an explicit local PFX path (developer use).
-  - [ ] `signtool verify /pa /all` reports success for both files **in CI**; the workflow fails the job otherwise.
-  - [ ] Signing failures (missing secret, unreadable PFX, wrong password, timestamp failure) fail with a clear message; artifacts are never uploaded or published unsigned.
-  - [ ] No certificate, password, decoded PFX, or base64 material is committed, printed, or retained as a workflow artifact; the decoded PFX is written only to `$RUNNER_TEMP` and deleted in a `finally` block.
-  - [ ] `SHA256SUMS.txt` is produced after signing, so the recorded hashes match the signed files.
+  - [x] `build/sign.ps1` signs `pcb-deftek.exe` and the setup executable with SHA-256 and an RFC 3161 timestamp against `http://timestamp.digicert.com`; the certificate comes from `SIGNING_PFX_BASE64`/`SIGNING_PFX_PASSWORD` (CI) or an explicit local PFX path (developer use).
+  - [x] `signtool verify /pa /all` reports success for both files **in CI**; the workflow fails the job otherwise.
+  - [x] Signing failures (missing secret, unreadable PFX, wrong password, timestamp failure) fail with a clear message; artifacts are never uploaded or published unsigned.
+  - [x] No certificate, password, decoded PFX, or base64 material is committed, printed, or retained as a workflow artifact; the decoded PFX is written only to `$RUNNER_TEMP` and deleted in a `finally` block.
+  - [x] `SHA256SUMS.txt` is produced after signing, so the recorded hashes match the signed files.
 - **Verification:**
-  - [ ] CI only (owner decision; no local verification step): a temporary `v0.10.0-rc.1` tag runs the release workflow; both executables report `Successfully signed` and `signtool verify /pa /all` passes.
-  - [ ] The same CI run downloads the artifacts and confirms the checksums.
-  - [ ] File properties on the signed copies show the certificate's publisher name.
+  - [x] CI run `43746365252` (`v0.10.0-rc.1`): `Successfully verified` for `pcb-deftek.exe` and `PCB-Deftek-0.10.0-setup.exe`; publisher `CN=PCB Deftek Developer`; RFC 3161 timestamp present.
+  - [x] Downloaded release assets: both SHA-256 values match `SHA256SUMS.txt`; the zip contains the signed executable.
+  - [x] The RC installer installs silently (exit 0), the installed app launches and exits 0, and uninstall removes the install directory.
+- **Deviations:**
+  - The owner-supplied certificate is self-signed (`CN=PCB Deftek Developer`, issuer equals subject, valid to 2031), so the release workflow installs its **public part** into `Cert:\LocalMachine\Root` on the ephemeral runner before verification. `/pa` passes there; end-user machines still report an untrusted publisher until a publicly trusted certificate is supplied.
 - **Dependencies:** Task 4 · **Requires:** repository secrets (fulfilled) and the DigiCert timestamp URL (supplied)
 - **Files:**
   - `build/sign.ps1`
   - `build/package.ps1` (signing hook and checksum ordering)
+  - `.github/workflows/release.yml` (runner trust step)
   - `.gitignore` (already ignores `*.pfx`)
-- **Estimated scope:** S (2 files + `.gitignore` review)
+- **Estimated scope:** S (3 files + `.gitignore` review)
 
 #### Task 6: GitHub Release Workflow
 
 - **Description:** Tag-driven release: build, package, sign, and publish a GitHub Release with installer, portable zip, checksums, and release notes. The workflow is the sole signing entry point (tag-only; no push or PR triggers).
 - **Acceptance criteria:**
-  - [ ] `.github/workflows/release.yml` triggers only on `v*` tags; installs Inno Setup on the runner, runs `package.ps1` with signing enabled, and fails before publishing if either signing secret is missing.
-  - [ ] The workflow asserts the tag version equals the csproj `<Version>` and refuses to sign mismatched artifacts.
-  - [ ] Creates the release with `PCB-Deftek-<version>-setup.exe`, portable zip, `SHA256SUMS.txt`, and a release-notes body.
-  - [ ] Release notes reuse the 0.10.0 notes from `launch-checklist.md` plus install instructions.
-  - [ ] Tag `v0.10.0` produces a release whose assets download and verify against the checksums and carry valid signatures.
+  - [x] `.github/workflows/release.yml` triggers only on `v*` tags; trusts the certificate's public part on the ephemeral runner, installs Inno Setup, runs `package.ps1` with signing enabled, and fails before publishing if either signing secret is missing.
+  - [x] The workflow asserts the tag version equals the csproj `<Version>` and refuses to sign mismatched artifacts.
+  - [x] Creates the release with `PCB-Deftek-<version>-setup.exe`, portable zip, `SHA256SUMS.txt`, and a release-notes body.
+  - [x] Release notes reuse the 0.10.0 notes from `launch-checklist.md` plus install instructions.
+  - [ ] Tag `v0.10.0` produces a release whose assets download and verify against the checksums and carry valid signatures (same path exercised by `v0.10.0-rc.1`; final tag after Checkpoint C).
 - **Verification:**
-  - [ ] Push a temporary `v0.10.0-rc.1` tag; the run signs and verifies both executables in CI, checksums match post-signing artifacts, and the tag is deleted afterwards without a leftover release.
-  - [ ] The final `v0.10.0` tag repeats the checks against the real release assets.
+  - [x] Temporary `v0.10.0-rc.1` run `43746365252`: signed and verified both executables, uploaded signed artifacts, published a pre-release with installer, portable zip, checksums and generated notes. Checksums match the downloaded assets; the installer installs, launches and uninstalls cleanly.
+  - [x] The RC release and tag were deleted after validation; no leftover release or tag.
+  - [ ] Final `v0.10.0` tag after Checkpoint C.
 - **Dependencies:** Tasks 3, 4, 5
 - **Files:**
   - `.github/workflows/release.yml`
@@ -161,8 +165,8 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 ---
 
 ### Checkpoint B: Distributable & Signed
-- [ ] Installer installs/uninstalls cleanly and is signed.
-- [ ] Release assets exist, are signed, and match checksums.
+- [x] Installer installs/uninstalls cleanly and is signed (validated from the `v0.10.0-rc.1` release asset; self-signed publisher).
+- [ ] Release assets exist, are signed, and match checksums (assets were produced and verified for the RC, then deleted; the permanent release is created with `v0.10.0`).
 - [ ] Human review before Phase C.
 
 ---
@@ -219,7 +223,7 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 |---|---|---|
 | DirectML unavailable on the RTX 2050 (driver/D3D12 issue) | High | Test fails with the active device named; fall back documented, GPU option hidden or labelled |
 | Toast still blocked by Focus Assist or notification settings | Medium | Manual check from both VS debug and installed build; service logs every failure |
-| Certificate properties unverified (code-signing EKU, key, validity, password) | High | Temporary `v0.10.0-rc.1` tag surfaces the failure in CI before `v0.10.0`; signing failures fail the job and publish nothing |
+| Certificate is self-signed (issuer equals subject) | Medium | CI trusts the public part on the ephemeral runner so `/pa` passes; end users still see an untrusted publisher until a publicly trusted certificate replaces it |
 | Checksums computed before signing | High | Signing hook in `package.ps1`: exe signed before zip/installer, setup signed before `SHA256SUMS.txt` |
 | Tag/version mismatch produces wrongly named signed artifacts | Medium | Workflow asserts tag version equals csproj `<Version>` before packaging |
 | Inno Setup absent on `windows-latest` | Low | Release workflow installs it before `package.ps1`; local runs probe per-user and machine-wide paths |
@@ -237,9 +241,11 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 6. **Timestamp server supplied:** DigiCert RFC 3161 at `http://timestamp.digicert.com`.
 7. **Tasks 3-4 merged:** `build/package.ps1` and `installer/pcb-deftek.iss` are on `main` (#139).
 8. **Tag approval:** `v0.10.0` is pushed only after Checkpoint C passes.
+9. **Certificate is self-signed** (`CN=PCB Deftek Developer`, issuer equals subject, valid 2026-11-15 to 2031-11-15, thumbprint `E8A43160…`). The release workflow installs its public part into `Cert:\LocalMachine\Root` on the ephemeral runner so `signtool verify /pa` passes; no private material is installed or exported.
+10. **External distribution caveat:** a publicly trusted code-signing certificate is still required before shipping externally, because end-user machines do not trust this root.
 
 Still owner-side and only observable at signing time: the PFX's code-signing EKU, private-key presence, validity window, password correctness, and the publisher subject shown in file properties.
 
 ## Open Questions
 
-None blocking. The certificate's publisher subject and validity are reported by the `v0.10.0-rc.1` signing run and folded into the Task 8 release notes; optional hardening (moving the secrets into a protected `release` environment) can be added later without changing the workflow contract.
+- **Public trust:** the current certificate is self-signed, so external users see an untrusted publisher even though signatures and timestamps verify. A publicly trusted code-signing certificate is required before shipping outside the internal pilot; the workflow needs no change when that PFX replaces the secret.
