@@ -167,7 +167,7 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 ### Checkpoint B: Distributable & Signed
 - [x] Installer installs/uninstalls cleanly and is signed (validated from the `v0.10.0-rc.1` release asset; self-signed publisher).
 - [ ] Release assets exist, are signed, and match checksums (assets were produced and verified for the RC, then deleted; the permanent release is created with `v0.10.0`).
-- [ ] Human review before Phase C.
+- [x] Human review before Phase C (approved; Task 8 proceeded).
 
 ---
 
@@ -195,12 +195,16 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 
 - **Description:** Fold the new evidence into the launch record and revise the verdict.
 - **Acceptance criteria:**
-  - [ ] `launch-checklist.md`: DirectML PASS evidence, toast PASS, installer/signing PASS, soak numbers, install instructions, revised known gaps.
-  - [ ] `validation.md` §5.4 live-camera item updated to owner-verified; new gates for DirectML, notifications, installer, signature, release.
-  - [ ] Verdict updated: **Go** for external distribution once signature verification and release-asset checks pass; remaining gaps listed (multi-instance, splash branding).
-  - [ ] `plan.md` links this sub-plan.
+  - [x] `launch-checklist.md`: DirectML PASS evidence, toast PASS, installer/signing PASS, soak numbers, install instructions, revised known gaps (self-signed publisher, multi-instance, splash branding, drag automation).
+  - [x] `validation.md` §5.4: live-camera item updated to owner-verified; new gates for DirectML, notifications, installer, signature, and release all pass; the performance gate now records the measured soak.
+  - [x] Verdict updated: **Go — internal pilot**; public distribution remains **No-Go** until a publicly trusted certificate replaces the self-signed one and `v0.10.0` assets are published. Remaining gaps listed (multi-instance, splash branding, drag automation).
+  - [x] `plan.md` links this sub-plan and notes the superseded deferred scope.
 - **Verification:**
-  - [ ] Re-walk the checklist against the released installer; same verdict.
+  - [x] Checklist re-walked against the clean-clone publish and the `v0.10.0-rc.1` release installer (download → checksum → install → launch → uninstall) with the same verdict.
+  - [ ] Final `v0.10.0` release remains gated on Checkpoint C approval.
+- **Deviations:**
+  - The certificate is self-signed, so the verdict gates public distribution on a publicly trusted certificate; the original acceptance wording assumed a trusted certificate.
+  - Install/uninstall was validated on the existing user profile; a clean-profile install is still listed under Checkpoint C.
 - **Dependencies:** Tasks 1–7
 - **Files:**
   - `specs/2026-11-15-hardening-bdd-launch-readiness/launch-checklist.md`
@@ -211,8 +215,8 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 ---
 
 ### Checkpoint C: Release Ready
-- [ ] All gates in `validation.md` pass, including the new hardware/notification/packaging rows.
-- [ ] Signed installer installs on a clean profile and the app starts.
+- [x] All gates in `validation.md` pass, including the new hardware/notification/packaging/signature/release rows.
+- [ ] Signed installer installs on a clean profile and the app starts (validated on the existing profile; a clean-profile install remains).
 - [ ] Human approval recorded before tagging `v0.10.0`.
 
 ---
