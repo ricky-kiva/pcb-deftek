@@ -11,6 +11,7 @@
              SnapsToDevicePixels="True"
              SizeChanged="OnViewerSizeChanged"
              Loaded="OnViewerLoaded"
+             IsVisibleChanged="OnViewerIsVisibleChanged"
              MouseWheel="OnViewerMouseWheel"
              MouseLeftButtonDown="OnViewerMouseLeftButtonDown"
              MouseMove="OnViewerMouseMove"
