@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -33,6 +34,9 @@ public partial class LiveDetectionViewModel : ViewModelBase
     private readonly object _camerasLock = new();
 
     private bool _suppressCameraSwitch;
+    private CancellationTokenSource? _navigationCts;
+    private Task? _startupTask;
+    private int _navigationVersion;
 
     /// <inheritdoc />
     public override string Title => "Live Detection";
@@ -178,34 +182,130 @@ public partial class LiveDetectionViewModel : ViewModelBase
     /// <inheritdoc />
     public override async Task OnNavigatedToAsync()
     {
-        // 1. Signal shell window to collapse sidebar by default on Live Camera page
+        var cts = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(ref _navigationCts, cts);
+        previous?.Cancel();
+        previous?.Dispose();
+
+        int version = Interlocked.Increment(ref _navigationVersion);
+
+        // Signal shell window to collapse sidebar by default on Live Camera page.
         _messenger.Send(new SidebarCollapseMessage(true));
 
-        // 2. Load persisted confidence threshold
+        Task startup = StartLiveAsync(cts.Token, version);
+        _startupTask = startup;
         try
         {
-            var settings = await _userSettingsService.LoadSettingsAsync().ConfigureAwait(false);
-            if (settings != null)
+            await startup.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Navigation moved away before initialization completed.
+        }
+    }
+
+    /// <inheritdoc />
+    public override async Task OnNavigatedFromAsync()
+    {
+        // Restore sidebar to expanded when leaving Live Detection page.
+        _messenger.Send(new SidebarCollapseMessage(false));
+
+        Interlocked.Increment(ref _navigationVersion);
+        var cts = Interlocked.Exchange(ref _navigationCts, null);
+        cts?.Cancel();
+
+        // Remove the frame handler immediately; initialization may still be awaiting hardware.
+        _liveInspectionEngine.FrameProcessed -= OnFrameProcessed;
+
+        Task? startup = _startupTask;
+        _startupTask = null;
+        if (startup is not null)
+        {
+            try
             {
-                ConfidenceThreshold = settings.ConfidenceThreshold;
+                await startup.ConfigureAwait(false);
             }
+            catch (OperationCanceledException)
+            {
+                // Expected when navigation cancels initialization.
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error while waiting for live camera initialization to stop.");
+            }
+        }
+
+        cts?.Dispose();
+        _liveInspectionEngine.FrameProcessed -= OnFrameProcessed;
+
+        try
+        {
+            await _liveInspectionEngine.StopAsync().ConfigureAwait(false);
+            await _cameraService.StopCaptureAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to load user settings into LiveDetectionViewModel.");
+            _logger.LogWarning(ex, "Error while stopping live camera capture.");
         }
+        finally
+        {
+            UpdateOnUiThread(() =>
+            {
+                IsStreaming = false;
+                StatusText = "Camera Stopped";
+            });
+        }
+    }
 
-        // 3. Subscribe to live processed frames
-        _liveInspectionEngine.FrameProcessed -= OnFrameProcessed;
-        _liveInspectionEngine.FrameProcessed += OnFrameProcessed;
-
-        // 4. Discover cameras and start live stream
+    private async Task StartLiveAsync(CancellationToken token, int version)
+    {
         try
         {
-            var cameras = await _cameraService.GetAvailableCamerasAsync().ConfigureAwait(false);
+            UserSettings? settings = null;
+            try
+            {
+                settings = await _userSettingsService
+                    .LoadSettingsAsync(token)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load user settings into LiveDetectionViewModel.");
+            }
+
+            if (!IsCurrentNavigation(version, token))
+            {
+                return;
+            }
+
+            if (settings != null)
+            {
+                UpdateOnUiThread(() => ConfidenceThreshold = settings.ConfidenceThreshold);
+            }
+
+            _liveInspectionEngine.FrameProcessed -= OnFrameProcessed;
+            _liveInspectionEngine.FrameProcessed += OnFrameProcessed;
+
+            var cameras = await _cameraService
+                .GetAvailableCamerasAsync(token)
+                .ConfigureAwait(false);
+
+            if (!IsCurrentNavigation(version, token))
+            {
+                return;
+            }
 
             UpdateOnUiThread(() =>
             {
+                if (version != Volatile.Read(ref _navigationVersion))
+                {
+                    return;
+                }
+
                 _suppressCameraSwitch = true;
                 try
                 {
@@ -234,51 +334,54 @@ public partial class LiveDetectionViewModel : ViewModelBase
                 }
             });
 
+            if (!IsCurrentNavigation(version, token))
+            {
+                return;
+            }
+
             int targetIndex = SelectedCamera?.Index ?? 0;
-            await _liveInspectionEngine.StartAsync().ConfigureAwait(false);
-            await _cameraService.StartCaptureAsync(targetIndex).ConfigureAwait(false);
+            await _liveInspectionEngine
+                .StartAsync(token)
+                .ConfigureAwait(false);
+
+            if (!IsCurrentNavigation(version, token))
+            {
+                return;
+            }
+
+            await _cameraService
+                .StartCaptureAsync(targetIndex, token)
+                .ConfigureAwait(false);
+
+            if (!IsCurrentNavigation(version, token))
+            {
+                return;
+            }
 
             UpdateOnUiThread(() =>
             {
-                IsStreaming = true;
-                StatusText = $"Streaming Live ({SelectedCamera?.Name ?? "Camera 0"})";
+                if (version == Volatile.Read(ref _navigationVersion))
+                {
+                    IsStreaming = true;
+                    StatusText = $"Streaming Live ({SelectedCamera?.Name ?? "Camera 0"})";
+                }
             });
+        }
+        catch (OperationCanceledException)
+        {
+            // Navigation moved away; OnNavigatedFrom stops any partially started capture.
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Unable to start live camera capture.");
-            UpdateOnUiThread(() =>
+            if (version == Volatile.Read(ref _navigationVersion))
             {
-                IsStreaming = false;
-                StatusText = $"Camera unavailable: {ex.Message}";
-            });
-        }
-    }
-
-    /// <inheritdoc />
-    public override async Task OnNavigatedFromAsync()
-    {
-        // Restore sidebar to expanded when leaving Live Detection page
-        _messenger.Send(new SidebarCollapseMessage(false));
-
-        _liveInspectionEngine.FrameProcessed -= OnFrameProcessed;
-
-        try
-        {
-            await _liveInspectionEngine.StopAsync().ConfigureAwait(false);
-            await _cameraService.StopCaptureAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error while stopping live camera capture.");
-        }
-        finally
-        {
-            UpdateOnUiThread(() =>
-            {
-                IsStreaming = false;
-                StatusText = "Camera Stopped";
-            });
+                _logger.LogWarning(ex, "Unable to start live camera capture.");
+                UpdateOnUiThread(() =>
+                {
+                    IsStreaming = false;
+                    StatusText = $"Camera unavailable: {ex.Message}";
+                });
+            }
         }
     }
 
@@ -382,6 +485,12 @@ public partial class LiveDetectionViewModel : ViewModelBase
                 StatusText = $"Camera switch failed: {ex.Message}";
             });
         }
+    }
+
+    private bool IsCurrentNavigation(int version, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        return version == Volatile.Read(ref _navigationVersion);
     }
 
     private void OnFrameProcessed(object? sender, LiveFrameProcessedEventArgs e)
