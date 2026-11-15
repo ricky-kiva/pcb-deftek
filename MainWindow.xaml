@@ -7,6 +7,7 @@
         xmlns:views="clr-namespace:pcb_deftek.Presentation.Views"
         mc:Ignorable="d"
         Title="pcb-deftek — Automated PCB Defect Detection &amp; Analysis"
+        Icon="/Assets/app-icon.ico"
         Width="1280" Height="820"
         MinWidth="1024" MinHeight="680"
         WindowStartupLocation="CenterScreen"
