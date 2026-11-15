@@ -83,28 +83,37 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 
 - **Description:** Add a reproducible packaging script for the distributable artifacts: a self-contained `win-x64` publish (bundles the .NET runtime) and a portable zip.
 - **Acceptance criteria:**
-  - [ ] `build/package.ps1` publishes `-c Release -r win-x64 --self-contained true` into `artifacts/pcb-deftek-<version>-win-x64/`.
-  - [ ] Produces `artifacts/PCB-Deftek-<version>-portable-win-x64.zip` and a `SHA256SUMS.txt`.
-  - [ ] `artifacts/` is git-ignored; script fails on any build error.
-  - [ ] Published app launches and the dashboard renders.
+  - [x] `build/package.ps1` publishes `-c Release -r win-x64 --self-contained true` into `artifacts/pcb-deftek-<version>-win-x64/` (436 files, 380.5 MB).
+  - [x] Produces `artifacts/PCB-Deftek-<version>-portable-win-x64.zip` (181.4 MB) and `SHA256SUMS.txt`; recomputed hashes match.
+  - [x] `artifacts/` is git-ignored (existing `.gitignore` rule); the script exits 1 on a publish failure (verified with an invalid RID: `NETSDK1083`).
+  - [x] Published app launches and the dashboard renders (screenshot, four metric cards, exit code 0).
 - **Verification:**
-  - [ ] Run the script; inspect file count/size; launch the output.
+  - [x] `powershell -File build/package.ps1` → publish + zip + installer + checksums in one run, ~170 s.
+  - [x] Version defaults to the csproj `<Version>`; input is validated against a SemVer allowlist before it reaches any path or compiler argument (`-Version 1.2` → exit 1).
+  - [x] SHA-256 recomputation via PowerShell matches both entries in `SHA256SUMS.txt`.
+- **Deviations:**
+  - `Assets/app-icon.ico` is an embedded `<Resource>`, not a copied publish file, so the script validates the exe and the model instead; the icon is verified through the executable and the installer.
 - **Dependencies:** Tasks 1, 2
 - **Files:**
   - `build/package.ps1`
-  - `.gitignore`
+  - `.gitignore` (already covered `artifacts/`; unchanged)
 - **Estimated scope:** S (2 files)
 
 #### Task 4: Inno Setup Installer
 
 - **Description:** Build a per-user installer around the self-contained publish: Start-menu and optional desktop shortcuts, uninstall entry, and app icon.
 - **Acceptance criteria:**
-  - [ ] `installer/pcb-deftek.iss` installs to `%LOCALAPPDATA%\Programs\PCB Deftek`, creates shortcuts with `Assets/app-icon.ico`, and registers an uninstaller.
-  - [ ] Installer output `artifacts/PCB-Deftek-<version>-setup.exe`; app launches after install; uninstall removes files and shortcuts.
-  - [ ] User data (`%LOCALAPPDATA%\PcbDeftek`, Downloads exports) is untouched by install/uninstall.
-  - [ ] No admin rights required.
+  - [x] `installer/pcb-deftek.iss` installs to `%LOCALAPPDATA%\Programs\PCB Deftek`, creates Start-menu shortcuts with the app icon, and registers an uninstaller (`unins000.exe`, HKCU uninstall entry).
+  - [x] Installer output `artifacts/PCB-Deftek-<version>-setup.exe` (144.9 MB); the installed app launches; uninstall removes the install directory, shortcuts, and the registry entry.
+  - [x] User data (`%LOCALAPPDATA%\PcbDeftek`) is untouched by install and uninstall (SHA-256 snapshot diff = 0 both times; launching the app changes logs/db as expected).
+  - [x] No admin rights required: `PrivilegesRequired=lowest`, silent install ran without elevation.
 - **Verification:**
-  - [ ] Install silently (`/VERYSILENT /SUPPRESSMSGBOXES`), launch, inspect shortcuts, uninstall, confirm cleanup.
+  - [x] `PCB-Deftek-0.10.0-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-` → exit 0; uninstall entry `{A3F1C0D2-6B8E-4E37-9C2A-7D5B1E9F4C60}_is1` with DisplayName "PCB Deftek", version 0.10.0.
+  - [x] Start-menu folder contains the app and uninstall shortcuts; desktop shortcut absent by default (opt-in task).
+  - [x] Installed app renders the dashboard and exits with code 0; `unins000.exe /VERYSILENT` removes the directory, Start-menu folder, and registry entry.
+- **Deviations:**
+  - Inno Setup was installed per-user (`%LOCALAPPDATA%\Programs\Inno Setup 6`), so the script probes both per-user and machine-wide compiler paths and accepts `-InnoCompiler`; `-SkipInstaller` produces only the publish and zip.
+  - The first compile embedded a doubled closing brace in `AppId`, producing `...}}_is1` in the uninstall registry; corrected to `{{GUID}` before the recorded verification.
 - **Dependencies:** Task 3
 - **Files:**
   - `installer/pcb-deftek.iss`
