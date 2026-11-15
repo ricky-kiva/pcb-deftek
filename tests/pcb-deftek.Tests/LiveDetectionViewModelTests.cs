@@ -389,6 +389,41 @@ public class LiveDetectionViewModelTests
     }
 
     [Fact]
+    public async Task OnNavigatedToAsync_WhenUiThreadIsBusy_StartsEnumeratedCameraIndex()
+    {
+        _mockCamera
+            .Setup(c => c.GetAvailableCamerasAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CameraDeviceInfo> { new(1, "Integrated Webcam") });
+
+        var (thread, dispatcher) = StartDispatcherThread();
+        using var gate = new ManualResetEventSlim();
+
+        try
+        {
+            var sut = CreateSut(dispatcher);
+            var uiBusy = new ManualResetEventSlim();
+            _ = dispatcher.BeginInvoke(new Action(() =>
+            {
+                uiBusy.Set();
+                gate.Wait();
+            }));
+            uiBusy.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue("the UI thread must be occupied");
+
+            await sut.OnNavigatedToAsync();
+
+            _mockCamera.Verify(
+                c => c.StartCaptureAsync(1, It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+        finally
+        {
+            gate.Set();
+            dispatcher.InvokeShutdown();
+            thread.Join(TimeSpan.FromSeconds(5));
+        }
+    }
+
+    [Fact]
     public async Task WhenSelectedCameraChangedWhileStreaming_SwitchesCameraCaptureToNewDevice()
     {
         var sut = CreateSut();

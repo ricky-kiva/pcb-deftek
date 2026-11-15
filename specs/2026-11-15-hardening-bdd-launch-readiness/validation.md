@@ -107,59 +107,108 @@ Performance under continuous inference is **not** covered by this phase; the che
 - [x] README states the detection scope: PCB trace defects (open/short circuits), best suited to bare PCBs without mounted components.
 - [x] README documents the screenshot naming convention and current values (`1`/`1`).
 
-## 6. CI Results (to be recorded)
+## 6. CI Results (recorded)
 
 | Item | Value |
 |---|---|
-| Workflow run URL | https://github.com/ricky-kiva/pcb-deftek/actions/runs/43709496840 |
-| Job duration | 2m15s (11:33:26Z → 11:35:41Z) |
-| Unit tests / result | 790 passed, 0 failed, 0 skipped |
-| BDD tests / result | 44 passed, 0 failed, 0 skipped |
+| Final main CI | https://github.com/ricky-kiva/pcb-deftek/actions/runs/43753964148 |
+| Job duration | 1m56s |
+| Unit tests / result | 798 passed, 0 failed, 0 skipped (hardware DirectML test excluded) |
+| BDD tests / result | 46 passed, 0 failed, 0 skipped |
 | Warning count | 0 |
 | Artifact | `test-results` (unit + BDD `.trx`) |
-| Earlier runs (unit) | `43704968179` hung for 19 min; `43706692821` named the blocked tests via `--blame-hang`. Fixed in `ebc5c08`: a unit test constructed a real `App`, installing a non-pumping `Application.Current`, so later `Dispatcher.Invoke` calls from `LiveDetectionViewModel` deadlocked. `43709113215` then failed `LiveInspectionEngineTests` on a 2 s frame wait; widened to 15 s in `5d21631` (790 consecutive local passes). |
-| Earlier runs (BDD) | `43707982620` failed the export-cancel wait; `43708452705` failed both cancellation scenarios with `Completed` status because parallel feature collections starved the thread pool and a 10 s annotation-release safety window fired before cancellation. Fixed in `6888323`: BDD scenarios run serially, the block window is 60 s, and the wait reports state. |
+| Release run | `43750845817` → `v0.10.0` published; assets re-hashed, signed, install/uninstall verified |
+| Review-fix validation | `43755765713` (`v0.10.0-rc.2`): pre-release artifacts named `PCB-Deftek-0.10.0-rc.2-*`, both signed and verified; release and tag deleted afterwards |
+| Earlier runs | Unit: `43704968179` hung on a test-installed `Application.Current`; `43706692821` named the blocked tests via `--blame-hang`; fixed in `ebc5c08`. `43709113215` failed a 2 s frame wait; widened to 15 s in `5d21631`. BDD: `43707982620`/`43708452705` failed cancellation timing; fixed in `6888323` (serial scenarios, 60 s block window). |
 
 ## 7. Merge Readiness & Definition of Done
 
 Phase 10 may merge into `main` only when:
 
-1. All five task groups in `plan.md` are complete.
-2. `dotnet build pcb-deftek.slnx -c Release -warnaserror` succeeds.
-3. `dotnet test pcb-deftek.slnx` passes 100 %, 0 skipped, no regression against 834.
+1. All five task groups in `plan.md` are complete, and the follow-on `sub-plan-1.md` tasks are complete.
+2. `dotnet build pcb-deftek.slnx -c Release -warnaserror` succeeds with 0 warnings and 0 errors.
+3. `dotnet test pcb-deftek.slnx` passes 100 %, 0 skipped, with no regression; current baseline is 800 unit (799 in CI, hardware test excluded) + 46 BDD.
 4. CI is green on the final commit.
-5. The launch checklist has a recorded Go/No-Go with evidence.
-6. No new package, migration, or settings key; no production change beyond the startup failure path.
-7. Deferred items — including performance verification — are listed as known gaps in the checklist.
+5. The launch checklist has a recorded Go/No-Go with evidence, and `v0.10.0` is published.
+6. No new package, migration, or settings key; production changes beyond the startup failure path are limited to the sub-plan scope (toast dispatch, UI dispatch coalescing, camera-index fix).
+7. Deferred items and known gaps are listed in the checklist (self-signed publisher, multi-instance, splash branding, drag automation).
 8. `AGENTS.md` §7 review pipeline completed with approval at each stage.
 9. Clean history per `AGENTS.md` §4; PR linked to its issue; human approval; branch deleted after merge.
 
-## 8. Results (to be completed during implementation)
+## 8. Results (recorded)
 
 ### 8.1 Automated verification
 
 | Command | Result |
 |---|---|
-| _pending_ | _pending_ |
+| `dotnet build pcb-deftek.slnx -c Release -warnaserror` | 0 warnings, 0 errors |
+| `dotnet test pcb-deftek.slnx -c Release` | 800 unit + 46 BDD passed, 0 failed, 0 skipped |
+| CI on `main` (`43753964148`) | green: 798 unit (hardware test excluded) + 46 BDD |
+| Release workflow (`43750845817`) | green: `v0.10.0` published with signed installer, portable zip, checksums |
+| Review-fix release validation (`43755765713`) | green: `v0.10.0-rc.2` assets correctly suffixed, signed and verified; release/tag removed |
 
 ### 8.2 Launch verdict
 
 | Item | Result |
 |---|---|
-| Publish command / output size | _pending_ |
-| Smoke matrix pass count | _pending_ |
-| Vulnerable dependency scan | _pending_ |
-| Performance verification | unverified (deferred, accepted gap) |
-| Go/No-Go | _pending_ |
+| Publish command / output size | `build/package.ps1`: 436 files / 380.5 MB self-contained; zip 181.4 MB; installer 144.9 MB |
+| Smoke matrix pass count | 12/12 (clean-clone publish and RC release installer) |
+| Vulnerable dependency scan | none (`dotnet list package --vulnerable --include-transitive`) |
+| Performance verification | 5-minute soak: t=2 510.8 MB WS / 37.1 ms / 26 FPS; t=5 516.0 MB / 39.4 ms / 25 FPS; 0 `ERR`/`FTL` |
+| Go/No-Go | **Go — internal pilot**; public distribution **No-Go** until a publicly trusted certificate replaces the self-signed one |
 
 ## 9. Review Pipeline Outcomes
 
+Independent review of `9752b0b..f6ea25f` (scoped Phase 10 paths) by a separate reviewer agent; verdict was **request changes**.
+
 | Stage | Executed | Verdict |
 |---|---|---|
-| `code-review-and-quality` | _pending_ | _pending_ |
-| `code-simplification` | _pending (approval required)_ | _pending_ |
-| `performance-optimization` | _pending (approval required)_ | _pending_ |
-| `security-and-hardening` | _pending (approval required)_ | _pending_ |
+| `code-review-and-quality` | 2026-11-16 | 2 Required findings, 1 Optional implemented; follow-ups recorded below. Required fixes verified (`43755765713`) |
+| `code-simplification` | 2026-11-16 | Deduplicated three repeated UI-thread guards in `FileDetectionViewModel` into `TryRunOnUiThread`; behavior unchanged, full suite green. Broader dispatcher unification deferred |
+| `performance-optimization` | 2026-11-16 | No code change: the 5-minute soak is the baseline (35.1/35.9 ms latency, 28 FPS, ~714 MB private, flat memory); inference plus preprocessing dominates and no regression or unbounded growth was measured. Profiling the OpenCV preprocessing stage is recorded as the next lever |
+| `security-and-hardening` | 2026-11-16 | No change required: no vulnerable packages, no secrets or certificate material tracked, signing secrets step-scoped, PFX temp file ACL-restricted and deleted, installer stays per-user. Residual risks recorded as follow-ups |
+
+### Performance review (measured, no change kept)
+
+Baseline from the Task 7 soak (RTX 2050, DirectML):
+
+| Sample | Latency | FPS | Working set | Private bytes |
+|---|---|---|---|---|
+| t=2 | 35.1 ms | 28 | 510.9 MB | 715.7 MB |
+| t=5 | 35.9 ms | 28 | 513.9 MB | 713.1 MB |
+
+- Inference logs split the frame cost as preprocessing ≈20–23 ms, inference ≈14–16 ms, postprocessing ≈1–2 ms; preprocessing is the largest single stage.
+- Memory is flat across the sampled window and the dispatcher coalescing keeps one pending UI update at a time, so no unbounded queue was measured.
+- No optimization was applied: there is no measured regression or bottleneck that justifies a post-release change. Follow-up: profile the OpenCV letterbox/resize path before considering any change, and add a soak budget (FPS/latency/memory) to the manual release checklist gate.
+
+### Security review (no production change)
+
+- `dotnet list pcb-deftek.csproj package --vulnerable --include-transitive` → no vulnerable packages.
+- No tracked certificate material, Base64 keys, or credential assignments; `.gitignore` covers `*.pfx`.
+- Signing secrets are scoped to the three steps that need them; `persist-credentials: false`; workflow permissions limited to `contents: write`.
+- Decoded PFX lives only in `$RUNNER_TEMP`, ACL-restricted to the runner identity, deleted in `finally`; no password is logged.
+- Installer runs per-user with `PrivilegesRequired=lowest` and writes only under `%LOCALAPPDATA%\Programs\PCB Deftek`.
+- Residual risks (recorded as follow-ups): the PFX password is still passed to `signtool` via `/p`, and the runner's trusted-root import persists on a self-hosted runner.
+
+### Findings resolved
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| Camera startup read `SelectedCamera` after an async dispatcher post, so it captured index 0 instead of the enumerated first device | Required | Read `cameras[0].Index` directly; regression test blocks the UI thread and asserts index 1 is used |
+| Tag validation compared only the numeric core, so `v0.10.0-rc.1` produced final-version-named assets | Required | Full tag version validated, core compared to the project version, full version passed to `package.ps1`; `v0.10.0-rc.2` confirmed `-rc.2` asset names |
+| Signing secrets were exported to every job step | Optional | Moved to step-level env on the three steps that need them |
+
+### Follow-ups (non-blocking, recorded)
+
+| Finding | Severity | Disposition |
+|---|---|---|
+| PFX password appears in the `signtool` command line | Optional | Deferred; mitigate by importing the cert and signing with `/sha1` on a self-hosted runner |
+| Packaging/signing scripts are only exercised on tags | Optional | Deferred; consider a CI job running `package.ps1 -SkipInstaller` |
+| Notification tests assert wiring and call the real compat notifier | Nit | Deferred; inject the show-side seam |
+| Release publishing is not re-runnable (artifact name/release collision) | Nit | Deferred; branch on existing release and use `run_attempt` in the artifact name |
+| StartupCoordinator resolves collaborators from the provider; `GetRequiredService` for the migrator sits outside its try | FYI | Deferred; take interfaces via constructor |
+| Two UI-marshalling mechanisms plus an internal test seam on the view model | FYI | Deferred; a small dispatcher abstraction would unify them |
+| Pinned `AssemblyVersion`/`FileVersion` overrides `package.ps1 -Version` file properties | FYI | Deferred; derive them from `Version` |
 
 ## 10. Failure Triage
 
@@ -176,4 +225,4 @@ Phase 10 may merge into `main` only when:
 | Executable still shows the default icon | `ApplicationIcon` path wrong, asset not tracked, or stale output; rebuild and check `FileVersionInfo`/icon extraction |
 | README images broken | Asset untracked, filename mismatch/case, or wrong relative path; compare `git ls-files docs/assets` with the Markdown links |
 | Checklist item has no evidence | Re-run the check; an unevidenced item is a No-Go |
-| Checklist implies performance was verified | It was not; the known-gaps section must say so |
+| Checklist implies performance was not verified | Re-run the 5-minute soak and record t=2/t=5 working set, latency and FPS |
