@@ -130,6 +130,14 @@ public class DashboardExportStepDefinitions : IDisposable
     public void GivenTheReportExportPathIsBlank() =>
         _settings.Settings = _settings.Settings with { ReportExportPath = "   " };
 
+    [Given(@"the report export path points at a file")]
+    public void GivenTheReportExportPathPointsAtAFile()
+    {
+        string blockedPath = Path.Combine(_testRoot, "blocked-report-path");
+        File.WriteAllText(blockedPath, "not a directory");
+        _settings.Settings = _settings.Settings with { ReportExportPath = blockedPath };
+    }
+
     [Given(@"an exportable inspection ""(.*)"" with an? ""(.*)"" defect")]
     public Task GivenAnExportableInspectionWithDefect(string name, string defectClass)
     {
@@ -250,9 +258,20 @@ public class DashboardExportStepDefinitions : IDisposable
     [Then(@"no report PDF should be written")]
     public void ThenNoReportPdfShouldBeWritten()
     {
-        PdfFiles(_reportsDirectory).Should().BeEmpty();
-        PdfFiles(_defaultReportsDirectory).Should().BeEmpty();
+        Directory.GetFiles(_testRoot, "*.pdf", SearchOption.AllDirectories).Should().BeEmpty();
+        Directory.GetFiles(_testRoot, "*.tmp", SearchOption.AllDirectories).Should().BeEmpty();
     }
+
+    [Then(@"the data export should have failed")]
+    public void ThenTheDataExportShouldHaveFailed()
+    {
+        _progress.DataExport.Status.Should().Be(DashboardProgressStatus.Failed);
+        _notifications.Snapshot.Should().NotContain(message => message.Title == "Report exported");
+    }
+
+    [Then(@"the report failure notification should have fired")]
+    public void ThenTheReportFailureNotificationShouldHaveFired() =>
+        _notifications.Snapshot.Should().Contain(message => message.Title == "Report export failed");
 
     [Then(@"the no-match notification should have fired")]
     public void ThenTheNoMatchNotificationShouldHaveFired() =>

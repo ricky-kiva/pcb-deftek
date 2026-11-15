@@ -30,6 +30,18 @@ Feature: History and Interactive Defect Viewer
     And I focus the first defect marker
     Then the focused sidebar should show the short diagnostic fields
 
+  Scenario: Clearing defect focus restores the default sidebar
+    Given an isolated history database
+    And a history record "reset-board" with a "short" defect
+    When I open the viewer for "reset-board"
+    And I focus the first defect marker
+    Then the focused sidebar should show the short diagnostic fields
+    When I clear the defect focus
+    Then the viewer default sidebar should show the record name and timestamp
+    And the viewer should show 1 defect class summaries
+    And the defect focus should be cleared
+    And the Delete Image action should be available
+
   Scenario: Crop writes a PNG matching the visible region and adds it to history
     Given an isolated history database
     And a 200x100 inspection image named "crop-board"
