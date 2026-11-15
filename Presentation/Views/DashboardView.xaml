@@ -300,7 +300,8 @@
                             AutomationProperties.Name="Processes">
                         <StackPanel Orientation="Horizontal">
                             <Grid Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center">
-                                <Path Data="{DynamicResource IconProcesses}"
+                                <Path x:Name="ProcessesIcon"
+                                      Data="{DynamicResource IconWorkflow}"
                                       Stretch="Uniform"
                                       Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                 <Ellipse x:Name="ProcessActivityDot"

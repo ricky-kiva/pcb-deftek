@@ -1,5 +1,9 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Layout tokens -->
+    <sys:Double x:Key="SidebarCollapsedWidth">68</sys:Double>
 
     <!-- Reusable Sidebar Navigation RadioButton Style -->
     <Style x:Key="SidebarNavigationItemStyle" TargetType="RadioButton">
