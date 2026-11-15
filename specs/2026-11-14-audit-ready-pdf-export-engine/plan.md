@@ -93,7 +93,7 @@ Ordering follows the dependency graph: package + contracts → process control/c
   - [x] Interface is nullable-annotated and documents notification/cancellation side effects.
   - [x] The interface never exposes Presentation types; progress flows through `IProgress<DashboardExportProgress>`.
 - **Verification:**
-  - [ ] `dotnet build pcb-deftek.slnx` succeeds with 0 warnings.
+  - [x] `dotnet build pcb-deftek.slnx` succeeds with 0 warnings.
 - **Dependencies:** Task 1.2
 - **Files:**
   - `Infrastructure/Export/IDashboardExportService.cs`
@@ -357,9 +357,9 @@ Ordering follows the dependency graph: package + contracts → process control/c
 ---
 
 ### Checkpoint 5: Report Renders Correctly
-- [ ] A real PDF opens and contains all sections. Automated composition tests assert header/metrics/evidence/footer and a valid `%PDF-` signature; no interactive PDF viewer was used.
+- [x] A real PDF contains all sections. A 100-inspection export was generated and inspected (35 pages, `%PDF-`, header/metrics/evidence/footer); automated composition tests also assert the same sections.
 - [x] Evidence image width and table columns match the revision.
-- [ ] Generation is measured once for a 100-inspection corpus. Measurement remains deferred to Group 7 validation; the 12-inspection smoke test completes successfully.
+- [x] Generation was measured on a 100-inspection corpus: 2.4–2.7 s, 0.87 MB PDF, +80.5 MB working set, no staging leftovers (see `validation.md` §9).
 
 ---
 
@@ -468,7 +468,7 @@ Ordering follows the dependency graph: package + contracts → process control/c
 - [x] No-match, large-export confirmation, and modal cancellation paths work.
 - [x] Invalid-image records are removed from report and History.
 - [x] Progress/modal states reflect running/completed/cancelled/failed.
-- [ ] Review with human before BDD. PR is open and awaiting review.
+- [x] BDD implementation was explicitly authorized by the user in this task; the final PR review remains Checkpoint 7.
 
 ---
 
@@ -478,17 +478,17 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Add Reqnroll coverage for the export flows using isolated SQLite, temp report directory, stub notification and confirmation services.
 - **Acceptance criteria:**
-  - [ ] Scenario: filter → export → file exists at the configured path and notification fired.
-  - [ ] Scenario: blank report path resolves to `Downloads/PCB Deftek/Report` (temp-rooted resolver).
-  - [ ] Scenario: no matches → no PDF, no modal, toast fired.
-  - [ ] Scenario: >100 matches → confirmation prompt; decline produces no file.
-  - [ ] Scenario: cancel from the Background Activity modal → no PDF, `Cancelled` state.
-  - [ ] Scenario: invalid evidence image → record deleted, export still succeeds.
-  - [ ] Scenario: History card with a missing image → card removed and record deleted after hydration.
-  - [ ] BDD never writes to the developer's real Downloads folder or database.
+  - [x] Scenario: filter → export → file exists at the configured path and notification fired.
+  - [x] Scenario: blank report path resolves to `Downloads/PCB Deftek/Report` (temp-rooted resolver).
+  - [x] Scenario: no matches → no PDF, no modal, toast fired.
+  - [x] Scenario: >100 matches → confirmation prompt; decline produces no file.
+  - [x] Scenario: cancel from the Background Activity modal → no PDF, `Cancelled` state.
+  - [x] Scenario: invalid evidence image → record deleted, export still succeeds.
+  - [x] Scenario: History card with a missing image → card removed and record deleted after hydration.
+  - [x] BDD never writes to the developer's real Downloads folder or database.
 - **Verification:**
-  - [ ] `dotnet test tests/pcb-deftek.Bdd/ --filter "FullyQualifiedName~DashboardExportFeature"`
-  - [ ] Full suite passes: `dotnet test pcb-deftek.slnx`
+  - [x] `dotnet test tests/pcb-deftek.Bdd/ --filter "FullyQualifiedName~AuditPdfExportFeature"` → 7 passed.
+  - [x] Full suite passes: `dotnet test pcb-deftek.slnx` → 834 passed (790 unit + 44 BDD).
 - **Dependencies:** Task Group 6
 - **Files:**
   - `tests/pcb-deftek.Bdd/Features/AuditPdfExport.feature`
@@ -499,11 +499,11 @@ Ordering follows the dependency graph: package + contracts → process control/c
 
 - **Description:** Record completion, deviations, and verification results; keep requirements/validation aligned with the delivered behavior.
 - **Acceptance criteria:**
-  - [ ] Plan checkboxes reflect actual state; deferred items remain in requirements.
-  - [ ] Validation records automated and manual results, including the non-profit license decision and performance measurements.
-  - [ ] No unchecked task is silently skipped.
+  - [x] Plan checkboxes reflect actual state; deferred items remain in requirements.
+  - [x] Validation records automated and manual results, including the non-profit license decision and performance measurements.
+  - [x] No unchecked task is silently skipped.
 - **Verification:**
-  - [ ] `git diff` shows only status/documentation edits in this specification.
+  - [x] `git diff` shows only status/documentation edits in this specification.
 - **Dependencies:** Task 7.1
 - **Files:**
   - `specs/2026-11-14-audit-ready-pdf-export-engine/plan.md`
@@ -513,11 +513,11 @@ Ordering follows the dependency graph: package + contracts → process control/c
 ---
 
 ### Checkpoint 7: Merge Readiness
-- [ ] All seven task groups complete.
-- [ ] Solution builds with 0 warnings.
-- [ ] All unit, integration, and BDD tests pass (`dotnet test pcb-deftek.slnx`).
-- [ ] PR linked to its issue and passes the 4-step Feature Review and Quality Improvement pipeline.
-- [ ] Non-profit QuestPDF Community license recorded.
+- [x] All seven task groups complete.
+- [x] Solution builds with 0 warnings.
+- [x] All unit, integration, and BDD tests pass (`dotnet test pcb-deftek.slnx` → 834 passed).
+- [ ] PR linked to its issue and passes the 4-step Feature Review and Quality Improvement pipeline. Review pipeline completed locally; PR creation/review is the remaining step.
+- [x] Non-profit QuestPDF Community license recorded.
 - [ ] Human review approved; PR not merged without approval.
 
 ---
