@@ -145,14 +145,10 @@ jobs:
       - name: Prepare release notes
         shell: pwsh
         run: |
-          $checklist = Get-Content -LiteralPath 'specs/2026-11-15-hardening-bdd-launch-readiness/launch-checklist.md'
-          $start = -1
-          $end = $checklist.Count
-          for ($i = 0; $i -lt $checklist.Count; $i++) {
-              if ($start -lt 0 -and $checklist[$i] -match '^## 7\. Release Notes') { $start = $i; continue }
-              if ($start -ge 0 -and $checklist[$i] -match '^## 8\.') { $end = $i; break }
+          $notesPath = "docs/release-notes/$($env:GITHUB_REF_NAME).md"
+          if (-not (Test-Path -LiteralPath $notesPath)) {
+              throw "Release notes not found: $notesPath"
           }
-          if ($start -lt 0) { throw 'Release notes section (## 7) was not found in launch-checklist.md.' }
 
           $version = $env:GITHUB_REF_NAME -replace '^v', ''
           $installation = @(
@@ -171,7 +167,7 @@ jobs:
               ''
           )
 
-          $notes = @($checklist[$start..($end - 1)]) + $installation
+          $notes = @(Get-Content -LiteralPath $notesPath) + $installation
           $notes | Out-File -FilePath (Join-Path $env:RUNNER_TEMP 'release-notes.md') -Encoding utf8
 
       - name: Record checksums and signatures
@@ -209,7 +205,7 @@ jobs:
           $arguments = @(
               'release', 'create', $env:TAG_NAME,
               '--verify-tag',
-              '--title', "PCB Deftek $($env:TAG_NAME)",
+              '--title', $env:TAG_NAME,
               '--notes-file', (Join-Path $env:RUNNER_TEMP 'release-notes.md')
           )
           if ($env:TAG_NAME -match '-') {
