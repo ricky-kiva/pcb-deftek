@@ -59,7 +59,8 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
   - The window icon uses an assembly-qualified pack URI (`pack://application:,,,/pcb-deftek;component/Assets/app-icon.ico`). The relative form resolved against the entry assembly and broke `MainWindow` construction under the test host.
   - `tests/pcb-deftek.Tests/DependencyInjectionTests.cs` stopped constructing a real `App`; doing so installed a non-pumping `Application.Current`, which deadlocked `Dispatcher.Invoke` in later tests and hung the CI unit step.
   - `tests/pcb-deftek.Bdd` runs scenarios serially (`CollectionBehavior(DisableTestParallelization = true)`). Parallel feature collections starved the thread pool on CI, so the batch-cancel and export-cancel scenarios observed `Completed` instead of `Cancelled`. The export-cancel test's annotation block window was raised to 60 s and its wait reports annotation/progress state.
-- **Estimated scope:** M (5 files)
+  - `LiveInspectionEngineTests` and `CameraServiceTests` frame-event waits were raised from 1.5–2 s to 15 s; a cold CI runner exceeded the original bound before the first frame was processed. Assertions are unchanged.
+- **Estimated scope:** M (7 files, three of them test-only CI stabilizations)
 
 #### Task 1.2: README with Brand Assets
 
