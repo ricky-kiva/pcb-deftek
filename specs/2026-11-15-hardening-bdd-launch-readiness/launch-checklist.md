@@ -73,7 +73,7 @@ Reduced from 10 minutes with owner approval. One minute warm-up, then samples at
 
 **Soak result: PASS** for the acceptance criteria above.
 
-**Finding — release condition:** closing the window while Live Detection streams deadlocks shutdown; the process stays alive indefinitely (`ExitCode: 0` is logged, then no service shutdown lines). Managed stacks show the UI thread blocked in `LiveInspectionEngine.Dispose` → `StopAsync().GetAwaiter().GetResult()` while the inference worker is blocked in `LiveDetectionViewModel.UpdateOnUiThread` → `Dispatcher.Invoke`. Tracked in #133. The soak numbers remain valid, but the §11 verdict stays conditional until this is fixed.
+**Finding — fixed in #135:** closing the window while Live Detection streamed deadlocked shutdown (`ExitCode: 0` logged, then no service shutdown lines): the UI thread blocked in `LiveInspectionEngine.Dispose` → `StopAsync().GetAwaiter().GetResult()` while the inference worker blocked in `LiveDetectionViewModel.UpdateOnUiThread` → `Dispatcher.Invoke`. #135 replaced the synchronous dispatch with a coalescing `InvokeAsync` path; closing now exits in 0.7 s with both "stopped cleanly" lines logged. The §11 verdict below was written before the fix and is superseded by the Task 8 verdict update.
 
 ## 4. Data Safety
 
