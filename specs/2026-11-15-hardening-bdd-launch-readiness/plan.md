@@ -236,11 +236,11 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 - **Description:** Execute the gated `AGENTS.md` §7 pipeline, asking before each stage.
 - **Acceptance criteria:**
-  - [ ] `code-review-and-quality` completed; findings recorded.
-  - [ ] `code-simplification`, `performance-optimization`, `security-and-hardening` executed only after explicit approval; outcomes recorded.
-  - [ ] Blocking findings fixed; non-blocking recorded as follow-ups.
+  - [x] `code-review-and-quality` completed; findings recorded.
+  - [x] `code-simplification`, `performance-optimization`, `security-and-hardening` executed only after explicit approval; outcomes recorded.
+  - [x] Blocking findings fixed; non-blocking recorded as follow-ups.
 - **Verification:**
-  - [ ] `validation.md` §9 lists each stage and verdict.
+  - [x] `validation.md` §9 lists each stage and verdict.
 - **Dependencies:** Task 5.1
 - **Files:**
   - `specs/2026-11-15-hardening-bdd-launch-readiness/validation.md`

@@ -166,7 +166,7 @@ Independent review of `9752b0b..f6ea25f` (scoped Phase 10 paths) by a separate r
 | `code-review-and-quality` | 2026-11-16 | 2 Required findings, 1 Optional implemented; follow-ups recorded below. Required fixes verified (`43755765713`) |
 | `code-simplification` | 2026-11-16 | Deduplicated three repeated UI-thread guards in `FileDetectionViewModel` into `TryRunOnUiThread`; behavior unchanged, full suite green. Broader dispatcher unification deferred |
 | `performance-optimization` | 2026-11-16 | No code change: the 5-minute soak is the baseline (35.1/35.9 ms latency, 28 FPS, ~714 MB private, flat memory); inference plus preprocessing dominates and no regression or unbounded growth was measured. Profiling the OpenCV preprocessing stage is recorded as the next lever |
-| `security-and-hardening` | pending (approval required) | _pending_ |
+| `security-and-hardening` | 2026-11-16 | No change required: no vulnerable packages, no secrets or certificate material tracked, signing secrets step-scoped, PFX temp file ACL-restricted and deleted, installer stays per-user. Residual risks recorded as follow-ups |
 
 ### Performance review (measured, no change kept)
 
@@ -180,6 +180,17 @@ Baseline from the Task 7 soak (RTX 2050, DirectML):
 - Inference logs split the frame cost as preprocessing ≈20–23 ms, inference ≈14–16 ms, postprocessing ≈1–2 ms; preprocessing is the largest single stage.
 - Memory is flat across the sampled window and the dispatcher coalescing keeps one pending UI update at a time, so no unbounded queue was measured.
 - No optimization was applied: there is no measured regression or bottleneck that justifies a post-release change. Follow-up: profile the OpenCV letterbox/resize path before considering any change, and add a soak budget (FPS/latency/memory) to the manual release checklist gate.
+
+### Security review (no production change)
+
+- `dotnet list pcb-deftek.csproj package --vulnerable --include-transitive` → no vulnerable packages.
+- No tracked certificate material, Base64 keys, or credential assignments; `.gitignore` covers `*.pfx`.
+- Signing secrets are scoped to the three steps that need them; `persist-credentials: false`; workflow permissions limited to `contents: write`.
+- Decoded PFX lives only in `$RUNNER_TEMP`, ACL-restricted to the runner identity, deleted in `finally`; no password is logged.
+- Installer runs per-user with `PrivilegesRequired=lowest` and writes only under `%LOCALAPPDATA%\Programs\PCB Deftek`.
+- Residual risks (recorded as follow-ups): the PFX password is still passed to `signtool` via `/p`, and the runner's trusted-root import persists on a self-hosted runner.
+
+### Findings resolved
 
 | Finding | Severity | Resolution |
 |---|---|---|
