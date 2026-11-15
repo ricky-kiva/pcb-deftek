@@ -38,7 +38,7 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
   - [x] No production code change; no new package.
 - **Verification:**
   - [x] Locally on the RTX 2050: `dotnet test tests/pcb-deftek.Tests/ --filter FullyQualifiedName~DirectMlInferenceTests` → pass (`ActiveDevice == GpuDirectML`, output `[1, 13, 8400]`).
-  - [ ] CI log shows the unit step uses the exclusion filter and stays green (confirmed on the PR run).
+  - [x] CI run `43722334202`: the unit step used `FullyQualifiedName!~DirectMlInferenceTests` and passed 795 tests; BDD passed 46.
 - **Deviations:**
   - CI excludes by fully-qualified name instead of `Category!=Hardware`; the trait is still present, but the FQN filter does not depend on VSTest trait mapping.
 - **Dependencies:** None
