@@ -162,6 +162,92 @@ public class DefectImageViewerTests
         Assert.Null(captured);
     }
 
+    [Fact]
+    public void RenderedImageShowsAllFourQuadrantsWhenScaledToFit()
+    {
+        Exception? captured = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var viewer = new DefectImageViewer { Width = 400, Height = 400 };
+                viewer.ImageSource = CreateQuadrantBitmap(800);
+                viewer.Measure(new Size(400, 400));
+                viewer.Arrange(new Rect(0, 0, 400, 400));
+                viewer.UpdateLayout();
+                viewer.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
+
+                var render = new RenderTargetBitmap(400, 400, 96, 96, PixelFormats.Pbgra32);
+                render.Render(viewer);
+
+                var pixels = new byte[400 * 400 * 4];
+                render.CopyPixels(pixels, 400 * 4, 0);
+
+                assert(100, 100, 255, 0, 0);   // top-left red
+                assert(300, 100, 0, 128, 0);   // top-right green
+                assert(100, 300, 0, 0, 255);   // bottom-left blue
+                assert(300, 300, 255, 255, 0); // bottom-right yellow
+
+                void assert(int x, int y, byte r, byte g, byte b)
+                {
+                    int offset = ((y * 400) + x) * 4;
+                    pixels[offset + 2].Should().Be(r);
+                    pixels[offset + 1].Should().Be(g);
+                    pixels[offset].Should().Be(b);
+                }
+            }
+            catch (Exception ex)
+            {
+                captured = ex;
+            }
+            finally
+            {
+                Dispatcher.CurrentDispatcher.InvokeShutdown();
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        Assert.Null(captured);
+    }
+
+    private static BitmapSource CreateQuadrantBitmap(int size)
+    {
+        int half = size / 2;
+        int stride = size * 4;
+        var pixels = new byte[stride * size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                int offset = ((y * stride) + (x * 4));
+                (byte b, byte g, byte r) = (x < half, y < half) switch
+                {
+                    (true, true) => ((byte)0, (byte)0, (byte)255),
+                    (false, true) => ((byte)0, (byte)128, (byte)0),
+                    (true, false) => ((byte)255, (byte)0, (byte)0),
+                    _ => ((byte)0, (byte)255, (byte)255)
+                };
+                pixels[offset] = b;
+                pixels[offset + 1] = g;
+                pixels[offset + 2] = r;
+                pixels[offset + 3] = 255;
+            }
+        }
+
+        var bitmap = BitmapSource.Create(
+            size,
+            size,
+            96,
+            96,
+            PixelFormats.Bgra32,
+            null,
+            pixels,
+            stride);
+        bitmap.Freeze();
+        return bitmap;
+    }
+
     private static BitmapSource CreateBitmap(int width, int height)
     {
         int stride = width * 4;

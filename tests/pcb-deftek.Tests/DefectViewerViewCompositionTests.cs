@@ -116,6 +116,54 @@ public class DefectViewerViewCompositionTests
         }
     }
 
+    [Fact]
+    public void ImageAssignedAfterLayout_IsFullyVisibleAndCentered()
+    {
+        Exception? captured = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var viewModel = new InspectionViewerViewModel(
+                    new Mock<IInspectionRepository>().Object,
+                    new Mock<IViewportCropService>().Object,
+                    new Mock<IInspectionDeletionService>().Object,
+                    new Mock<IConfirmationService>().Object,
+                    new Mock<INotificationService>().Object,
+                    NullLogger<InspectionViewerViewModel>.Instance);
+                var view = new DefectViewerView { DataContext = viewModel };
+                view.Measure(new Size(1200, 800));
+                view.Arrange(new Rect(0, 0, 1200, 800));
+                view.UpdateLayout();
+
+                viewModel.ImageSource = CreateBitmap(640, 480);
+                view.UpdateLayout();
+
+                var canvas = (DefectImageViewer)view.FindName("ImageCanvas");
+                canvas.Transform.Should().NotBeNull();
+                canvas.Transform!.ZoomFactor.Should().BeApproximately(1, 0.0001);
+                canvas.VisibleRegion.Should().Be(pcb_deftek.Domain.Models.NormalizedRect.Full);
+                canvas.Transform.DisplayWidth.Should().BeLessThanOrEqualTo(canvas.ActualWidth + 0.5);
+                canvas.Transform.DisplayHeight.Should().BeLessThanOrEqualTo(canvas.ActualHeight + 0.5);
+            }
+            catch (Exception ex)
+            {
+                captured = ex;
+            }
+            finally
+            {
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeShutdown();
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (captured is not null)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(captured).Throw();
+        }
+    }
+
     private static BitmapSource CreateBitmap(int width, int height)
     {
         int stride = width * 4;
