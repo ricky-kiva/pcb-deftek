@@ -73,6 +73,95 @@ public class DefectImageViewerTests
         Assert.Null(captured);
     }
 
+    [Fact]
+    public void ReplacingTheImageResetsZoomToTheFullFit()
+    {
+        Exception? captured = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var viewer = new DefectImageViewer { Width = 800, Height = 600 };
+                viewer.ImageSource = CreateBitmap(1024, 1024);
+                viewer.Measure(new Size(800, 600));
+                viewer.Arrange(new Rect(0, 0, 800, 600));
+                viewer.UpdateLayout();
+                viewer.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
+
+                var marker = new DefectMarkerViewModel(
+                    new DetectedDefect(
+                        Guid.NewGuid(),
+                        Guid.NewGuid(),
+                        "short",
+                        0.9f,
+                        new BoundingBox(0.1f, 0.1f, 0.2f, 0.2f)),
+                    new Rect(40, 10, 80, 20));
+                viewer.Markers = new[] { marker };
+                viewer.SelectedMarker = marker;
+                PumpDispatcher(TimeSpan.FromMilliseconds(300));
+                viewer.Transform!.ZoomFactor.Should().BeGreaterThan(1);
+
+                viewer.SelectedMarker = null;
+                viewer.Markers = null;
+                viewer.ImageSource = CreateBitmap(1024, 1024);
+                viewer.UpdateLayout();
+
+                viewer.Transform!.ZoomFactor.Should().BeApproximately(1, 0.0001);
+                viewer.VisibleRegion.Should().Be(pcb_deftek.Domain.Models.NormalizedRect.Full);
+            }
+            catch (Exception ex)
+            {
+                captured = ex;
+            }
+            finally
+            {
+                Dispatcher.CurrentDispatcher.InvokeShutdown();
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        Assert.Null(captured);
+    }
+
+    [Fact]
+    public void InitialFitShowsTheEntireNonSquareImage()
+    {
+        Exception? captured = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var viewer = new DefectImageViewer { Width = 800, Height = 600 };
+                viewer.ImageSource = CreateBitmap(400, 100);
+                viewer.Measure(new Size(800, 600));
+                viewer.Arrange(new Rect(0, 0, 800, 600));
+                viewer.UpdateLayout();
+                viewer.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
+
+                viewer.Transform.Should().NotBeNull();
+                viewer.Transform!.Scale.Should().BeApproximately(2, 0.0001);
+                viewer.Transform.DisplayWidth.Should().BeApproximately(800, 0.0001);
+                viewer.Transform.DisplayHeight.Should().BeApproximately(200, 0.0001);
+                viewer.Transform.OffsetX.Should().BeApproximately(0, 0.0001);
+                viewer.Transform.OffsetY.Should().BeApproximately(200, 0.0001);
+                viewer.VisibleRegion.Should().Be(NormalizedRect.Full);
+            }
+            catch (Exception ex)
+            {
+                captured = ex;
+            }
+            finally
+            {
+                Dispatcher.CurrentDispatcher.InvokeShutdown();
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        Assert.Null(captured);
+    }
+
     private static BitmapSource CreateBitmap(int width, int height)
     {
         int stride = width * 4;

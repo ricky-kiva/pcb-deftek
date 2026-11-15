@@ -154,7 +154,7 @@
                                 Click="OnCloseClick"
                                 ToolTip="Close viewer (Esc)"
                                 AutomationProperties.Name="Close inspection viewer">
-                            <Path Data="{StaticResource IconClose}"
+                            <Path Data="{DynamicResource IconClose}"
                                   Fill="{DynamicResource TextFillColorPrimaryBrush}"
                                   Width="13"
                                   Height="13"
@@ -201,7 +201,7 @@
                                         MaxWidth="320"
                                         IsHitTestVisible="False"
                                         Visibility="{Binding IsImageUnavailable, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Path Data="{StaticResource IconImage}"
+                                <Path Data="{DynamicResource IconImage}"
                                       Fill="{DynamicResource TextFillColorTertiaryBrush}"
                                       Width="48"
                                       Height="48"
@@ -248,7 +248,7 @@
                                             ToolTip="Reset view"
                                             AutomationProperties.Name="Reset view">
                                         <StackPanel Orientation="Horizontal">
-                                            <Path Data="{StaticResource IconZoomReset}"
+                                            <Path Data="{DynamicResource IconZoomReset}"
                                                   Fill="{DynamicResource TextFillColorPrimaryBrush}"
                                                   Width="13"
                                                   Height="13"
@@ -265,7 +265,7 @@
                                             ToolTip="Export the visible view as PNG"
                                             AutomationProperties.Name="Crop visible view">
                                         <StackPanel Orientation="Horizontal">
-                                            <Path Data="{StaticResource IconCrop}"
+                                            <Path Data="{DynamicResource IconCrop}"
                                                   Fill="{DynamicResource TextFillColorPrimaryBrush}"
                                                   Width="13"
                                                   Height="13"
@@ -460,7 +460,7 @@
                                     ToolTip="Delete this inspection and its app-owned captures"
                                     AutomationProperties.Name="Delete inspection image">
                                 <StackPanel Orientation="Horizontal">
-                                    <Path Data="{StaticResource IconDelete}"
+                                    <Path Data="{DynamicResource IconDelete}"
                                           Fill="#FFFFFF"
                                           Width="13"
                                           Height="13"
