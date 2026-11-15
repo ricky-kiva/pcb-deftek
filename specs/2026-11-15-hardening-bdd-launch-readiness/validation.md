@@ -78,10 +78,10 @@ Performance under continuous inference is **not** covered by this phase; the che
 
 ### 5.3 Startup Hardening
 
-- [ ] Migration failure: fatal log, one dialog, exit code 1, no window, no lingering process.
-- [ ] Routing failure: warning log, shell opens on the default view.
-- [ ] Success path unchanged.
-- [ ] Dialog suppressed when `App.ShowErrorDialogs` is false.
+- [x] Migration failure: fatal log, one dialog, exit code 1, no window, no lingering process.
+- [x] Routing failure: warning log, shell opens on the default view (unit test asserts startup continues; the warning branch is unchanged code).
+- [x] Success path unchanged.
+- [ ] Dialog suppressed when `App.ShowErrorDialogs` is false — guarded in code but not exercised by tests or the manual run.
 
 ### 5.4 Release Identity & Launch Checklist
 
