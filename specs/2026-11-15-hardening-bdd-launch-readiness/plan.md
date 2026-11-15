@@ -10,6 +10,8 @@ Brand assets already staged in the working tree: `Assets/app-icon.ico` (362 KB, 
 
 Task list target: **this `plan.md`** — project convention is `specs/<date>-<feature>/{plan,requirements,validation}.md`, so no `tasks/` directory is created.
 
+Follow-on work is tracked in [`sub-plan-1.md`](sub-plan-1.md): DirectML verification, the unpackaged toast fix, installer and code signing, the tag-driven release workflow, and the 5-minute live-inference soak. It supersedes the deferred installer/signing/release scope noted below and in the approvals section.
+
 ## Architecture & Dependency Graph
 
 ```
@@ -286,7 +288,7 @@ Ordering rationale: CI first so later changes are gated; the BDD additions are i
 
 1. CI on GitHub-hosted runners for `ricky-kiva/pcb-deftek`.
 2. Version `0.10.0`; release notes live in the launch checklist rather than `CHANGELOG.md`.
-3. Launch scope: portable `win-x64` publish only; installer/MSIX, code signing, splash branding, and release publication stay in `mission.md` §5.2. The official application icon and README brand assets are pulled into this phase.
+3. Launch scope: portable `win-x64` publish only; installer/MSIX, code signing, splash branding, and release publication stay in `mission.md` §5.2. The official application icon and README brand assets are pulled into this phase. (Installer, signing, and release publication were delivered later through `sub-plan-1.md`; splash branding remains deferred.)
 4. Startup behavior change: migration failure exits with code 1 instead of leaving a window-less process.
 5. Acceptance of the deferred items in `requirements.md` §2.2 — including performance verification under continuous inference — as documented launch gaps.
 

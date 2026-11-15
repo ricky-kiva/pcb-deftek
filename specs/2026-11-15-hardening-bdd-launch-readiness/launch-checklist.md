@@ -1,10 +1,10 @@
 # Launch Readiness Checklist: PCB Deftek 0.10.0
 
-Prepared 2026-11-15 with the `shipping-and-launch` skill. Target artifact: portable, framework-dependent `win-x64` publish.
+Prepared 2026-11-15, updated 2026-11-16 after Phase A–C validation with the `shipping-and-launch` skill. Target artifacts: signed per-user installer and portable, self-contained `win-x64` zip (version 0.10.0).
 
-- Code commit under test: `a3e4272` (version metadata), on `feature/phase-10-task-group-4`
-- Test machine: Windows 11 Home Single Language 10.0.26200 (build 26200), Intel Core i7-11800H, 15.7 GB RAM, Intel UHD Graphics, one camera device, .NET SDK 10.0.402
-- Evidence artifacts (screenshots, publish output) live under `%TEMP%\pcb-deftek-*`; nothing generated is committed.
+- Code under test: `main` @ `116d30e` (Tasks 5–6), plus the shutdown fix from #135 and the soak evidence recorded in §3a
+- Test machine: Windows 11 Home Single Language 10.0.26200 (build 26200), Intel Core i7-11800H, 15.7 GB RAM, NVIDIA RTX 2050 (DirectML device 0), USB2.0 HD UVC WebCam, .NET SDK 10.0.402
+- Evidence artifacts live under `%TEMP%\pcb-deftek-*`, `%TEMP%\soak-task7*`, `%TEMP%\phaseb-task34*`; nothing generated is committed.
 
 ## 1. Build & Reproducibility
 
@@ -13,12 +13,14 @@ Prepared 2026-11-15 with the `shipping-and-launch` skill. Target artifact: porta
 | Clean clone of the branch | PASS | `git clone` into `%TEMP%\pcb-deftek-clean` |
 | Restore from clean clone | PASS | `dotnet restore pcb-deftek.slnx` |
 | Release build, warnings as errors | PASS | 0 warnings, 0 errors |
-| Full test suite in clean clone | PASS | 793 unit + 46 BDD passed, 0 failed, 0 skipped |
-| Portable publish | PASS | `dotnet publish pcb-deftek.csproj -c Release -r win-x64 --self-contained false` |
-| Publish from clean clone | PASS | Reproduced 40 files / 217.1 MB from `%TEMP%\pcb-deftek-clean` |
-| Publish output | PASS | 40 files, 217.1 MB (largest: `OpenCvSharpExtern.dll` 65.4 MB, ffmpeg 27.3 MB, DirectML 17.7 MB, onnxruntime 16.5 MB, model 50 MB) |
-| Version identity | PASS | `FileVersion 0.10.0.0`; `ProductVersion 0.10.0+<sha>` (SDK appends the source revision) |
-| Run from publish output | PASS | Launches, renders the dashboard, exits cleanly |
+| Full test suite in clean clone | PASS | 798 unit + 46 BDD passed, 0 failed, 0 skipped (hardware-only DirectML test excluded on CI runners) |
+| Packaging script | PASS | `build/package.ps1` publishes, zips, compiles the installer, signs when configured, and writes `SHA256SUMS.txt` (~170 s) |
+| Publish output | PASS | `artifacts/pcb-deftek-0.10.0-win-x64`: 436 files, 380.5 MB self-contained |
+| Version identity | PASS | `FileVersion 0.10.0.0`; `ProductVersion 0.10.0+<sha>` |
+| Run from publish output | PASS | Launches, renders the dashboard, exits cleanly (0.4 s) |
+| Installer | PASS | `PCB-Deftek-0.10.0-setup.exe`, 144.9 MB, per-user, no elevation |
+| Code signing | PASS (CI) | `signtool verify /pa /all` passes on the ephemeral runner after the self-signed public certificate is trusted; both executables carry an RFC 3161 timestamp |
+| Checksums | PASS | `SHA256SUMS.txt` is produced after signing; recomputation matches both assets |
 
 No database migration and no new NuGet package is introduced in this phase.
 
@@ -26,10 +28,10 @@ No database migration and no new NuGet package is introduced in this phase.
 
 | Requirement | Result | Evidence |
 |---|---|---|
-| Windows 10/11 x64 | PASS | Verified on Windows 11 build 26200 |
-| .NET 10 Desktop Runtime (framework-dependent build) | PASS on this machine | SDK 10.0.402 present; a runtime-only machine was not available for testing |
-| Optional webcam | PARTIAL | One camera device enumerated; the Live Detection page rendered `Camera Idle` / `0 FPS` and streaming was not observed (see Known Gaps) |
-| Optional DirectML GPU | NOT VERIFIED | Settings showed `Detection Device = Cpu`; the GPU provider path was not exercised |
+| Windows 10 version 2004+ / 11 x64 | PASS | Verified on Windows 11 build 26200; the target framework now requires 10.0.19041 or later |
+| .NET runtime | PASS | Self-contained publish bundles the .NET runtime; no separate install required |
+| Optional webcam | PASS | USB2.0 HD UVC WebCam streamed for the 5-minute soak at 25–28 FPS |
+| Optional DirectML GPU | PASS | `DirectMlInferenceTests` reports `GpuDirectML`; every soak inference logged `detected on "GpuDirectML"` (RTX 2050) |
 
 ## 3. Functional Smoke Matrix (published build, UI Automation + screenshots)
 
@@ -73,7 +75,7 @@ Reduced from 10 minutes with owner approval. One minute warm-up, then samples at
 
 **Soak result: PASS** for the acceptance criteria above.
 
-**Finding — fixed in #135:** closing the window while Live Detection streamed deadlocked shutdown (`ExitCode: 0` logged, then no service shutdown lines): the UI thread blocked in `LiveInspectionEngine.Dispose` → `StopAsync().GetAwaiter().GetResult()` while the inference worker blocked in `LiveDetectionViewModel.UpdateOnUiThread` → `Dispatcher.Invoke`. #135 replaced the synchronous dispatch with a coalescing `InvokeAsync` path; closing now exits in 0.7 s with both "stopped cleanly" lines logged. The §11 verdict below was written before the fix and is superseded by the Task 8 verdict update.
+**Finding — fixed in #135:** closing the window while Live Detection streamed deadlocked shutdown (`ExitCode: 0` logged, then no service shutdown lines): the UI thread blocked in `LiveInspectionEngine.Dispose` → `StopAsync().GetAwaiter().GetResult()` while the inference worker blocked in `LiveDetectionViewModel.UpdateOnUiThread` → `Dispatcher.Invoke`. #135 replaced the synchronous dispatch with a coalescing `InvokeAsync` path; closing now exits in 0.7 s with both "stopped cleanly" lines logged.
 
 ## 4. Data Safety
 
@@ -94,6 +96,7 @@ Reduced from 10 minutes with owner approval. One minute warm-up, then samples at
 | Startup failure visible | PASS | Dialog + `Fatal` log entry + exit code 1 |
 | No silent catches on critical paths | PASS | Exporter logs and notifies failures; startup failure aborts; background tasks log unobserved exceptions |
 | Error dialogs suppressible for automation | PASS (code) | `App.ShowErrorDialogs`; suppression itself not exercised |
+| Clean shutdown while streaming | PASS | Close during Live Detection exits in 0.7 s with `ExitCode 0` and both "stopped cleanly" logs (#135) |
 
 ## 6. Security & Dependencies
 
@@ -104,6 +107,7 @@ Reduced from 10 minutes with owner approval. One minute warm-up, then samples at
 | Absolute developer paths | PASS | Scan for `C:\Users\...` in tracked files found none |
 | Network access / telemetry | PASS | Local-only application; no telemetry or remote calls in source |
 | Third-party binaries | PASS | Only NuGet packages already reviewed in earlier phases; no new package in this phase |
+| Signing secrets in CI | PASS | Repository secrets only; the decoded PFX lives in `$RUNNER_TEMP` with restricted ACLs and is deleted in `finally`; no key material appears in logs or artifacts |
 
 ## 7. Release Notes — 0.10.0
 
@@ -111,15 +115,21 @@ Reduced from 10 minutes with owner approval. One minute warm-up, then samples at
 
 - Application icon for the executable, title bar, and taskbar (`Assets/app-icon.ico`).
 - GitHub Actions CI: Release build with warnings as errors, unit and BDD test runs, `.trx` artifacts.
-- README with brand assets, detection-scope statement, screenshots, prerequisites, commands, data locations, attribution, and sample-image links.
+- README with brand assets, detection-scope statement, screenshots, prerequisites, commands, data locations, attribution, sample-image links, and an installation section.
 - BDD coverage for the viewer's focused→default sidebar transition and for failed report exports.
 - Clean startup abort path for database migration failures (dialog, `Fatal` log, exit code 1).
 - Build version identity (`0.10.0`).
+- Hardware-tagged DirectML verification test (`GpuDirectML` on the RTX 2050).
+- Reproducible packaging script producing a self-contained publish, portable zip, and per-user Inno Setup installer.
+- Tag-driven release workflow that validates the tag against the project version, runs all tests, signs both executables, verifies signatures, uploads checksums, and publishes a GitHub Release.
+- Recorded 5-minute live-inference soak (memory, FPS, latency, DirectML provider, zero errors).
 
 ### Changed
 
 - Startup sequencing extracted into `StartupCoordinator`; migrations are fatal, routing stays best-effort.
 - BDD scenarios run serially for deterministic cancellation and timing assertions.
+- Target framework raised to `net10.0-windows10.0.19041.0`, so the minimum OS is Windows 10 version 2004.
+- Background-to-UI updates now dispatch asynchronously and coalesce live frames (latest frame wins).
 
 ### Fixed
 
@@ -127,46 +137,49 @@ Reduced from 10 minutes with owner approval. One minute warm-up, then samples at
 - The window icon failed to load when `MainWindow` was constructed outside the application assembly (test host).
 - A unit test installed a non-pumping `Application.Current` that deadlocked later dispatcher calls.
 - Export and batch cancellation tests were timing-sensitive on CI.
+- Windows toast notifications never appeared in unpackaged runs (VS debugging, `dotnet run`, portable builds) because the notifier had no AppUserModelID.
+- Closing the app while Live Detection streamed deadlocked shutdown and left the process running.
 
 ### Known Limitations
 
-- Installer/MSIX, code signing, splash branding, and GitHub Release publication remain deferred.
+- The release certificate is self-signed; Windows reports the publisher as untrusted until a publicly trusted code-signing certificate is used.
+- Splash branding is deferred.
 - No separate changelog file; these notes are the release record for 0.10.0.
 - Multi-instance execution is allowed and not guarded.
-- Performance under continuous camera inference is not measured (deferred).
 - No automated dashboard drag-path test; the interaction is verified manually here.
 
 ## 8. Known Gaps (accepted for this release)
 
 | Gap | Impact | Disposition |
 |---|---|---|
-| Live camera streaming not observed on this machine (`Camera Idle`, 0 FPS) | Live inspection unverified end-to-end here | Verify on target hardware before pilot use; BDD uses a fake camera |
-| DirectML GPU path not exercised | GPU acceleration unverified | Settings show the CPU default; verify on target hardware |
-| Windows toast notifications not asserted | Notification delivery unverified programmatically | Manual observation during export; service logs dispatch failures |
-| Performance/memory soak not run | Long-session behaviour unknown | Accepted launch gap per plan; run an ad-hoc soak before wider distribution |
-| Drag-and-drop automation deferred | Only dashboard cards are covered manually; other drag targets untested | Manual steps executed for cards; tree/file drag paths covered by unit and BDD tests |
+| Self-signed publisher certificate | External users see an untrusted publisher; SmartScreen warnings | Replace the PFX secret with a publicly trusted code-signing certificate before public distribution; no workflow change needed |
+| Multi-instance execution | Two instances can share the database | Unchanged from 0.10.0; guard or document for the pilot |
+| Splash branding | No startup branding | Deferred to a future release |
+| Drag-and-drop automation | Only dashboard cards are covered manually | Manual steps remain; tree/file drag paths covered by unit and BDD tests |
 
 ## 9. Rollback Plan
 
 - **Trigger:** the published build fails to start, corrupts data, or blocks core inspection work.
-- **Steps:** close the app, replace the portable folder with the previous build output, and restore `app.db` from the most recent backup in `Downloads\PCB Deftek\Backup` if data is suspect. No schema migration runs in this phase, so an older build can open the existing database.
-- **Time:** under 5 minutes (file copy plus relaunch).
+- **Steps:** close the app, uninstall the current build, install the previous `PCB-Deftek-<version>-setup.exe` (or restore the previous portable folder), and restore `app.db` from the most recent backup in `Downloads\PCB Deftek\Backup` if data is suspect. No schema migration runs in this phase, so an older build can open the existing database.
+- **Time:** under 5 minutes (uninstall/install or file copy plus relaunch).
 - **Verification after rollback:** app starts, dashboard renders, history opens, log file shows a clean session.
 
 ## 10. Post-Launch Verification (first use)
 
-1. Launch the published build; confirm the dashboard renders and the icon appears.
-2. Open History; confirm records and thumbnails load.
-3. Run one export; confirm the PDF opens and the toast fires.
-4. Run one file-based batch; confirm progress, ETA, and completion toast.
-5. Check `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\logs` for `ERR`/`FTL` entries.
+1. Verify the installer's Authenticode signature and compare its SHA-256 with `SHA256SUMS.txt`.
+2. Launch the app; confirm the dashboard renders and the icon appears.
+3. Open History; confirm records and thumbnails load.
+4. Run one export; confirm the PDF opens and the toast fires.
+5. Run one file-based batch; confirm progress, ETA, and completion toast.
+6. Check `%LOCALAPPDATA%\PcbDeftek\pcb-deftek\logs` for `ERR`/`FTL` entries.
 
 ## 11. Verdict
 
-**Go — conditional — for an internal pilot.** Build, tests, packaging, icon, export, history, settings, and startup-failure handling are evidenced. Public distribution stays **No-Go** until these conditions are met:
+**Go — conditional — for an internal pilot.** Build, tests, packaging, installer, signing pipeline, DirectML, live camera streaming, toast delivery, and a 5-minute soak are evidenced. The release workflow was validated end-to-end with `v0.10.0-rc.1`; the RC installer installed, launched, and uninstalled cleanly, and its assets matched `SHA256SUMS.txt`.
 
-1. Live camera streaming and one capture verified on target hardware.
-2. DirectML path verified on a machine with a supported GPU (or explicitly disabled in the UI).
-3. Windows toast delivery confirmed on a machine with notifications enabled.
-4. A 10-minute live-inference soak recorded (memory, FPS, latency).
-5. Installer/MSIX and code signing produced for external distribution.
+**No-Go for public distribution** until:
+
+1. A publicly trusted code-signing certificate replaces the self-signed certificate; end users currently see an untrusted publisher.
+2. The final `v0.10.0` release assets are published and verified (the RC release was validated and then deleted by design).
+
+Accepted gaps for the pilot: multi-instance execution, splash branding, and manual-only drag-and-drop coverage beyond dashboard cards.

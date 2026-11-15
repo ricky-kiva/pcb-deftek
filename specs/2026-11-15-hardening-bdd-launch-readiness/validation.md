@@ -88,10 +88,14 @@ Performance under continuous inference is **not** covered by this phase; the che
 - [x] Executable reports version `0.10.0` via `FileVersionInfo`.
 - [x] Checklist covers all eight sections in `requirements.md` §6, each item with evidence.
 - [x] Release notes for `0.10.0` included in the checklist with Known Limitations.
-- [ ] Portable publish executed, launched, and smoke-tested, including the manual drag steps and a live-camera pass where hardware exists — publish, launch, and drag passed; the camera reported `Camera Idle` and streaming was not observed, recorded as a known gap and a Go condition.
+- [x] Self-contained publish and per-user installer executed, launched, and smoke-tested, including the manual drag steps and a live-camera pass — streaming observed for 5 minutes; installer installs and uninstalls without elevation.
+- [x] DirectML GPU path verified on the RTX 2050 (hardware test reports `GpuDirectML`; every soak inference logged `GpuDirectML`).
+- [x] Windows toast delivery verified for unpackaged runs (recorded by Windows and visible in Notification Center).
+- [x] Executables signed with SHA-256 and an RFC 3161 timestamp and verified in CI; checksums match the signed assets.
+- [x] Tag-driven release workflow validated with `v0.10.0-rc.1`: assets downloaded, hashes matched, installer installed, release and tag removed afterwards.
 - [x] `dotnet list package --vulnerable` shows no known vulnerable dependency, or the finding is documented with a decision.
-- [x] Performance under continuous inference is explicitly marked unverified, with the accepted condition stated.
-- [x] Checklist re-walked after a clean clone and clean publish with the same verdict (12/12 smoke checks on both publishes).
+- [x] Performance under continuous inference measured for 5 minutes (memory, FPS, latency) with no errors or error dialogs.
+- [x] Checklist re-walked against the clean-clone publish and the RC release installer with the same verdict (12/12 smoke checks; install, launch, and uninstall confirmed).
 - [x] One overall Go/No-Go recorded.
 
 ### 5.5 Brand Identity & README
