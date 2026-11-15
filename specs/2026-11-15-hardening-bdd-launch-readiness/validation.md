@@ -72,9 +72,9 @@ Performance under continuous inference is **not** covered by this phase; the che
 
 ### 5.2 BDD Closure
 
-- [ ] Clearing viewer focus restores the default sidebar and keeps delete available.
-- [ ] Export to an unwritable destination reports `Failed`, shows the failure toast, and leaves no PDF/temp/staging.
-- [ ] Existing scenarios still pass without edits.
+- [x] Clearing viewer focus restores the default sidebar and keeps delete available.
+- [x] Export to an unwritable destination reports `Failed`, shows the failure toast, and leaves no PDF/temp/staging.
+- [x] Existing scenarios still pass without edits.
 
 ### 5.3 Startup Hardening
 
