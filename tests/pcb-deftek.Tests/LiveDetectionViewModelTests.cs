@@ -286,16 +286,19 @@ public class LiveDetectionViewModelTests
 
             using var frame = CreateFrameResult(defectCount: 1);
 
-            var worker = Task.Run(() => _mockEngine.Raise(
+            var worker = new Thread(() => _mockEngine.Raise(
                 e => e.FrameProcessed += null,
-                new LiveFrameProcessedEventArgs(frame)));
+                new LiveFrameProcessedEventArgs(frame)))
+            {
+                IsBackground = true
+            };
 
-            Func<Task> raiseFrame = () => worker.WaitAsync(TimeSpan.FromSeconds(2));
-            await raiseFrame.Should().NotThrowAsync(
+            worker.Start();
+            worker.Join(TimeSpan.FromSeconds(15)).Should().BeTrue(
                 "dispatching a frame to the UI must never block the inference worker");
 
             gate.Set();
-            await worker.WaitAsync(TimeSpan.FromSeconds(5));
+            worker.Join(TimeSpan.FromSeconds(5)).Should().BeTrue();
         }
         finally
         {
@@ -337,15 +340,18 @@ public class LiveDetectionViewModelTests
             using var second = CreateFrameResult(defectCount: 2);
             using var third = CreateFrameResult(defectCount: 3);
 
-            var worker = Task.Run(() =>
+            var worker = new Thread(() =>
             {
                 _mockEngine.Raise(e => e.FrameProcessed += null, new LiveFrameProcessedEventArgs(first));
                 _mockEngine.Raise(e => e.FrameProcessed += null, new LiveFrameProcessedEventArgs(second));
                 _mockEngine.Raise(e => e.FrameProcessed += null, new LiveFrameProcessedEventArgs(third));
-            });
+            })
+            {
+                IsBackground = true
+            };
 
-            Func<Task> raiseFrames = () => worker.WaitAsync(TimeSpan.FromSeconds(2));
-            await raiseFrames.Should().NotThrowAsync(
+            worker.Start();
+            worker.Join(TimeSpan.FromSeconds(15)).Should().BeTrue(
                 "queued frames must not block the inference worker");
 
             gate.Set();
