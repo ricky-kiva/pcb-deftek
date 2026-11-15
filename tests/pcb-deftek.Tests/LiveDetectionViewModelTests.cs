@@ -165,6 +165,57 @@ public class LiveDetectionViewModelTests
     }
 
     [Fact]
+    public async Task OnNavigatedFromAsync_WhileCaptureStartIsPending_StopsCameraAfterStart()
+    {
+        var captureStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var captureCompletion = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        _mockCamera
+            .Setup(c => c.StartCaptureAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback(() => captureStarted.TrySetResult())
+            .Returns(captureCompletion.Task);
+        var sut = CreateSut();
+
+        Task navigatingTo = sut.OnNavigatedToAsync();
+        await captureStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Task navigatingFrom = sut.OnNavigatedFromAsync();
+        captureCompletion.SetResult();
+
+        await Task.WhenAll(navigatingTo, navigatingFrom);
+
+        _mockCamera.Verify(c => c.StopCaptureAsync(), Times.Once);
+        sut.IsStreaming.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task OnNavigatedFromAsync_WhileCameraInitializationPending_DoesNotStartCapture()
+    {
+        var cameras = new TaskCompletionSource<IReadOnlyList<CameraDeviceInfo>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var enumerationStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        _mockCamera
+            .Setup(c => c.GetAvailableCamerasAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => enumerationStarted.TrySetResult())
+            .Returns(cameras.Task);
+        var sut = CreateSut();
+
+        Task navigatingTo = sut.OnNavigatedToAsync();
+        await enumerationStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Task navigatingFrom = sut.OnNavigatedFromAsync();
+        cameras.SetResult(new List<CameraDeviceInfo> { new(0, "USB Microscope Camera") });
+
+        await Task.WhenAll(navigatingTo, navigatingFrom);
+
+        _mockEngine.Verify(e => e.StartAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _mockCamera.Verify(
+            c => c.StartCaptureAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        sut.IsStreaming.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task WhenFrameProcessed_UpdatesViewportImageStatusAndTelemetry()
     {
         var sut = CreateSut();

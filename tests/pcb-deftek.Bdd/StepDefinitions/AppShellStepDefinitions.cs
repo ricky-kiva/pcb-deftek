@@ -105,27 +105,28 @@ public class AppShellStepDefinitions : IDisposable
     }
 
     [Then(@"the active workspace view model should be (.*)")]
-    public void ThenTheActiveWorkspaceViewModelShouldBe(string expectedPageName)
+    public async Task ThenTheActiveWorkspaceViewModelShouldBe(string expectedPageName)
     {
         _navigationService.Should().NotBeNull();
-        _navigationService!.CurrentViewModel.Should().NotBeNull();
-
-        switch (expectedPageName.Trim().ToLowerInvariant())
+        Type expectedType = expectedPageName.Trim().ToLowerInvariant() switch
         {
-            case "dashboard":
-                _navigationService.CurrentViewModel.Should().BeOfType<DashboardViewModel>();
-                break;
-            case "live detection":
-                _navigationService.CurrentViewModel.Should().BeOfType<LiveDetectionViewModel>();
-                break;
-            case "file-based detection":
-                _navigationService.CurrentViewModel.Should().BeOfType<FileDetectionViewModel>();
-                break;
-            case "history":
-                _navigationService.CurrentViewModel.Should().BeOfType<HistoryViewModel>();
-                break;
-            default:
-                throw new ArgumentException($"Unknown expected page view model: {expectedPageName}");
+            "dashboard" => typeof(DashboardViewModel),
+            "live detection" => typeof(LiveDetectionViewModel),
+            "file-based detection" => typeof(FileDetectionViewModel),
+            "history" => typeof(HistoryViewModel),
+            _ => throw new ArgumentException($"Unknown expected page view model: {expectedPageName}")
+        };
+
+        await WaitUntilAsync(() => _navigationService!.CurrentViewModel?.GetType() == expectedType);
+        _navigationService!.CurrentViewModel.Should().BeOfType(expectedType);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 5000)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (!condition() && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(10);
         }
     }
 
