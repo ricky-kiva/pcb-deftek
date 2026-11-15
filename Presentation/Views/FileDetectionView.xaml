@@ -146,7 +146,7 @@
                                IsHitTestVisible="False" />
 
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="12">
-                        <Path Data="{StaticResource IconUpload}"
+                        <Path Data="{DynamicResource IconUpload}"
                               Fill="{DynamicResource AccentFillColorDefaultBrush}"
                               Width="26" Height="26"
                               Stretch="Uniform"
@@ -176,18 +176,18 @@
                                 <ContextMenu>
                                     <MenuItem Header="Select Files (Single or Multiple)..." Command="{Binding BrowseFilesCommand}">
                                         <MenuItem.Icon>
-                                            <Path Data="{StaticResource IconFileDetection}" Width="14" Height="14" Stretch="Uniform" Fill="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            <Path Data="{DynamicResource IconFileDetection}" Width="14" Height="14" Stretch="Uniform" Fill="{DynamicResource TextFillColorPrimaryBrush}" />
                                         </MenuItem.Icon>
                                     </MenuItem>
                                     <MenuItem Header="Select Folder (Recursive Batch)..." Command="{Binding BrowseFolderCommand}">
                                         <MenuItem.Icon>
-                                            <Path Data="{StaticResource IconFolder}" Width="14" Height="14" Stretch="Uniform" Fill="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            <Path Data="{DynamicResource IconFolder}" Width="14" Height="14" Stretch="Uniform" Fill="{DynamicResource TextFillColorPrimaryBrush}" />
                                         </MenuItem.Icon>
                                     </MenuItem>
                                 </ContextMenu>
                             </Button.ContextMenu>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Path Data="{StaticResource IconFolder}"
+                                <Path Data="{DynamicResource IconFolder}"
                                       Fill="{DynamicResource TextFillColorPrimaryBrush}"
                                       Width="14" Height="14"
                                       Stretch="Uniform"
@@ -219,19 +219,21 @@
 
                         <!-- Left: Main Execution Controls -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Command="{Binding StartBatchCommand}"
+                            <Button x:Name="StartInspectionButton"
+                                    Command="{Binding StartBatchCommand}"
                                     Style="{StaticResource PrimaryAccentButtonStyle}"
                                     Height="32"
                                     Padding="14,0"
                                     IsEnabled="{Binding CanStart}"
                                     ToolTip="Start sequential automated defect detection on all queued items">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Path Data="{StaticResource IconPlay}"
-                                          Fill="{DynamicResource TextOnAccentFillColorPrimaryBrush}"
+                                    <Path x:Name="StartInspectionPlayIcon"
+                                          Data="{DynamicResource IconPlay}"
+                                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                                           Width="12" Height="12"
                                           Stretch="Uniform"
                                           Margin="0,0,6,0" />
-                                    <TextBlock Text="Start Inspection" FontSize="12" />
+                                    <TextBlock x:Name="StartInspectionText" Text="Start Inspection" FontSize="12" />
                                 </StackPanel>
                             </Button>
 
@@ -259,8 +261,8 @@
                             </Border>
 
                             <!-- Clean / Passed Pill -->
-                            <Border Background="{StaticResource StatusPassLightBrush}"
-                                    BorderBrush="{StaticResource StatusPassBorderBrush}"
+                            <Border Background="{DynamicResource StatusPassLightBrush}"
+                                    BorderBrush="{DynamicResource StatusPassBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="4"
                                     Padding="8,4"
@@ -268,12 +270,12 @@
                                 <TextBlock Text="{Binding PassCount, StringFormat='PASS (Clean): {0}'}"
                                            FontSize="11"
                                            FontWeight="SemiBold"
-                                           Foreground="{StaticResource StatusPassBrush}" />
+                                           Foreground="{DynamicResource StatusPassBrush}" />
                             </Border>
 
                             <!-- Defective / Failed Pill -->
-                            <Border Background="{StaticResource StatusFailLightBrush}"
-                                    BorderBrush="{StaticResource StatusFailBorderBrush}"
+                            <Border Background="{DynamicResource StatusFailLightBrush}"
+                                    BorderBrush="{DynamicResource StatusFailBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="4"
                                     Padding="8,4"
@@ -281,12 +283,12 @@
                                 <TextBlock Text="{Binding FailCount, StringFormat='FAIL (Defects): {0}'}"
                                            FontSize="11"
                                            FontWeight="SemiBold"
-                                           Foreground="{StaticResource StatusFailBrush}" />
+                                           Foreground="{DynamicResource StatusFailBrush}" />
                             </Border>
 
                             <!-- Errors Pill (Conditional) -->
-                            <Border Background="{StaticResource SeverityHighTintBrush}"
-                                    BorderBrush="{StaticResource SeverityHighBrush}"
+                            <Border Background="{DynamicResource SeverityHighTintBrush}"
+                                    BorderBrush="{DynamicResource SeverityHighBrush}"
                                     BorderThickness="1"
                                     CornerRadius="4"
                                     Padding="8,4"
@@ -294,7 +296,7 @@
                                 <TextBlock Text="{Binding ErrorCount, StringFormat='Errors: {0}'}"
                                            FontSize="11"
                                            FontWeight="SemiBold"
-                                           Foreground="{StaticResource SeverityHighBrush}" />
+                                           Foreground="{DynamicResource SeverityHighBrush}" />
                             </Border>
                         </StackPanel>
                     </Grid>
@@ -334,7 +336,7 @@
                                     Visibility="{Binding CanCancel, Converter={StaticResource BooleanToVisibilityConverter}}"
                                     ToolTip="Cancel processing remaining queued boards">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Path Data="{StaticResource IconClose}"
+                                    <Path Data="{DynamicResource IconClose}"
                                           Fill="#E81123"
                                           Width="10" Height="10"
                                           Stretch="Uniform"
@@ -359,7 +361,7 @@
                     <StackPanel VerticalAlignment="Center"
                                 HorizontalAlignment="Center"
                                 Visibility="{Binding TotalCount, Converter={StaticResource InverseCountToVisibilityConverter}}">
-                        <Path Data="{StaticResource IconFileDetection}"
+                        <Path Data="{DynamicResource IconFileDetection}"
                               Fill="{DynamicResource TextFillColorTertiaryBrush}"
                               Width="36" Height="36"
                               Stretch="Uniform"
@@ -462,7 +464,7 @@
                                                            Visibility="{Binding HasThumbnail, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                                                     <!-- Placeholder when Pending/No thumbnail -->
-                                                    <Path Data="{StaticResource IconImage}"
+                                                    <Path Data="{DynamicResource IconImage}"
                                                           Fill="{DynamicResource TextFillColorTertiaryBrush}"
                                                           Width="18" Height="18"
                                                           Stretch="Uniform"
@@ -624,7 +626,7 @@
                                                                             CornerRadius="4"
                                                                             Width="24" Height="24">
                                                                         <Path x:Name="BtnIcon"
-                                                                              Data="{StaticResource IconClose}"
+                                                                              Data="{DynamicResource IconClose}"
                                                                               Fill="{DynamicResource TextFillColorTertiaryBrush}"
                                                                               Width="10" Height="10"
                                                                               Stretch="Uniform"
@@ -670,11 +672,12 @@
             </Border>
 
             <!-- Modal Dialog Card -->
-            <Border HorizontalAlignment="Center"
+            <Border x:Name="PreviewModalCard"
+                    HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     MaxWidth="860"
                     MaxHeight="700"
-                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                     BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="8"
@@ -699,7 +702,7 @@
                                 BorderThickness="0"
                                 Cursor="Hand"
                                 ToolTip="Close preview (Esc)">
-                            <Path Data="{StaticResource IconClose}"
+                            <Path Data="{DynamicResource IconClose}"
                                   Fill="{DynamicResource TextFillColorPrimaryBrush}"
                                   Width="12" Height="12"
                                   Stretch="Uniform" />
@@ -731,8 +734,9 @@
                     </DockPanel>
 
                     <!-- Body: Large Annotated PCB Image Viewport -->
-                    <Border Grid.Row="1"
-                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                    <Border x:Name="PreviewModalBody"
+                            Grid.Row="1"
+                            Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                             BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                             BorderThickness="1"
                             CornerRadius="4"
@@ -744,44 +748,15 @@
                                RenderOptions.BitmapScalingMode="HighQuality" />
                     </Border>
 
-                    <!-- Footer: Detected Defect Pills & Close Button -->
-                    <DockPanel Grid.Row="2" Margin="0,14,0,0">
-                        <Button DockPanel.Dock="Right"
-                                Command="{Binding ClosePreviewCommand}"
-                                Content="Close"
-                                Height="30"
-                                Padding="16,0"
-                                Style="{StaticResource PrimaryAccentButtonStyle}" />
-
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Defect Details:"
-                                       FontSize="11"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       Margin="0,0,0,4" />
-                            <ItemsControl ItemsSource="{Binding PreviewItem.DefectList}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
-                                                BorderThickness="1"
-                                                CornerRadius="4"
-                                                Padding="8,3"
-                                                Margin="0,0,6,4">
-                                            <TextBlock Text="{Binding}"
-                                                       FontSize="11"
-                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </DockPanel>
+                    <!-- Footer: Close Button -->
+                    <Button Grid.Row="2"
+                            HorizontalAlignment="Right"
+                            Margin="0,14,0,0"
+                            Command="{Binding ClosePreviewCommand}"
+                            Content="Close"
+                            Height="30"
+                            Padding="16,0"
+                            Style="{StaticResource PrimaryAccentButtonStyle}" />
                 </Grid>
             </Border>
         </Grid>
