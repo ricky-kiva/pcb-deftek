@@ -73,7 +73,7 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 - [x] DirectML test passes on the RTX 2050 (`ActiveDevice == GpuDirectML`) and is excluded from CI.
 - [x] Toast dispatched from an unpackaged run and present in Notification Center (banner suppressed by Focus Assist on this machine; published-build confirmation folds into the Task 8 re-walk).
 - [x] Full suite green (796 unit, 46 BDD); build 0 warnings.
-- [ ] Human review before Phase B.
+- [x] Human review before Phase B (approved; Phase B proceeded with Tasks 3-4 in #139).
 
 ---
 
@@ -122,30 +122,36 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 
 #### Task 5: Code Signing
 
-- **Description:** Sign the executable and installer with the project certificate and verify the signature, wiring the same step into CI later.
+- **Description:** Sign the application executable and the installer with the project certificate using SHA-256 and an RFC 3161 timestamp. Signing runs automatically in the tag-driven release workflow; there is no local signing requirement. `package.ps1` is extended so signing happens in the correct order: publish → sign `pcb-deftek.exe` → build portable zip → compile installer → sign `setup.exe` → write checksums.
 - **Acceptance criteria:**
-  - [ ] `build/sign.ps1` signs `pcb-deftek.exe` and the setup executable with SHA-256 and an RFC 3161 timestamp; certificate comes from `SIGNING_CERT_PFX_BASE64`/`SIGNING_CERT_PASSWORD` or a local PFX path.
-  - [ ] `signtool verify /pa /all` reports success for both files.
-  - [ ] Failure to find a certificate fails the script with a clear message; unsigned artifacts are never silently published.
-  - [ ] No certificate or password is committed.
+  - [ ] `build/sign.ps1` signs `pcb-deftek.exe` and the setup executable with SHA-256 and an RFC 3161 timestamp against `http://timestamp.digicert.com`; the certificate comes from `SIGNING_PFX_BASE64`/`SIGNING_PFX_PASSWORD` (CI) or an explicit local PFX path (developer use).
+  - [ ] `signtool verify /pa /all` reports success for both files **in CI**; the workflow fails the job otherwise.
+  - [ ] Signing failures (missing secret, unreadable PFX, wrong password, timestamp failure) fail with a clear message; artifacts are never uploaded or published unsigned.
+  - [ ] No certificate, password, decoded PFX, or base64 material is committed, printed, or retained as a workflow artifact; the decoded PFX is written only to `$RUNNER_TEMP` and deleted in a `finally` block.
+  - [ ] `SHA256SUMS.txt` is produced after signing, so the recorded hashes match the signed files.
 - **Verification:**
-  - [ ] Locally: `signtool verify /pa` on both outputs; Windows file properties show the publisher.
-- **Dependencies:** Task 4 · **Requires:** code-signing certificate + timestamp URL (owner-supplied)
+  - [ ] CI only (owner decision; no local verification step): a temporary `v0.10.0-rc.1` tag runs the release workflow; both executables report `Successfully signed` and `signtool verify /pa /all` passes.
+  - [ ] The same CI run downloads the artifacts and confirms the checksums.
+  - [ ] File properties on the signed copies show the certificate's publisher name.
+- **Dependencies:** Task 4 · **Requires:** repository secrets (fulfilled) and the DigiCert timestamp URL (supplied)
 - **Files:**
   - `build/sign.ps1`
-  - `.gitignore`
-- **Estimated scope:** S (2 files)
+  - `build/package.ps1` (signing hook and checksum ordering)
+  - `.gitignore` (already ignores `*.pfx`)
+- **Estimated scope:** S (2 files + `.gitignore` review)
 
 #### Task 6: GitHub Release Workflow
 
-- **Description:** Tag-driven release: build, package, sign, and publish a GitHub Release with installer, portable zip, checksums, and release notes.
+- **Description:** Tag-driven release: build, package, sign, and publish a GitHub Release with installer, portable zip, checksums, and release notes. The workflow is the sole signing entry point (tag-only; no push or PR triggers).
 - **Acceptance criteria:**
-  - [ ] `.github/workflows/release.yml` triggers on `v*` tags; builds self-contained, runs `package.ps1`, signs, and fails if signing secrets are missing.
+  - [ ] `.github/workflows/release.yml` triggers only on `v*` tags; installs Inno Setup on the runner, runs `package.ps1` with signing enabled, and fails before publishing if either signing secret is missing.
+  - [ ] The workflow asserts the tag version equals the csproj `<Version>` and refuses to sign mismatched artifacts.
   - [ ] Creates the release with `PCB-Deftek-<version>-setup.exe`, portable zip, `SHA256SUMS.txt`, and a release-notes body.
   - [ ] Release notes reuse the 0.10.0 notes from `launch-checklist.md` plus install instructions.
-  - [ ] Tag `v0.10.0` produces a release whose assets download and verify against the checksums.
+  - [ ] Tag `v0.10.0` produces a release whose assets download and verify against the checksums and carry valid signatures.
 - **Verification:**
-  - [ ] Push a test tag on the branch (or run with `workflow_dispatch`), download assets, compare hashes, run the installer from the release.
+  - [ ] Push a temporary `v0.10.0-rc.1` tag; the run signs and verifies both executables in CI, checksums match post-signing artifacts, and the tag is deleted afterwards without a leftover release.
+  - [ ] The final `v0.10.0` tag repeats the checks against the real release assets.
 - **Dependencies:** Tasks 3, 4, 5
 - **Files:**
   - `.github/workflows/release.yml`
@@ -167,12 +173,15 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 
 - **Description:** Measure the reduced soak on the RTX 2050: 1 minute warm-up, samples at t=2 and t=5, recorded in the checklist.
 - **Acceptance criteria:**
-  - [ ] Live Detection runs 5 minutes with DirectML active (telemetry shows the GPU device).
-  - [ ] Working set and private bytes at t=2 and t=5; HUD FPS and average latency at both points.
-  - [ ] No crash, no error dialog, no `ERR`/`FTL` log entries.
-  - [ ] Numbers and machine context recorded; any failure is a release condition.
+  - [x] Live Detection ran 5 minutes with DirectML active (`ONNX Runtime initialized successfully with DirectML GPU provider (Device 0)`; every inference logged `GpuDirectML`).
+  - [x] Working set and private bytes at t=2 and t=5; HUD FPS and average latency at both points.
+  - [x] No crash, no error dialog, no `ERR`/`FTL` log entries (pre-fix run: the shutdown hang found there is fixed in #135).
+  - [x] Numbers and machine context recorded; any failure is a release condition.
 - **Verification:**
-  - [ ] Recorded table in `launch-checklist.md` §3a with the observed values.
+  - [x] Recorded table in `launch-checklist.md` §3a: t=2 510.8 MB WS / 717.2 MB private / 37.1 ms / 26 FPS; t=5 516.0 MB / 715.3 MB / 39.4 ms / 25 FPS.
+  - [x] Post-fix re-run after #135: 28 FPS, ~714 MB private, close in 0.7 s, 0 `ERR`/`FTL`.
+- **Deviations:**
+  - Task 3 was not yet implemented when the soak ran, so it used the Release build from `main` @ `a71f14a`; the inference path is identical. The published-artifact re-run folds into Task 8.
 - **Dependencies:** Tasks 1, 3
 - **Files:**
   - `specs/2026-11-15-hardening-bdd-launch-readiness/launch-checklist.md`
@@ -210,19 +219,27 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 |---|---|---|
 | DirectML unavailable on the RTX 2050 (driver/D3D12 issue) | High | Test fails with the active device named; fall back documented, GPU option hidden or labelled |
 | Toast still blocked by Focus Assist or notification settings | Medium | Manual check from both VS debug and installed build; service logs every failure |
-| No certificate available | High | Task 5 blocks until the PFX/Azure credential is supplied; unsigned publishing is refused |
-| Inno Setup not installed on the dev machine | Low | Install via winget/choco; documented in the script header |
+| Certificate properties unverified (code-signing EKU, key, validity, password) | High | Temporary `v0.10.0-rc.1` tag surfaces the failure in CI before `v0.10.0`; signing failures fail the job and publish nothing |
+| Checksums computed before signing | High | Signing hook in `package.ps1`: exe signed before zip/installer, setup signed before `SHA256SUMS.txt` |
+| Tag/version mismatch produces wrongly named signed artifacts | Medium | Workflow asserts tag version equals csproj `<Version>` before packaging |
+| Inno Setup absent on `windows-latest` | Low | Release workflow installs it before `package.ps1`; local runs probe per-user and machine-wide paths |
 | Self-contained publish grows the installer (~250–350 MB) | Medium | Accepted for offline installs; portable zip remains available |
-| GitHub secrets misconfigured | Medium | Release workflow fails before creating the release; verification step re-runs locally |
+| Signing secrets mishandled or exposed | High | Secrets stay repo-level; decoded PFX only in `$RUNNER_TEMP` with `finally` cleanup; nothing printed or uploaded |
 | Soak numbers regress on GPU | Medium | 5-minute gate is short; record values and treat failure as a release condition |
 
-## Prerequisites Requiring Owner Input
+## Owner Decisions & Fulfilled Prerequisites
 
-1. **Code-signing certificate** — PFX + password (or Azure Trusted Signing/SignPath credentials) and the timestamp URL. Nothing can be signed without it.
-2. **Inno Setup availability** — `winget install JRSoftware.InnoSetup` on this machine if absent.
-3. **Repository secrets** — `SIGNING_CERT_PFX_BASE64`, `SIGNING_CERT_PASSWORD` before the release workflow runs.
-4. **Tag approval** — `v0.10.0` is pushed only after Checkpoint C.
+1. **Signing runs only in the tag-driven release workflow** (`v*` tags). No push, PR, or manual-dispatch trigger. `workflow_dispatch` is intentionally absent.
+2. **Temporary test tag approved:** `v0.10.0-rc.1` validates signing in CI after Task 6 lands, then is deleted without leaving a release.
+3. **Signature verification happens in CI only** (`signtool verify /pa /all`). No local verification step is required.
+4. **`build/package.ps1` may be modified** to place signing before zipping/installer compilation and before checksum generation.
+5. **Secret names confirmed:** `SIGNING_PFX_BASE64` and `SIGNING_PFX_PASSWORD` (repository-level; no environment scope). The earlier `SIGNING_CERT_*` names in this plan were wrong.
+6. **Timestamp server supplied:** DigiCert RFC 3161 at `http://timestamp.digicert.com`.
+7. **Tasks 3-4 merged:** `build/package.ps1` and `installer/pcb-deftek.iss` are on `main` (#139).
+8. **Tag approval:** `v0.10.0` is pushed only after Checkpoint C passes.
+
+Still owner-side and only observable at signing time: the PFX's code-signing EKU, private-key presence, validity window, password correctness, and the publisher subject shown in file properties.
 
 ## Open Questions
 
-None beyond the prerequisites above; the toast root cause is confirmed in code and the fix path uses the already-referenced package.
+None blocking. The certificate's publisher subject and validity are reported by the `v0.10.0-rc.1` signing run and folded into the Task 8 release notes; optional hardening (moving the secrets into a protected `release` environment) can be added later without changing the workflow contract.
