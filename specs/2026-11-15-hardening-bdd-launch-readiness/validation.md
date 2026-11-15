@@ -165,10 +165,21 @@ Independent review of `9752b0b..f6ea25f` (scoped Phase 10 paths) by a separate r
 |---|---|---|
 | `code-review-and-quality` | 2026-11-16 | 2 Required findings, 1 Optional implemented; follow-ups recorded below. Required fixes verified (`43755765713`) |
 | `code-simplification` | 2026-11-16 | Deduplicated three repeated UI-thread guards in `FileDetectionViewModel` into `TryRunOnUiThread`; behavior unchanged, full suite green. Broader dispatcher unification deferred |
-| `performance-optimization` | pending (approval required) | _pending_ |
+| `performance-optimization` | 2026-11-16 | No code change: the 5-minute soak is the baseline (35.1/35.9 ms latency, 28 FPS, ~714 MB private, flat memory); inference plus preprocessing dominates and no regression or unbounded growth was measured. Profiling the OpenCV preprocessing stage is recorded as the next lever |
 | `security-and-hardening` | pending (approval required) | _pending_ |
 
-### Findings resolved
+### Performance review (measured, no change kept)
+
+Baseline from the Task 7 soak (RTX 2050, DirectML):
+
+| Sample | Latency | FPS | Working set | Private bytes |
+|---|---|---|---|---|
+| t=2 | 35.1 ms | 28 | 510.9 MB | 715.7 MB |
+| t=5 | 35.9 ms | 28 | 513.9 MB | 713.1 MB |
+
+- Inference logs split the frame cost as preprocessing ≈20–23 ms, inference ≈14–16 ms, postprocessing ≈1–2 ms; preprocessing is the largest single stage.
+- Memory is flat across the sampled window and the dispatcher coalescing keeps one pending UI update at a time, so no unbounded queue was measured.
+- No optimization was applied: there is no measured regression or bottleneck that justifies a post-release change. Follow-up: profile the OpenCV letterbox/resize path before considering any change, and add a soak budget (FPS/latency/memory) to the manual release checklist gate.
 
 | Finding | Severity | Resolution |
 |---|---|---|
