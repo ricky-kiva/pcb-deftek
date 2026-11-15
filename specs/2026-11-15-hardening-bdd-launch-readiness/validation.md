@@ -107,13 +107,14 @@ Performance under continuous inference is **not** covered by this phase; the che
 
 | Item | Value |
 |---|---|
-| Workflow run URL | https://github.com/ricky-kiva/pcb-deftek/actions/runs/43707489454 |
-| Job duration | 1m53s (11:08:52Z → 11:10:45Z) |
+| Workflow run URL | https://github.com/ricky-kiva/pcb-deftek/actions/runs/43708872118 |
+| Job duration | 2m18s (11:25:44Z → 11:28:02Z) |
 | Unit tests / result | 790 passed, 0 failed, 0 skipped |
 | BDD tests / result | 44 passed, 0 failed, 0 skipped |
 | Warning count | 0 |
-| Artifact | `test-results` (210 KB, unit + BDD `.trx`) |
-| Earlier runs | `43704968179` hung in the unit step for 19 min (no output); `43706692821` reproduced it and named the blocked tests via `--blame-hang`. Fixed in `ebc5c08` (a unit test constructed a real `App`, installing a non-pumping `Application.Current`; later `Dispatcher.Invoke` calls from `LiveDetectionViewModel` deadlocked). |
+| Artifact | `test-results` (unit + BDD `.trx`) |
+| Earlier runs | `43704968179` hung in the unit step for 19 min; `43706692821` named the blocked tests via `--blame-hang`. Fixed in `ebc5c08`: a unit test constructed a real `App`, installing a non-pumping `Application.Current`, so later `Dispatcher.Invoke` calls from `LiveDetectionViewModel` deadlocked. |
+| Earlier runs (BDD) | `43707982620` failed the export-cancel wait; `43708452705` failed both cancellation scenarios with `Completed` status because parallel feature collections starved the thread pool and a 10 s annotation-release safety window fired before cancellation. Fixed in `6888323`: BDD scenarios run serially, the block window is 60 s, and the wait reports state. Eight local pre-change runs and three post-change runs passed. |
 
 ## 7. Merge Readiness & Definition of Done
 
