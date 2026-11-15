@@ -151,11 +151,11 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
   - [x] The workflow asserts the tag version equals the csproj `<Version>` and refuses to sign mismatched artifacts.
   - [x] Creates the release with `PCB-Deftek-<version>-setup.exe`, portable zip, `SHA256SUMS.txt`, and a release-notes body.
   - [x] Release notes reuse the 0.10.0 notes from `launch-checklist.md` plus install instructions.
-  - [ ] Tag `v0.10.0` produces a release whose assets download and verify against the checksums and carry valid signatures (same path exercised by `v0.10.0-rc.1`; final tag after Checkpoint C).
+  - [x] Tag `v0.10.0` produces a release whose assets download and verify against the checksums and carry valid signatures.
 - **Verification:**
   - [x] Temporary `v0.10.0-rc.1` run `43746365252`: signed and verified both executables, uploaded signed artifacts, published a pre-release with installer, portable zip, checksums and generated notes. Checksums match the downloaded assets; the installer installs, launches and uninstalls cleanly.
   - [x] The RC release and tag were deleted after validation; no leftover release or tag.
-  - [ ] Final `v0.10.0` tag after Checkpoint C.
+  - [x] Final tag run `43750845817` published [`v0.10.0`](https://github.com/ricky-kiva/pcb-deftek/releases/tag/v0.10.0): assets `PCB-Deftek-0.10.0-setup.exe` (151,945,688 bytes), `PCB-Deftek-0.10.0-portable-win-x64.zip` (194,240,735 bytes), `SHA256SUMS.txt`; downloaded hashes match, both executables are signed and timestamped, and the installer installs, launches and uninstalls cleanly.
 - **Dependencies:** Tasks 3, 4, 5
 - **Files:**
   - `.github/workflows/release.yml`
@@ -166,7 +166,7 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 
 ### Checkpoint B: Distributable & Signed
 - [x] Installer installs/uninstalls cleanly and is signed (validated from the `v0.10.0-rc.1` release asset; self-signed publisher).
-- [ ] Release assets exist, are signed, and match checksums (assets were produced and verified for the RC, then deleted; the permanent release is created with `v0.10.0`).
+- [x] Release assets exist, are signed, and match checksums ([`v0.10.0`](https://github.com/ricky-kiva/pcb-deftek/releases/tag/v0.10.0); downloaded assets re-hashed and installed).
 - [x] Human review before Phase C (approved; Task 8 proceeded).
 
 ---
@@ -201,7 +201,7 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
   - [x] `plan.md` links this sub-plan and notes the superseded deferred scope.
 - **Verification:**
   - [x] Checklist re-walked against the clean-clone publish and the `v0.10.0-rc.1` release installer (download → checksum → install → launch → uninstall) with the same verdict.
-  - [ ] Final `v0.10.0` release remains gated on Checkpoint C approval.
+  - [x] Final [`v0.10.0`](https://github.com/ricky-kiva/pcb-deftek/releases/tag/v0.10.0) assets downloaded and verified: hashes match `SHA256SUMS.txt`, both executables are signed and timestamped, and the installer installs, launches and uninstalls cleanly (run `43750845817`).
 - **Deviations:**
   - The certificate is self-signed, so the verdict gates public distribution on a publicly trusted certificate; the original acceptance wording assumed a trusted certificate.
   - Install/uninstall was validated on the existing user profile; a clean-profile install is still listed under Checkpoint C.
@@ -216,8 +216,8 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 
 ### Checkpoint C: Release Ready
 - [x] All gates in `validation.md` pass, including the new hardware/notification/packaging/signature/release rows.
-- [ ] Signed installer installs on a clean profile and the app starts (validated on the existing profile; a clean-profile install remains).
-- [ ] Human approval recorded before tagging `v0.10.0`.
+- [ ] Signed installer installs on a clean profile and the app starts (validated on the existing profile; a clean-profile run remains unperformed — owner approved the release without it).
+- [x] Human approval recorded before tagging `v0.10.0` (approved 2026-11-16; tag pushed and release published).
 
 ---
 
@@ -244,7 +244,7 @@ Toast fix ─────┴─→ self-contained publish → installer → sign
 5. **Secret names confirmed:** `SIGNING_PFX_BASE64` and `SIGNING_PFX_PASSWORD` (repository-level; no environment scope). The earlier `SIGNING_CERT_*` names in this plan were wrong.
 6. **Timestamp server supplied:** DigiCert RFC 3161 at `http://timestamp.digicert.com`.
 7. **Tasks 3-4 merged:** `build/package.ps1` and `installer/pcb-deftek.iss` are on `main` (#139).
-8. **Tag approval:** `v0.10.0` is pushed only after Checkpoint C passes.
+8. **Tag approval:** recorded 2026-11-16; `v0.10.0` tagged and the release published (run `43750845817`).
 9. **Certificate is self-signed** (`CN=PCB Deftek Developer`, issuer equals subject, valid 2026-11-15 to 2031-11-15, thumbprint `E8A43160…`). The release workflow installs its public part into `Cert:\LocalMachine\Root` on the ephemeral runner so `signtool verify /pa` passes; no private material is installed or exported.
 10. **External distribution caveat:** a publicly trusted code-signing certificate is still required before shipping externally, because end-user machines do not trust this root.
 
