@@ -436,7 +436,7 @@ public class DashboardExportStepDefinitions : IDisposable
             {
                 BlockNextCall = false;
                 Started.Set();
-                Release.Wait(TimeSpan.FromSeconds(10));
+                Release.Wait(TimeSpan.FromSeconds(60));
             }
 
             return _inner.AnnotateImage(imagePath, defects, maxDimension);
