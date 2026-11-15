@@ -1,0 +1,179 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, sign and publish
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      SIGNING_PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+      SIGNING_PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+      TIMESTAMP_URL: http://timestamp.digicert.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Require signing secrets
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SIGNING_PFX_BASE64) -or
+              [string]::IsNullOrWhiteSpace($env:SIGNING_PFX_PASSWORD)) {
+              throw 'Signing secrets are missing. Refusing to build an unsigned release.'
+          }
+          Write-Host 'Signing secrets are present.'
+
+      - name: Validate tag against project version
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          if ($tag -notmatch '^v(?<version>\d+\.\d+\.\d+)(?<suffix>-[0-9A-Za-z][0-9A-Za-z.-]*)?$') {
+              throw "Tag '$tag' is not a release tag of the form v<major>.<minor>.<patch>."
+          }
+
+          [xml]$project = Get-Content -LiteralPath 'pcb-deftek.csproj'
+          $projectVersion = ($project.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
+          if ($Matches['version'] -ne $projectVersion) {
+              throw "Tag version $($Matches['version']) does not match project version $projectVersion."
+          }
+
+          "Tag `$tag` validated against project version `$projectVersion`." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore pcb-deftek.slnx
+
+      - name: Build (Release, warnings as errors)
+        run: dotnet build pcb-deftek.slnx -c Release --no-restore -warnaserror
+
+      - name: Unit tests
+        run: >
+          dotnet test tests/pcb-deftek.Tests/pcb-deftek.Tests.csproj
+          -c Release --no-build --no-restore
+          --filter "FullyQualifiedName!~DirectMlInferenceTests"
+          --logger "trx;LogFileName=unit.trx"
+          --results-directory artifacts/test-results
+          --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
+
+      - name: BDD tests
+        run: >
+          dotnet test tests/pcb-deftek.Bdd/pcb-deftek.Bdd.csproj
+          -c Release --no-build --no-restore
+          --logger "trx;LogFileName=bdd.trx"
+          --results-directory artifacts/test-results
+          --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Package and sign
+        shell: pwsh
+        run: ./build/package.ps1 -Sign -TimestampUrl $env:TIMESTAMP_URL
+
+      - name: Prepare release notes
+        shell: pwsh
+        run: |
+          $checklist = Get-Content -LiteralPath 'specs/2026-11-15-hardening-bdd-launch-readiness/launch-checklist.md'
+          $start = -1
+          $end = $checklist.Count
+          for ($i = 0; $i -lt $checklist.Count; $i++) {
+              if ($start -lt 0 -and $checklist[$i] -match '^## 7\. Release Notes') { $start = $i; continue }
+              if ($start -ge 0 -and $checklist[$i] -match '^## 8\.') { $end = $i; break }
+          }
+          if ($start -lt 0) { throw 'Release notes section (## 7) was not found in launch-checklist.md.' }
+
+          $version = ($env:GITHUB_REF_NAME -replace '^v', '' -replace '-.*$', '')
+          $installation = @(
+              '',
+              '## Installation',
+              '',
+              "- Download ``PCB-Deftek-$version-setup.exe`` and run it. The installer is per-user and needs no administrator rights.",
+              "- Or download ``PCB-Deftek-$version-portable-win-x64.zip`` and extract it anywhere.",
+              "- Verify downloads against ``SHA256SUMS.txt``:",
+              '',
+              '  ```powershell',
+              "  Get-FileHash .\PCB-Deftek-$version-setup.exe -Algorithm SHA256",
+              '  ```',
+              '',
+              'Windows may show an unknown-publisher warning until SmartScreen reputation is established for this certificate.',
+              ''
+          )
+
+          $notes = @($checklist[$start..($end - 1)]) + $installation
+          $notes | Out-File -FilePath (Join-Path $env:RUNNER_TEMP 'release-notes.md') -Encoding utf8
+
+      - name: Record checksums and signatures
+        shell: pwsh
+        run: |
+          Get-Content -LiteralPath 'artifacts/SHA256SUMS.txt' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+          $setup = Get-ChildItem -LiteralPath 'artifacts' -Filter 'PCB-Deftek-*-setup.exe' | Select-Object -First 1
+          $version = $setup.BaseName -replace '^PCB-Deftek-', '' -replace '-setup$', ''
+          $appExe = Join-Path 'artifacts' "pcb-deftek-$version-win-x64\pcb-deftek.exe"
+
+          Get-AuthenticodeSignature -LiteralPath $appExe |
+              Select-Object Status, @{ n = 'Publisher'; e = { $_.SignerCertificate.Subject } }, @{ n = 'Timestamped'; e = { $null -ne $_.TimeStamperCertificate } } |
+              Format-List | Out-String | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          Get-AuthenticodeSignature -LiteralPath $setup.FullName |
+              Select-Object Status, @{ n = 'Publisher'; e = { $_.SignerCertificate.Subject } }, @{ n = 'Timestamped'; e = { $null -ne $_.TimeStamperCertificate } } |
+              Format-List | Out-String | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Upload signed artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-release-assets
+          path: |
+            artifacts/PCB-Deftek-*-setup.exe
+            artifacts/PCB-Deftek-*-portable-win-x64.zip
+            artifacts/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          $arguments = @(
+              'release', 'create', $env:TAG_NAME,
+              '--verify-tag',
+              '--title', "PCB Deftek $($env:TAG_NAME)",
+              '--notes-file', (Join-Path $env:RUNNER_TEMP 'release-notes.md')
+          )
+          if ($env:TAG_NAME -match '-') {
+              $arguments += '--prerelease'
+          }
+
+          $assets = Get-ChildItem -LiteralPath 'artifacts' -File |
+              Where-Object { $_.Name -match '^(PCB-Deftek-.*-(setup\.exe|portable-win-x64\.zip)|SHA256SUMS\.txt)$' }
+          $arguments += @($assets | ForEach-Object { $_.FullName })
+
+          & gh @arguments
+          if ($LASTEXITCODE -ne 0) {
+              throw "gh release create failed with exit code $LASTEXITCODE"
+          }

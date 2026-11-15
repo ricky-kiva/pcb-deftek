@@ -57,6 +57,28 @@ Automated PCB trace defect detection and analysis for Windows. PCB Deftek inspec
 - Optional: a webcam for Live Detection
 - Optional: a DirectML-capable GPU for hardware-accelerated inference (falls back to CPU)
 
+## Installation
+
+Download the latest artifacts from the [Releases](https://github.com/ricky-kiva/pcb-deftek/releases) page.
+
+**Installer (recommended)** — per-user, no administrator rights:
+
+```powershell
+.\PCB-Deftek-<version>-setup.exe
+```
+
+The installer places the app in `%LOCALAPPDATA%\Programs\PCB Deftek`, adds a Start-menu shortcut (desktop shortcut optional), and registers an uninstaller. User data in `%LOCALAPPDATA%\PcbDeftek` and exported reports are left untouched by install and uninstall.
+
+**Portable** — extract `PCB-Deftek-<version>-portable-win-x64.zip` and run `pcb-deftek.exe`. The self-contained build includes the .NET runtime.
+
+Verify a download before running it:
+
+```powershell
+(Get-FileHash .\PCB-Deftek-<version>-setup.exe -Algorithm SHA256).Hash
+```
+
+Compare the value with the matching line in `SHA256SUMS.txt`. Release executables are Authenticode-signed with an RFC 3161 timestamp; Windows may still show an unknown-publisher warning until SmartScreen reputation builds.
+
 ## Getting started
 
 ```powershell
