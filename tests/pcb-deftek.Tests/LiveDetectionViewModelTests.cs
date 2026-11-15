@@ -290,11 +290,12 @@ public class LiveDetectionViewModelTests
                 e => e.FrameProcessed += null,
                 new LiveFrameProcessedEventArgs(frame)));
 
-            worker.Wait(TimeSpan.FromSeconds(2)).Should().BeTrue(
+            Func<Task> raiseFrame = () => worker.WaitAsync(TimeSpan.FromSeconds(2));
+            await raiseFrame.Should().NotThrowAsync(
                 "dispatching a frame to the UI must never block the inference worker");
 
             gate.Set();
-            worker.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+            await worker.WaitAsync(TimeSpan.FromSeconds(5));
         }
         finally
         {
@@ -343,7 +344,8 @@ public class LiveDetectionViewModelTests
                 _mockEngine.Raise(e => e.FrameProcessed += null, new LiveFrameProcessedEventArgs(third));
             });
 
-            worker.Wait(TimeSpan.FromSeconds(2)).Should().BeTrue(
+            Func<Task> raiseFrames = () => worker.WaitAsync(TimeSpan.FromSeconds(2));
+            await raiseFrames.Should().NotThrowAsync(
                 "queued frames must not block the inference worker");
 
             gate.Set();
